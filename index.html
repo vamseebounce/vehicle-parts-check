@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -37,7 +38,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .u0{background:#f1f5f9;color:#64748b}
 .cb{padding:14px 20px 18px}
 .st{font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#94a3b8;margin-bottom:8px;margin-top:2px}
-.pg{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+/* 3-column grid for parts — collapses to 1 col on very small screens */
+.pg{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px}
+@media(max-width:420px){.pg{grid-template-columns:1fr}}
 .pc{border-radius:12px;padding:11px 13px;border:1.5px solid #e2e8f0;background:#f8fafc}
 .pc.ov{background:#fff5f5;border-color:#fecaca}
 .pc.ok{background:#f0fdf4;border-color:#bbf7d0}
@@ -121,31 +124,40 @@ function sc(s){ return !s||s==='No Data'?'snd':s==='Overdue'?'sov':'sok'; }
 function pcc(s){ return !s||s==='No Data'?'':s==='Overdue'?'ov':'ok'; }
 function neg(n){ return n!=null&&n<0?'#dc2626':'#16a34a'; }
 
+function partCard(label, status, kmSince, kmRem, lastDate, lastHub){
+  return '<div class="pc '+pcc(status)+'">'
+    +'<div class="pn">'+label+'</div>'
+    +'<div class="ps '+sc(status)+'">'+(status||'No Data')+'</div>'
+    +'<div class="pd">Since: <b>'+fm(kmSince)+' km</b></div>'
+    +'<div class="pd">Rem: <b style="color:'+neg(kmRem)+'">'+fm(kmRem)+' km</b></div>'
+    +'<div class="pd">Replaced: <b>'+fd(lastDate)+'</b></div>'
+    +(lastHub?'<div class="pd">Hub: <b>'+lastHub+'</b></div>':'')
+    +'</div>';
+}
+
 function card(v){
   var ul=v.overall_urgency===1?'Critical':v.overall_urgency===2?'Moderate':v.overall_urgency===3?'Good':'OK';
+
+  // Support both old (brake_*) and new (front_brake_* / rear_brake_*) column schemas
+  var hasSplit = v.front_brake_status !== undefined || v.rear_brake_status !== undefined;
+
+  var partsHtml;
+  if(hasSplit){
+    partsHtml=partCard('Front Brake', v.front_brake_status, v.front_brake_km_since, v.front_brake_km_remaining, v.last_front_brake_replaced_date, v.last_front_brake_replaced_hub)
+      +partCard('Rear Brake', v.rear_brake_status, v.rear_brake_km_since, v.rear_brake_km_remaining, v.last_rear_brake_replaced_date, v.last_rear_brake_replaced_hub)
+      +partCard('Tyre', v.tyre_status, v.tyre_km_since, v.tyre_km_remaining, v.last_tyre_replaced_date, v.last_tyre_replaced_hub);
+  } else {
+    // Fallback: old combined brake column — 2-col layout
+    partsHtml=partCard('Brake', v.brake_status, v.brake_km_since, v.brake_km_remaining, v.last_brake_replaced_date, v.last_brake_replaced_hub)
+      +partCard('Tyre', v.tyre_status, v.tyre_km_since, v.tyre_km_remaining, v.last_tyre_replaced_date, v.last_tyre_replaced_hub);
+  }
+
   return '<div class="card">'
     +'<div class="ch"><div><div class="reg">'+v.reg_number+'</div><div class="bid">Bike #'+v.bike_id+'</div></div>'
     +'<div class="ub u'+(v.overall_urgency||0)+'">'+ul+'</div></div>'
     +'<div class="cb">'
     +'<div class="st">Parts Status</div>'
-    +'<div class="pg">'
-    +'<div class="pc '+pcc(v.brake_status)+'">'
-    +'<div class="pn">Brake</div>'
-    +'<div class="ps '+sc(v.brake_status)+'">'+(v.brake_status||'No Data')+'</div>'
-    +'<div class="pd">Since: <b>'+fm(v.brake_km_since)+' km</b></div>'
-    +'<div class="pd">Remaining: <b style="color:'+neg(v.brake_km_remaining)+'">'+fm(v.brake_km_remaining)+' km</b></div>'
-    +'<div class="pd">Replaced: <b>'+fd(v.last_brake_replaced_date)+'</b></div>'
-    +(v.last_brake_replaced_hub?'<div class="pd">Hub: <b>'+v.last_brake_replaced_hub+'</b></div>':'')
-    +'</div>'
-    +'<div class="pc '+pcc(v.tyre_status)+'">'
-    +'<div class="pn">Tyre</div>'
-    +'<div class="ps '+sc(v.tyre_status)+'">'+(v.tyre_status||'No Data')+'</div>'
-    +'<div class="pd">Since: <b>'+fm(v.tyre_km_since)+' km</b></div>'
-    +'<div class="pd">Remaining: <b style="color:'+neg(v.tyre_km_remaining)+'">'+fm(v.tyre_km_remaining)+' km</b></div>'
-    +'<div class="pd">Replaced: <b>'+fd(v.last_tyre_replaced_date)+'</b></div>'
-    +(v.last_tyre_replaced_hub?'<div class="pd">Hub: <b>'+v.last_tyre_replaced_hub+'</b></div>':'')
-    +'</div>'
-    +'</div>'
+    +'<div class="pg">'+partsHtml+'</div>'
     +'<div class="st">Odometer</div>'
     +'<div class="or">'
     +'<div class="oi"><div class="ol">Est. Current</div><div class="ov3">'+fm(v.estimated_current_odo)+'</div><div class="os">km</div></div>'
@@ -158,4 +170,3 @@ function card(v){
 </script>
 </body>
 </html>
- 
