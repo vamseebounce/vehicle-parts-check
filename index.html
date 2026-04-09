@@ -109,7 +109,7 @@ si.addEventListener('input',function(){
 function go(v){ si.value=v; si.dispatchEvent(new Event('input')); }
 
 function run(q){
-  fetch(SB+'/rest/v1/vehicle_parts_check_flag?reg_number=ilike.'+encodeURIComponent(q+'%')+'&limit=10&select=*&order=overall_urgency.asc',
+  fetch(SB+'/rest/v1/vehicle_parts_check_flag?reg_number=ilike.'+encodeURIComponent('%'+q+'%')+'&limit=10&select=*&order=overall_urgency.asc',
     {headers:{apikey:K,Authorization:'Bearer '+K}})
   .then(function(r){ return r.json(); })
   .then(function(d){
@@ -156,9 +156,20 @@ function card(v){
       +partCard('Tyre', v.tyre_status, v.tyre_km_since, v.tyre_km_remaining, v.last_tyre_replaced_date, v.last_tyre_replaced_hub);
   }
 
+  // Vehicle status badge colour
+  var stCls = v.current_status==='Deployed'?'#16a34a':v.current_status==='OOS'||v.current_status==='In Repair'?'#dc2626':'#64748b';
+
   return '<div class="card">'
     +'<div class="ch"><div><div class="reg">'+v.reg_number+'</div><div class="bid">Bike #'+v.bike_id+'</div></div>'
     +'<div class="ub u'+(v.overall_urgency||0)+'">'+ul+'</div></div>'
+    // Vehicle info row
+    +(v.current_status||v.deployed_hub||v.last_service_hub?
+      '<div style="display:flex;gap:16px;flex-wrap:wrap;padding:10px 14px 4px;font-size:.78rem;color:#64748b;border-bottom:1px solid #f1f5f9">'
+      +(v.current_status?'<span>Status: <b style="color:'+stCls+'">'+v.current_status+'</b></span>':'')
+      +(v.deployed_hub?'<span>Deployed: <b style="color:#1e293b">'+v.deployed_hub+'</b></span>':'')
+      +(v.last_service_hub?'<span>Last Service: <b style="color:#1e293b">'+v.last_service_hub+'</b></span>':'')
+      +'</div>'
+    :'')
     +'<div class="cb">'
     +'<div class="st">Parts Status</div>'
     +'<div class="pg">'+partsHtml+'</div>'
