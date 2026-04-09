@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>OOS Work Queue — Bounce Ops</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f0f4f8;min-height:100vh}
+.hd{background:linear-gradient(135deg,#1a1a2e,#0f3460);padding:28px 20px 36px;text-align:center}
+.hd h1{color:#fff;font-size:1.5rem;font-weight:800;margin-bottom:4px}
+.hd p{color:rgba(255,255,255,.5);font-size:.82rem;margin-bottom:18px}
+.nav{display:flex;gap:10px;justify-content:center;margin-top:4px}
+.nav a{color:rgba(255,255,255,.6);font-size:.78rem;text-decoration:none;padding:4px 12px;border-radius:20px;border:1px solid rgba(255,255,255,.2)}
+.nav a:hover{background:rgba(255,255,255,.1);color:#fff}
+.nav a.active{background:rgba(255,255,255,.15);color:#fff;border-color:rgba(255,255,255,.4)}
+
+/* Hub filter tabs */
+.tabs{max-width:900px;margin:0 auto;padding:16px 16px 0;display:flex;gap:8px;flex-wrap:wrap}
+.tab{padding:6px 14px;border-radius:20px;font-size:.78rem;font-weight:600;cursor:pointer;border:1.5px solid #e2e8f0;background:#fff;color:#64748b;transition:all .15s}
+.tab.active{background:#0f3460;color:#fff;border-color:#0f3460}
+
+.wrap{max-width:900px;margin:0 auto;padding:16px 16px 60px}
+.synced{text-align:right;color:#94a3b8;font-size:.74rem;margin-bottom:10px}
+
+/* Hub section */
+.hub-section{margin-bottom:24px}
+.hub-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;padding:0 4px}
+.hub-name{font-size:1rem;font-weight:800;color:#1e293b}
+.hub-meta{font-size:.76rem;color:#64748b}
+.hub-meta span{margin-left:12px}
+
+/* Queue table */
+.qtable{width:100%;border-collapse:collapse;background:#fff;border-radius:14px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.06)}
+.qtable th{background:#f8fafc;padding:9px 12px;text-align:left;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:#94a3b8;border-bottom:1px solid #f1f5f9}
+.qtable td{padding:11px 12px;font-size:.82rem;color:#374151;border-bottom:1px solid #f8fafc;vertical-align:middle}
+.qtable tr:last-child td{border-bottom:none}
+.qtable tr:hover td{background:#f8fafc}
+
+/* Queue position badge */
+.qpos{width:26px;height:26px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:.72rem;font-weight:800;background:#e2e8f0;color:#475569}
+.qpos.q1{background:#fee2e2;color:#dc2626}
+.qpos.q2{background:#fef3c7;color:#d97706}
+.qpos.q3{background:#fef9c3;color:#ca8a04}
+
+/* Vehicle reg */
+.reg{font-weight:700;color:#1e293b;font-size:.85rem;letter-spacing:.5px}
+
+/* OOS age badge */
+.age{display:inline-block;padding:2px 8px;border-radius:8px;font-size:.72rem;font-weight:700}
+.age.a0{background:#dcfce7;color:#16a34a}   /* <1 day */
+.age.a1{background:#fef9c3;color:#ca8a04}   /* 1-2 days */
+.age.a2{background:#fef3c7;color:#d97706}   /* 2-3 days */
+.age.a3{background:#fee2e2;color:#dc2626}   /* 3+ days */
+
+/* Time estimate */
+.ttime{font-weight:700;color:#0f3460}
+.parts-flag{display:inline-block;margin-left:6px;font-size:.68rem;background:#ede9fe;color:#7c3aed;padding:1px 6px;border-radius:6px;font-weight:600}
+
+/* Cumulative */
+.cumul{color:#94a3b8;font-size:.78rem}
+
+/* Loading */
+.dots{text-align:center;padding:60px}
+.dot{display:inline-block;width:8px;height:8px;background:#3b82f6;border-radius:50%;margin:0 3px;animation:bop 1s infinite}
+.dot:nth-child(2){animation-delay:.15s}.dot:nth-child(3){animation-delay:.3s}
+@keyframes bop{0%,100%{transform:translateY(0)}45%{transform:translateY(-9px)}}
+
+.empty{text-align:center;padding:40px;color:#94a3b8;font-size:.9rem}
+</style>
+</head>
+<body>
+
+<div class="hd">
+  <h1>OOS Work Queue</h1>
+  <p>FIFO repair order · Updated hourly · Est. time includes parts coordination</p>
+  <div class="nav">
+    <a href="/">Parts Check</a>
+    <a href="/queue" class="active">Work Queue</a>
+  </div>
+</div>
+
+<div class="tabs" id="tabs"></div>
+
+<div class="wrap">
+  <div class="synced" id="synced"></div>
+  <div id="content"><div class="dots"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div></div>
+</div>
+
+<script>
+const SUPABASE_URL = 'https://clkfvmmlgwcvntxnolsv.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNsa2Z2bW1sZ3djdm50eG5vbHN2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDU0NDY1OCwiZXhwIjoyMDkwMTIwNjU4fQ.placeholder';
+
+let allData = [];
+let activeHub = 'ALL';
+
+async function load() {
+  const res = await fetch(
+    `${SUPABASE_URL}/rest/v1/oos_work_queue?select=*&order=hub.asc,queue_position.asc`,
+    { headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` } }
+  );
+  allData = await res.json();
+  renderTabs();
+  renderContent();
+  if (allData.length > 0 && allData[0].synced_at) {
+    const d = new Date(allData[0].synced_at);
+    document.getElementById('synced').textContent =
+      'Last synced: ' + d.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
+  }
+}
+
+function renderTabs() {
+  const hubs = ['ALL', ...new Set(allData.map(r => r.hub).filter(Boolean))].sort();
+  const el = document.getElementById('tabs');
+  el.innerHTML = hubs.map(h =>
+    `<div class="tab${h === activeHub ? ' active' : ''}" onclick="setHub('${h}')">${h}</div>`
+  ).join('');
+}
+
+function setHub(hub) {
+  activeHub = hub;
+  renderTabs();
+  renderContent();
+}
+
+function ageCls(days) {
+  if (days < 1)  return 'a0';
+  if (days < 2)  return 'a1';
+  if (days < 3)  return 'a2';
+  return 'a3';
+}
+
+function posCls(pos) {
+  if (pos === 1) return 'q1';
+  if (pos === 2) return 'q2';
+  if (pos === 3) return 'q3';
+  return '';
+}
+
+function fmtTime(mins) {
+  if (!mins) return '—';
+  const h = Math.floor(mins / 60);
+  const m = mins % 60;
+  if (h === 0) return `${m}m`;
+  return m === 0 ? `${h}h` : `${h}h ${m}m`;
+}
+
+function fmtDate(iso) {
+  if (!iso) return '—';
+  return new Date(iso).toLocaleString('en-IN', {
+    timeZone: 'Asia/Kolkata', day: '2-digit', month: 'short',
+    hour: '2-digit', minute: '2-digit', hour12: true
+  });
+}
+
+function renderContent() {
+  const data = activeHub === 'ALL' ? allData : allData.filter(r => r.hub === activeHub);
+
+  if (!data.length) {
+    document.getElementById('content').innerHTML =
+      '<div class="empty">No vehicles currently in OOS queue 🎉</div>';
+    return;
+  }
+
+  // Group by hub
+  const byHub = {};
+  data.forEach(r => {
+    if (!byHub[r.hub]) byHub[r.hub] = [];
+    byHub[r.hub].push(r);
+  });
+
+  let html = '';
+  for (const [hub, rows] of Object.entries(byHub)) {
+    const totalMins = rows.reduce((s, r) => s + (r.estimated_mins || 0), 0);
+    const oldest = rows.reduce((a, b) =>
+      (a.days_in_oos || 0) > (b.days_in_oos || 0) ? a : b, rows[0]);
+
+    html += `
+      <div class="hub-section">
+        <div class="hub-header">
+          <div class="hub-name">${hub}</div>
+          <div class="hub-meta">
+            <span>${rows.length} vehicle${rows.length > 1 ? 's' : ''}</span>
+            <span>Est. total: <b>${fmtTime(totalMins)}</b></span>
+            <span>Oldest: <b>${oldest.days_in_oos}d</b></span>
+          </div>
+        </div>
+        <table class="qtable">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Vehicle</th>
+              <th>OOS Since</th>
+              <th>Age</th>
+              <th>Planned Work</th>
+              <th>Est. Time</th>
+              <th>By End of Slot</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rows.map(r => `
+              <tr>
+                <td><span class="qpos ${posCls(r.queue_position)}">${r.queue_position}</span></td>
+                <td><span class="reg">${r.reg_number || '—'}</span></td>
+                <td>${fmtDate(r.oos_since)}</td>
+                <td><span class="age ${ageCls(r.days_in_oos || 0)}">${r.days_in_oos}d</span></td>
+                <td>${r.labour_items || '—'}${r.has_parts ? '<span class="parts-flag">+ Parts</span>' : ''}</td>
+                <td><span class="ttime">${fmtTime(r.estimated_mins)}</span></td>
+                <td><span class="cumul">${fmtTime(r.cumulative_mins)}</span></td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>`;
+  }
+
+  document.getElementById('content').innerHTML = html;
+}
+
+load();
+</script>
+</body>
+</html>
