@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -89,24 +90,33 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
 <script>
 const SUPABASE_URL = 'https://clkfvmmlgwcvntxnolsv.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNsa2Z2bW1sZ3djdm50eG5vbHN2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDU0NDY1OCwiZXhwIjoyMDkwMTIwNjU4fQ.placeholder';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNsa2Z2bW1sZ3djdm50eG5vbHN2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ1NDQ2NTgsImV4cCI6MjA5MDEyMDY1OH0.FA33GFQisWX_hDeGCWqL5yAZmPcuQRdxZX32I23lyoY';
 
 let allData = [];
 let activeHub = 'ALL';
 
 async function load() {
-  const res = await fetch(
-    `${SUPABASE_URL}/rest/v1/oos_work_queue?select=*&order=hub.asc,queue_position.asc`,
-    { headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` } }
-  );
-  allData = await res.json();
+  try {
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/oos_work_queue?select=*&order=hub.asc,queue_position.asc`,
+      { headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` } }
+    );
+    if (!res.ok) throw new Error(`Supabase error: ${res.status}`);
+    allData = await res.json();
+    if (allData.length > 0 && allData[0].synced_at) {
+      const d = new Date(allData[0].synced_at);
+      document.getElementById('synced').textContent =
+        'Last synced: ' + d.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
+    } else {
+      document.getElementById('synced').textContent = 'Queue not yet synced — check back after next hourly run';
+    }
+  } catch (e) {
+    document.getElementById('content').innerHTML =
+      '<div class="empty">⚠️ Could not load queue data. ' + e.message + '</div>';
+    return;
+  }
   renderTabs();
   renderContent();
-  if (allData.length > 0 && allData[0].synced_at) {
-    const d = new Date(allData[0].synced_at);
-    document.getElementById('synced').textContent =
-      'Last synced: ' + d.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
-  }
 }
 
 function renderTabs() {
@@ -221,3 +231,4 @@ load();
 </script>
 </body>
 </html>
+
