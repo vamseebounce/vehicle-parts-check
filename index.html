@@ -180,6 +180,12 @@ function card(v){
     +'<div class="oi"><div class="ol">Days Since JC</div><div class="ov3">'+(v.days_since_last_jc!=null?v.days_since_last_jc:'--')+'</div><div class="os">days</div></div>'
     +'</div>'
     +(v.check_required?'<div class="chk warn">&#9888; Check Required</div>':'<div class="chk clr">&#10003; No Check Required</div>')
+    // PMS / HST activity flags based on days since last JC
+    +(v.days_since_last_jc!=null && v.days_since_last_jc > 30
+      ? '<div class="chk" style="background:#fee2e2;color:#dc2626;border-color:#fca5a5">&#9888; PMS Required — '+v.days_since_last_jc+' days since last JC (threshold: 30 days)</div>'
+      : v.days_since_last_jc!=null && v.days_since_last_jc > 15
+        ? '<div class="chk" style="background:#fef3c7;color:#d97706;border-color:#fcd34d">&#9888; HST Activity Required — '+v.days_since_last_jc+' days since last JC (threshold: 15 days)</div>'
+        : '')
     +'</div></div>';
 }
 </script>
