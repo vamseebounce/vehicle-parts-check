@@ -222,27 +222,38 @@ body.pinned #main{margin-left:var(--sb-width)}
 .pc.pds{background:var(--due-bg);border-color:#FDE68A}
 .pc.pok{background:var(--ok-bg);border-color:#BBF7D0}
 .pc-stripe{position:absolute;top:0;left:0;width:3px;height:100%}
-.pc-inner{padding:10px 11px 10px 13px}
-.pn{font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--muted);margin-bottom:2px}
-.pthresh{font-size:.58rem;color:#CBD5E1;font-weight:500}
-.ps{font-size:.88rem;font-weight:700;margin-bottom:5px}
+.pc-inner{padding:10px 11px 9px 13px}
+/* Header row: part name + threshold */
+.pc-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:3px}
+.pn{font-size:.59rem;font-weight:700;text-transform:uppercase;letter-spacing:.65px;color:var(--muted);flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pthresh{font-size:.6rem;color:#94A3B8;font-weight:700;letter-spacing:.3px;flex-shrink:0;margin-left:5px}
+/* Status */
+.ps{font-size:.85rem;font-weight:700;margin-bottom:4px;line-height:1.2}
 .ps.sov{color:var(--overdue)}
 .ps.sds{color:var(--due)}
 .ps.sok{color:var(--ok)}
 .ps.snd{color:var(--muted)}
-.pb-wrap{margin-bottom:7px}
-.pb-track{width:100%;height:3px;background:rgba(0,0,0,.08);border-radius:2px;overflow:hidden}
-.pb-fill{height:100%;border-radius:2px;transition:width .4s ease}
+/* Progress bar + rem label */
+.pb-wrap{margin-bottom:5px}
+.pb-row{display:flex;align-items:center;gap:6px;margin-bottom:2px}
+.pb-track{flex:1;height:5px;background:rgba(0,0,0,.08);border-radius:3px;overflow:hidden}
+.pb-fill{height:100%;border-radius:3px;transition:width .4s ease}
 .pb-fill.fov{background:var(--overdue)}
 .pb-fill.fds{background:var(--due)}
 .pb-fill.fok{background:var(--ok)}
 .pb-fill.fnd{background:#E2E8F0}
-.pd{font-size:.7rem;color:var(--muted);margin-top:2px;line-height:1.4}
+.pb-rem{font-size:.64rem;font-weight:700;flex-shrink:0;white-space:nowrap}
+/* Data rows */
+.pd-grid{display:grid;grid-template-columns:1fr 1fr;gap:1px 8px;margin-bottom:3px}
+.pd{font-size:.68rem;color:var(--muted);line-height:1.5}
 .pd b{color:#374151;font-weight:600}
+.pd-lbl{font-size:.58rem;text-transform:uppercase;letter-spacing:.4px;opacity:.55;display:block;line-height:1.2}
+.pd-hub{font-size:.66rem;color:#64748B;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border-top:1px solid rgba(0,0,0,.06);padding-top:4px;margin-top:2px;cursor:default}
 .neg{color:var(--overdue)!important}
 .pos{color:var(--ok)!important}
-.pc-na{opacity:.4}
-.pc-na .ps{color:#CBD5E1}
+/* N/A tiles: minimal */
+.pc-na{opacity:.35}
+.pc-na .ps{color:#CBD5E1;font-size:.75rem}
 
 /* Flags */
 .flags{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
@@ -626,30 +637,52 @@ function partCard(label,status,kmSince,kmRem,lastDate,lastHub,thresh){
   var s=status||'No Data';
   if(s==='N/A'){
     return '<div class="pc pc-na">'
-      +'<div class="pc-stripe" style="background:var(--na)"></div>'
+      +'<div class="pc-stripe" style="background:#E2E8F0"></div>'
       +'<div class="pc-inner">'
-      +'<div class="pn">'+label+'</div>'
+      +'<div class="pc-head"><span class="pn">'+label+'</span></div>'
       +'<div class="ps snd">N/A</div>'
-      +'<div class="pd" style="color:#CBD5E1;font-size:.67rem">Not applicable</div>'
       +'</div></div>';
   }
   var sc=s==='Overdue'?'sov':s==='Due Soon'?'sds':s==='OK'?'sok':'snd';
   var fc=s==='Overdue'?'fov':s==='Due Soon'?'fds':s==='OK'?'fok':'fnd';
   var str=s==='Overdue'?'var(--overdue)':s==='Due Soon'?'var(--due)':s==='OK'?'var(--ok)':'var(--na)';
   var tc=s==='Overdue'?'pov':s==='Due Soon'?'pds':s==='OK'?'pok':'';
+  var icon=s==='Overdue'?'✕ ':s==='Due Soon'?'◷ ':s==='OK'?'✓ ':'';
+  var threshLabel=thresh?(thresh/1000)+'K':'';
+  // Progress bar: overdue = full red bar; otherwise % remaining
   var pct=0;
-  if(thresh&&kmRem!=null) pct=Math.max(0,Math.min(100,Math.round((kmRem/thresh)*100)));
+  if(thresh&&kmRem!=null){
+    pct=s==='Overdue'?100:Math.max(0,Math.min(100,Math.round((kmRem/thresh)*100)));
+  }
+  // Rem label next to bar
   var remColor=(kmRem!=null&&kmRem<0)?'neg':(kmRem!=null&&s==='OK'?'pos':'');
-  var threshLabel=thresh?' / '+(thresh/1000)+'k':'';
+  var remTxt=kmRem!=null
+    ?(kmRem<0?fm(Math.abs(kmRem))+'km over':fm(kmRem)+'km rem')
+    :'--';
+  // Hub: strip long company prefix, keep location name
+  var hubDisplay=lastHub
+    ?lastHub.replace(/bounce electric \d+ private ltd[\s\-–]*/i,'').trim()||lastHub
+    :'';
+
   return '<div class="pc '+tc+'">'
     +'<div class="pc-stripe" style="background:'+str+'"></div>'
     +'<div class="pc-inner">'
-    +'<div class="pn">'+label+'<span class="pthresh">'+threshLabel+'</span></div>'
-    +'<div class="ps '+sc+'">'+s+'</div>'
-    +'<div class="pb-wrap"><div class="pb-track"><div class="pb-fill '+fc+'" style="width:'+pct+'%"></div></div></div>'
-    +(kmSince!=null?'<div class="pd">Since: <b>'+fm(kmSince)+'km</b></div>':'')
-    +(kmRem!=null?'<div class="pd">Rem: <b class="'+remColor+'">'+fm(kmRem)+'km</b></div>':'<div class="pd">Rem: <b>--</b></div>')
-    +'<div class="pd">Last: <b>'+fd(lastDate)+'</b>'+(lastHub?' · '+lastHub:'')+'</div>'
+    // Header: name + threshold
+    +'<div class="pc-head"><span class="pn">'+label+'</span><span class="pthresh">'+threshLabel+'</span></div>'
+    // Status
+    +'<div class="ps '+sc+'">'+icon+s+'</div>'
+    // Bar + rem label
+    +'<div class="pb-wrap"><div class="pb-row">'
+    +'<div class="pb-track"><div class="pb-fill '+fc+'" style="width:'+pct+'%"></div></div>'
+    +'<span class="pb-rem '+remColor+'">'+remTxt+'</span>'
+    +'</div></div>'
+    // Since + Last date on one row
+    +'<div class="pd-grid">'
+    +(kmSince!=null?'<div class="pd"><span class="pd-lbl">Since</span><b>'+fm(kmSince)+'km</b></div>':'<div></div>')
+    +(lastDate?'<div class="pd"><span class="pd-lbl">Last</span><b>'+fd(lastDate)+'</b></div>':'<div></div>')
+    +'</div>'
+    // Hub — truncated single line
+    +(hubDisplay?'<div class="pd-hub" title="'+(lastHub||'')+'">'+hubDisplay+'</div>':'')
     +'</div></div>';
 }
 
