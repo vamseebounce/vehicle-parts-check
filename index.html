@@ -123,17 +123,25 @@ function run(q){
 
 function fm(v){ return v!=null?Number(v).toLocaleString('en-IN'):'--'; }
 function fd(d){ return d?new Date(d).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'}):'--'; }
-function sc(s){ return !s||s==='No Data'?'snd':s==='Overdue'?'sov':'sok'; }
-function pcc(s){ return !s||s==='No Data'?'':s==='Overdue'?'ov':'ok'; }
+function sc(s){ return !s||s==='No Data'?'snd':s==='Overdue'?'sov':s==='N/A'?'snd':'sok'; }
+function pcc(s){ return !s||s==='No Data'||s==='N/A'?'':s==='Overdue'?'ov':'ok'; }
 function neg(n){ return n!=null&&n<0?'#dc2626':'#16a34a'; }
 
 function partCard(label, status, kmSince, kmRem, lastDate, lastHub){
+  var s = status || 'No Data';
+  if(s === 'N/A'){
+    return '<div class="pc" style="opacity:.45">'
+      +'<div class="pn">'+label+'</div>'
+      +'<div class="ps snd">N/A</div>'
+      +'<div class="pd" style="font-size:.7rem;color:#94a3b8">Not applicable for this model</div>'
+      +'</div>';
+  }
   return '<div class="pc '+pcc(status)+'">'
     +'<div class="pn">'+label+'</div>'
-    +'<div class="ps '+sc(status)+'">'+(status||'No Data')+'</div>'
+    +'<div class="ps '+sc(status)+'">'+s+'</div>'
     +'<div class="pd">Since: <b>'+fm(kmSince)+' km</b></div>'
     +'<div class="pd">Rem: <b style="color:'+neg(kmRem)+'">'+fm(kmRem)+' km</b></div>'
-    +'<div class="pd">Replaced: <b>'+fd(lastDate)+'</b></div>'
+    +'<div class="pd">Last Svc: <b>'+fd(lastDate)+'</b></div>'
     +(lastHub?'<div class="pd">Hub: <b>'+lastHub+'</b></div>':'')
     +'</div>';
 }
