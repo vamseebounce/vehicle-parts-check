@@ -823,13 +823,13 @@ function dlCSV(bikeId, reg){
     rows.sort(function(a,b){ return String(b[0]).localeCompare(String(a[0])); });
 
     var lines=[];
-    lines.push('JC History — '+reg+' (downloaded '+today+')');
+    lines.push('JC History - '+reg+' (downloaded '+today+')');
     lines.push(csvRow(['JC No','Date','Hub','ODO','Service Type','Item Type','Item Name','Qty','Amount (₹)','Technician','Source']));
     rows.forEach(function(r){ lines.push(csvRow(r)); });
 
     if(!rows.length) lines.push('No JC history found for this vehicle');
 
-    var blob=new Blob([lines.join('\n')],{type:'text/csv'});
+    var blob=new Blob(['﻿'+lines.join('\n')],{type:'text/csv;charset=utf-8;'});
     var a=document.createElement('a');
     a.href=URL.createObjectURL(blob);
     a.download='JC_History_'+reg+'_'+today+'.csv';
