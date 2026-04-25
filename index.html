@@ -7,7 +7,39 @@
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <style>
+
+/* ── Auth Screen ── */
+#auth-screen{
+  position:fixed;inset:0;z-index:1000;
+  background:linear-gradient(135deg,#1A1A2E 0%,#0f2460 100%);
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Inter',sans-serif;
+}
+#auth-screen.hidden{display:none!important}
+.auth-card{
+  background:#fff;border-radius:24px;padding:40px 36px;
+  width:100%;max-width:380px;box-shadow:0 24px 80px rgba(0,0,0,.3);
+  text-align:center;
+}
+.auth-logo{display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:24px}
+.auth-logo-name{font-size:1.1rem;font-weight:800;color:#0F172A}
+.auth-logo-sub{font-size:.7rem;color:#6B7280;font-weight:500;letter-spacing:.5px;text-transform:uppercase;margin-top:2px}
+.auth-title{font-size:1.3rem;font-weight:800;color:#0F172A;margin-bottom:6px}
+.auth-sub{font-size:.82rem;color:#6B7280;margin-bottom:28px;line-height:1.6}
+.google-btn{
+  width:100%;padding:13px 16px;background:#fff;color:#374151;
+  border:1.5px solid #E5E7EB;border-radius:12px;
+  font-size:.9rem;font-weight:600;cursor:pointer;
+  font-family:'Inter',sans-serif;transition:all .15s;
+  display:flex;align-items:center;justify-content:center;gap:10px;
+}
+.google-btn:hover{border-color:#D1D5DB;background:#F9FAFB;box-shadow:0 2px 8px rgba(0,0,0,.08)}
+.google-btn svg{flex-shrink:0}
+.auth-domain{display:inline-block;background:#F0FDF4;color:#16A34A;border:1px solid #BBF7D0;border-radius:8px;padding:4px 12px;font-size:.75rem;font-weight:600;margin-bottom:24px}
+.auth-msg{font-size:.78rem;margin-top:14px;min-height:18px;line-height:1.5;color:#DC2626}
+</style>
 :root{
   --brand:#E8191C;
   --brand-dark:#B01010;
@@ -240,6 +272,28 @@ body.pinned #main{margin-left:var(--sb-width)}
 </head>
 <body>
 
+<!-- ── Auth Screen ── -->
+<div id="auth-screen">
+  <div class="auth-card">
+    <div class="auth-logo">
+      <img id="auth-logo-img" width="44" height="44" style="border-radius:10px;object-fit:cover;flex-shrink:0"/>
+      <div>
+        <div class="auth-logo-name">Bounce Daily</div>
+        <div class="auth-logo-sub">FleetPro</div>
+      </div>
+    </div>
+
+    <div class="auth-title">Welcome to FleetPro</div>
+    <div class="auth-sub">Fleet health & maintenance tool<br/>for Bounce operations.</div>
+    <div class="auth-domain">@bounceshare.com only</div>
+    <button class="google-btn" id="google-btn" onclick="signInWithGoogle()">
+      <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.08 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-3.59-13.46-8.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/><path fill="none" d="M0 0h48v48H0z"/></svg>
+      Sign in with Google
+    </button>
+    <div id="auth-msg" class="auth-msg"></div>
+  </div>
+</div>
+
 <!-- Overlay -->
 <div id="ov"></div>
 
@@ -306,6 +360,7 @@ body.pinned #main{margin-left:var(--sb-width)}
     </div>
     <div class="tb-right">
       <div class="crit-badge" id="critBadge"></div>
+      <button id="logout-btn" onclick="signOut()" style="display:none;background:none;border:1px solid #E5E7EB;border-radius:8px;padding:5px 12px;font-size:.72rem;font-weight:600;color:#6B7280;cursor:pointer;font-family:'Inter',sans-serif;transition:all .15s" onmouseover="this.style.borderColor='#E8191C';this.style.color='#E8191C'" onmouseout="this.style.borderColor='#E5E7EB';this.style.color='#6B7280'">Sign out</button>
     </div>
   </header>
 
@@ -351,8 +406,93 @@ body.pinned #main{margin-left:var(--sb-width)}
 
 <script>
 // ── Supabase config ──────────────────────────────────────────────────
-var SB='https://clkfvmmlgwcvntxnolsv.supabase.co';
-var K='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNsa2Z2bW1sZ3djdm50eG5vbHN2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ1NDQ2NTgsImV4cCI6MjA5MDEyMDY1OH0.FA33GFQisWX_hDeGCWqL5yAZmPcuQRdxZX32I23lyoY';
+var SB_URL='https://clkfvmmlgwcvntxnolsv.supabase.co';
+var ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNsa2Z2bW1sZ3djdm50eG5vbHN2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ1NDQ2NTgsImV4cCI6MjA5MDEyMDY1OH0.FA33GFQisWX_hDeGCWqL5yAZmPcuQRdxZX32I23lyoY';
+var SB=SB_URL;
+var K=ANON_KEY;
+
+// ── Supabase Auth client ─────────────────────────────────────────────
+var sbClient = supabase.createClient(SB_URL, ANON_KEY, {
+  auth: {
+    persistSession: true,
+    storageKey: 'fleetpro_session',
+    autoRefreshToken: true
+  }
+});
+
+// ── Auth helpers ─────────────────────────────────────────────────────
+function showAuthScreen(){
+  document.getElementById('auth-screen').classList.remove('hidden');
+  document.getElementById('auth-msg').textContent='';
+  document.getElementById('google-btn').disabled=false;
+  document.getElementById('google-btn').innerHTML='<svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.08 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-3.59-13.46-8.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/><path fill="none" d="M0 0h48v48H0z"/></svg>Sign in with Google';
+}
+function hideAuthScreen(){ document.getElementById('auth-screen').classList.add('hidden'); }
+
+async function signInWithGoogle(){
+  var btn=document.getElementById('google-btn');
+  btn.disabled=true;
+  btn.innerHTML='Redirecting to Google…';
+  var { error } = await sbClient.auth.signInWithOAuth({
+    provider:'google',
+    options:{
+      redirectTo: window.location.origin + window.location.pathname,
+      queryParams:{ hd:'bounceshare.com' }
+    }
+  });
+  if(error){
+    document.getElementById('auth-msg').textContent=error.message;
+    btn.disabled=false;
+    btn.innerHTML='<svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.08 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-3.59-13.46-8.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/><path fill="none" d="M0 0h48v48H0z"/></svg>Sign in with Google';
+  }
+}
+
+async function signOut(){
+  await sbClient.auth.signOut();
+  document.getElementById('logout-btn').style.display='none';
+  showAuthScreen();
+}
+
+// ── Session bootstrap ────────────────────────────────────────────────
+(async function(){
+  // Copy logo base64 into auth screen logo
+  var mainLogo = document.querySelector('.sb-brand img');
+  if(mainLogo) document.getElementById('auth-logo-img').src = mainLogo.src;
+
+  var { data: { session } } = await sbClient.auth.getSession();
+
+  if(session){
+    K = session.access_token;
+    hideAuthScreen();
+    document.getElementById('logout-btn').style.display='block';
+  } else {
+    showAuthScreen();
+  }
+
+  // Listen for auth state changes (Google OAuth callback)
+  sbClient.auth.onAuthStateChange(async function(event, session){
+    if((event==='SIGNED_IN' || event==='INITIAL_SESSION') && session){
+      // Enforce @bounceshare.com domain
+      var email = session.user.email || '';
+      if(!email.endsWith('@bounceshare.com')){
+        await sbClient.auth.signOut();
+        document.getElementById('auth-msg').textContent='Access restricted to @bounceshare.com accounts only.';
+        showAuthScreen();
+        return;
+      }
+      K = session.access_token;
+      hideAuthScreen();
+      document.getElementById('logout-btn').style.display='block';
+      document.getElementById('logout-btn').title='Signed in as '+email;
+    } else if(event==='SIGNED_OUT'){
+      K = ANON_KEY;
+      document.getElementById('logout-btn').style.display='none';
+      showAuthScreen();
+    } else if(event==='TOKEN_REFRESHED' && session){
+      K = session.access_token;
+    }
+  });
+})();
 
 // ── Sidebar ──────────────────────────────────────────────────────────
 var pinned = localStorage.getItem('sb_pinned')==='1';
@@ -422,7 +562,7 @@ function go(v){ si.value=v; si.dispatchEvent(new Event('input')); }
 
 function run(q){
   fetch(SB+'/rest/v1/vehicle_parts_check_flag?reg_number=ilike.'+encodeURIComponent('%'+q+'%')+'&limit=10&select=*&order=overall_urgency.asc',
-    {headers:{apikey:K,Authorization:'Bearer '+K}})
+    {headers:{apikey:ANON_KEY,Authorization:'Bearer '+K}})
   .then(function(r){return r.json();})
   .then(function(d){
     if(!d||!d.length){
@@ -573,7 +713,7 @@ function card(v){
 // ── Download CSV ─────────────────────────────────────────────────────
 function dlCSV(bikeId, reg){
   fetch(SB+'/rest/v1/vehicle_parts_check_flag?bike_id=eq.'+bikeId+'&select=*',
-    {headers:{apikey:K,Authorization:'Bearer '+K}})
+    {headers:{apikey:ANON_KEY,Authorization:'Bearer '+K}})
   .then(function(r){return r.json();})
   .then(function(d){
     if(!d||!d.length) return alert('No data found');
