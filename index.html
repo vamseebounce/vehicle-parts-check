@@ -266,11 +266,17 @@ body.pinned #main{margin-left:var(--sb-width)}
 /* Download + Query box */
 .dl-btn{display:inline-flex;align-items:center;gap:6px;background:var(--text);color:#fff;border:none;border-radius:8px;padding:7px 14px;font-size:.76rem;font-weight:600;cursor:pointer;font-family:inherit;transition:background .15s;margin-top:10px}
 .dl-btn:hover{background:#374151}
-.qbox-wrap{margin-top:12px;border-top:1px solid var(--border);padding-top:12px;display:flex;flex-direction:column;gap:6px}
-.qbox{width:100%;border:1.5px solid var(--border);border-radius:8px;padding:8px 10px;font-size:.78rem;font-family:inherit;color:var(--text);resize:vertical;outline:none;transition:border-color .15s;background:#fff;box-sizing:border-box}
-.qbox:focus{border-color:#94A3B8}
-.q-btn{align-self:flex-start;display:inline-flex;align-items:center;gap:5px;background:#EFF6FF;color:#1D4ED8;border:1.5px solid #BFDBFE;border-radius:8px;padding:6px 13px;font-size:.75rem;font-weight:600;cursor:pointer;font-family:inherit;transition:background .15s}
-.q-btn:hover{background:#DBEAFE}
+/* Feedback widget */
+.fb-fab{position:fixed;bottom:24px;right:24px;z-index:1000;background:var(--text);color:#fff;border:none;border-radius:50px;padding:10px 18px;font-size:.78rem;font-weight:700;font-family:inherit;cursor:pointer;box-shadow:0 4px 16px rgba(0,0,0,.18);display:flex;align-items:center;gap:7px;transition:background .15s}
+.fb-fab:hover{background:#374151}
+.fb-popup{position:fixed;bottom:70px;right:24px;z-index:1001;background:#fff;border:1.5px solid var(--border);border-radius:14px;box-shadow:0 8px 32px rgba(0,0,0,.13);padding:16px;width:300px;display:none;flex-direction:column;gap:10px}
+.fb-popup.open{display:flex}
+.fb-title{font-size:.8rem;font-weight:700;color:var(--text)}
+.fb-sub{font-size:.7rem;color:var(--muted)}
+.fb-area{width:100%;border:1.5px solid var(--border);border-radius:8px;padding:8px 10px;font-size:.78rem;font-family:inherit;color:var(--text);resize:none;outline:none;transition:border-color .15s;box-sizing:border-box}
+.fb-area:focus{border-color:#94A3B8}
+.fb-submit{background:var(--text);color:#fff;border:none;border-radius:8px;padding:7px 14px;font-size:.75rem;font-weight:700;font-family:inherit;cursor:pointer;align-self:flex-end;transition:background .15s}
+.fb-submit:hover{background:#374151}
 
 /* ── Footer ── */
 .site-footer{background:var(--sb-bg);color:rgba(255,255,255,.6);padding:40px 20px 32px;text-align:center;margin-top:auto}
@@ -436,6 +442,15 @@ body.pinned #main{margin-left:var(--sb-width)}
       Data synced every hour from Metabase · Internal use only
     </div>
   </footer>
+
+<!-- Feedback widget -->
+<div class="fb-popup" id="fb-popup">
+  <div class="fb-title">Send Feedback</div>
+  <div class="fb-sub">Suggestions, bugs, or anything on your mind</div>
+  <textarea class="fb-area" id="fb-text" rows="4" placeholder="Type your feedback here…"></textarea>
+  <button class="fb-submit" onclick="submitFeedback()">Submit</button>
+</div>
+<button class="fb-fab" onclick="toggleFeedback()">✉ Feedback</button>
 
 </div><!-- /main -->
 
@@ -765,8 +780,6 @@ function card(v){
     +'<div class="cb">'+partsHtml+flags
     // Download
     +'<button class="dl-btn" onclick="dlCSV('+v.bike_id+',\''+v.reg_number+'\')">⬇ Download Report</button>'
-    +'<div class="qbox-wrap"><textarea class="qbox" id="q'+v.bike_id+'" placeholder="Type a query or note about this vehicle…" rows="2"></textarea>'
-    +'<button class="q-btn" onclick="sendQuery('+v.bike_id+',\''+v.reg_number+'\')">✉ Send to Vamsee</button></div>'
     +'</div></div>';
 }
 
@@ -807,14 +820,21 @@ function dlCSV(bikeId, reg){
   }).catch(function(e){ alert('Download failed: '+e.message); });
 }
 
-// ── Query box → email ─────────────────────────────────────────────
-function sendQuery(bikeId, reg){
-  var txt=document.getElementById('q'+bikeId);
-  var query=(txt&&txt.value.trim())||'';
-  if(!query){ txt&&txt.focus(); return; }
-  var subject=encodeURIComponent('FleetPro Query: '+reg);
-  var body=encodeURIComponent('Vehicle: '+reg+'\nBike ID: '+bikeId+'\n\n'+query);
+// ── Feedback widget ───────────────────────────────────────────────
+function toggleFeedback(){
+  var p=document.getElementById('fb-popup');
+  p.classList.toggle('open');
+  if(p.classList.contains('open')) document.getElementById('fb-text').focus();
+}
+function submitFeedback(){
+  var txt=document.getElementById('fb-text');
+  var msg=(txt&&txt.value.trim())||'';
+  if(!msg){ txt&&txt.focus(); return; }
+  var subject=encodeURIComponent('FleetPro Feedback');
+  var body=encodeURIComponent(msg);
   window.location.href='mailto:vamsee@bounceshare.com?subject='+subject+'&body='+body;
+  txt.value='';
+  document.getElementById('fb-popup').classList.remove('open');
 }
 </script>
 </body>
