@@ -154,16 +154,24 @@ function card(v){
 
   var partsHtml;
   if(hasSplit){
-    partsHtml=partCard('Front Brake',      v.front_brake_status,       v.front_brake_km_since,       v.front_brake_km_remaining,       v.last_front_brake_replaced_date,       v.last_front_brake_replaced_hub)
-      +partCard('Rear Brake',              v.rear_brake_status,        v.rear_brake_km_since,        v.rear_brake_km_remaining,        v.last_rear_brake_replaced_date,        v.last_rear_brake_replaced_hub)
-      +partCard('Tyre',                    v.tyre_status,              v.tyre_km_since,              v.tyre_km_remaining,              v.last_tyre_replaced_date,              v.last_tyre_replaced_hub)
-      +partCard('Fr Brake Cable',          v.fr_brake_cable_status,    v.fr_brake_cable_km_since,    v.fr_brake_cable_km_remaining,    v.last_fr_brake_cable_replaced_date,    v.last_fr_brake_cable_replaced_hub)
-      +partCard('Rr Brake Cable',          v.rr_brake_cable_status,    v.rr_brake_cable_km_since,    v.rr_brake_cable_km_remaining,    v.last_rr_brake_cable_replaced_date,    v.last_rr_brake_cable_replaced_hub)
-      +partCard('Brake Shoe Spring',       v.brake_shoe_spring_status, v.brake_shoe_spring_km_since, v.brake_shoe_spring_km_remaining, v.last_brake_shoe_spring_replaced_date, v.last_brake_shoe_spring_replaced_hub)
-      +partCard('Cone Set',                v.cone_set_status,          v.cone_set_km_since,          v.cone_set_km_remaining,          v.last_cone_set_replaced_date,          v.last_cone_set_replaced_hub)
-      +partCard('Fr Brake Disc',           v.fr_brake_disc_status,     v.fr_brake_disc_km_since,     v.fr_brake_disc_km_remaining,     v.last_fr_brake_disc_replaced_date,     v.last_fr_brake_disc_replaced_hub)
-      +partCard('Rr Brake Disc',           v.rr_brake_disc_status,     v.rr_brake_disc_km_since,     v.rr_brake_disc_km_remaining,     v.last_rr_brake_disc_replaced_date,     v.last_rr_brake_disc_replaced_hub)
-      +partCard('Brake Oil',               v.brake_oil_status,         v.brake_oil_km_since,         v.brake_oil_km_remaining,         v.last_brake_oil_replaced_date,         v.last_brake_oil_replaced_hub);
+    // Disc bikes (dms_bike_model_id 1,2,3) use Pad; Drum bikes (4-7) use Shoe
+    var isDisc = [1,2,3].indexOf(Number(v.dms_bike_model_id)) !== -1;
+    var frBrakeLabel = isDisc ? 'Fr Brake Pad' : 'Fr Brake Shoe';
+    var rrBrakeLabel = isDisc ? 'Rr Brake Pad' : 'Rr Brake Shoe';
+    partsHtml=partCard(frBrakeLabel,        v.front_brake_status,       v.front_brake_km_since,       v.front_brake_km_remaining,       v.last_front_brake_replaced_date,       v.last_front_brake_replaced_hub)
+      +partCard(rrBrakeLabel,               v.rear_brake_status,        v.rear_brake_km_since,        v.rear_brake_km_remaining,        v.last_rear_brake_replaced_date,        v.last_rear_brake_replaced_hub)
+      +partCard('Tyre',                     v.tyre_status,              v.tyre_km_since,              v.tyre_km_remaining,              v.last_tyre_replaced_date,              v.last_tyre_replaced_hub)
+      +partCard('Fr Brake Cable',           v.fr_brake_cable_status,    v.fr_brake_cable_km_since,    v.fr_brake_cable_km_remaining,    v.last_fr_brake_cable_replaced_date,    v.last_fr_brake_cable_replaced_hub)
+      +partCard('Rr Brake Cable',           v.rr_brake_cable_status,    v.rr_brake_cable_km_since,    v.rr_brake_cable_km_remaining,    v.last_rr_brake_cable_replaced_date,    v.last_rr_brake_cable_replaced_hub)
+      +partCard('Brake Shoe Spring',        v.brake_shoe_spring_status, v.brake_shoe_spring_km_since, v.brake_shoe_spring_km_remaining, v.last_brake_shoe_spring_replaced_date, v.last_brake_shoe_spring_replaced_hub)
+      +partCard('Cone Set',                 v.cone_set_status,          v.cone_set_km_since,          v.cone_set_km_remaining,          v.last_cone_set_replaced_date,          v.last_cone_set_replaced_hub)
+      +partCard('Fr Brake Disc',            v.fr_brake_disc_status,     v.fr_brake_disc_km_since,     v.fr_brake_disc_km_remaining,     v.last_fr_brake_disc_replaced_date,     v.last_fr_brake_disc_replaced_hub)
+      +partCard('Rr Brake Disc',            v.rr_brake_disc_status,     v.rr_brake_disc_km_since,     v.rr_brake_disc_km_remaining,     v.last_rr_brake_disc_replaced_date,     v.last_rr_brake_disc_replaced_hub)
+      +partCard('Brake Oil',                v.brake_oil_status,         v.brake_oil_km_since,         v.brake_oil_km_remaining,         v.last_brake_oil_replaced_date,         v.last_brake_oil_replaced_hub)
+      +partCard('Fr Wheel Bearing',         v.fr_wheel_bearing_status,  v.fr_wheel_bearing_km_since,  v.fr_wheel_bearing_km_remaining,  v.last_fr_wheel_bearing_replaced_date,  v.last_fr_wheel_bearing_replaced_hub)
+      +partCard('Rr Wheel Bearing',         v.rr_wheel_bearing_status,  v.rr_wheel_bearing_km_since,  v.rr_wheel_bearing_km_remaining,  v.last_rr_wheel_bearing_replaced_date,  v.last_rr_wheel_bearing_replaced_hub)
+      +partCard('Side Stand Spr',           v.side_stand_spring_status, v.side_stand_spring_km_since, v.side_stand_spring_km_remaining, v.last_side_stand_spring_replaced_date, v.last_side_stand_spring_replaced_hub)
+      +partCard('Main Stand Spr',           v.main_stand_spring_status, v.main_stand_spring_km_since, v.main_stand_spring_km_remaining, v.last_main_stand_spring_replaced_date, v.last_main_stand_spring_replaced_hub);
   } else {
     // Fallback: old combined brake column — 2-col layout
     partsHtml=partCard('Brake', v.brake_status, v.brake_km_since, v.brake_km_remaining, v.last_brake_replaced_date, v.last_brake_replaced_hub)
