@@ -1,126 +1,78 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Vehicle Parts Check — Bounce Fleet</title>
-<link rel="preconnect" href="https://fonts.googleapis.com"/>
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+<title>Vehicle Parts Check — RRR Fleet</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Inter',sans-serif;background:#f1f5f9;min-height:100vh;color:#1e293b}
-
-/* ── Header ── */
-.hd{background:linear-gradient(135deg,#1a1a2e 0%,#0f3460 100%);padding:32px 20px 48px;text-align:center}
-.hd h1{color:#fff;font-size:1.5rem;font-weight:800;letter-spacing:-.02em;margin-bottom:4px}
-.hd p{color:rgba(255,255,255,.45);font-size:.8rem;margin-bottom:20px}
-.nav-pills{display:flex;gap:10px;justify-content:center;margin-bottom:20px}
-.nav-pills a{color:rgba(255,255,255,.9);font-size:.78rem;text-decoration:none;padding:5px 16px;border-radius:20px;border:1px solid rgba(255,255,255,.4);background:rgba(255,255,255,.15);font-weight:500;transition:all .15s}
-.nav-pills a.active{background:#fff;color:#0f3460;font-weight:700;border-color:#fff}
-.sw{max-width:460px;margin:0 auto;position:relative}
-.sw input{width:100%;padding:15px 50px 15px 20px;border:none;border-radius:14px;font-size:1rem;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;background:#fff;box-shadow:0 4px 24px rgba(0,0,0,.2);outline:none;font-family:'Inter',sans-serif;color:#1e293b}
-.sw input::placeholder{text-transform:none;letter-spacing:0;font-weight:400;color:#94a3b8;font-size:.9rem}
-.sw svg{position:absolute;right:16px;top:50%;transform:translateY(-50%);color:#94a3b8;pointer-events:none}
-
-/* ── Wrap ── */
-.wrap{max-width:680px;margin:0 auto;padding:20px 16px 60px}
-.hint{text-align:center;color:#94a3b8;font-size:.82rem;margin-top:16px;line-height:2.4}
-.hint span{background:#e2e8f0;color:#475569;border-radius:8px;padding:3px 10px;font-size:.78rem;margin:2px;font-family:'Inter',monospace;cursor:pointer;font-weight:600;letter-spacing:.5px;transition:background .15s}
-.hint span:hover{background:#cbd5e1}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f0f4f8;min-height:100vh}
+.hd{background:linear-gradient(135deg,#1a1a2e,#0f3460);padding:36px 20px 44px;text-align:center}
+.hd h1{color:#fff;font-size:1.5rem;font-weight:800;margin-bottom:4px}
+.hd p{color:rgba(255,255,255,.5);font-size:.82rem;margin-bottom:22px}
+.sw{max-width:480px;margin:0 auto;position:relative}
+.sw input{width:100%;padding:16px 50px 16px 20px;border:none;border-radius:14px;font-size:1rem;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;background:#fff;box-shadow:0 4px 20px rgba(0,0,0,.18);outline:none}
+.sw input::placeholder{text-transform:none;letter-spacing:0;font-weight:400;color:#bbb}
+.sw svg{position:absolute;right:16px;top:50%;transform:translateY(-50%);color:#aaa;pointer-events:none}
+.wrap{max-width:600px;margin:0 auto;padding:20px 16px 60px}
+.hint{text-align:center;color:#94a3b8;font-size:.82rem;margin-top:14px;line-height:2.2}
+.hint span{background:#e2e8f0;color:#64748b;border-radius:6px;padding:2px 9px;font-size:.78rem;margin:2px;font-family:monospace;cursor:pointer}
 .dots{text-align:center;padding:40px}
 .dot{display:inline-block;width:8px;height:8px;background:#3b82f6;border-radius:50%;margin:0 3px;animation:bop 1s infinite}
-.dot:nth-child(2){animation-delay:.15s}.dot:nth-child(3){animation-delay:.3s}
+.dot:nth-child(2){animation-delay:.15s}
+.dot:nth-child(3){animation-delay:.3s}
 @keyframes bop{0%,100%{transform:translateY(0)}45%{transform:translateY(-9px)}}
 .nf{text-align:center;padding:50px 20px}
 .nf .ic{font-size:2.8rem;margin-bottom:10px}
-.nf h3{color:#374151;margin-bottom:5px;font-weight:700}
+.nf h3{color:#374151;margin-bottom:5px}
 .nf p{color:#9ca3af;font-size:.875rem}
-
-/* ── Vehicle Card ── */
-.card{background:#fff;border-radius:20px;overflow:hidden;box-shadow:0 2px 16px rgba(0,0,0,.07);margin-top:18px}
+.card{background:#fff;border-radius:20px;overflow:hidden;box-shadow:0 2px 14px rgba(0,0,0,.07);margin-top:16px}
 .ch{padding:18px 20px 14px;display:flex;justify-content:space-between;align-items:flex-start;border-bottom:1px solid #f1f5f9}
-.reg{font-size:1.3rem;font-weight:800;color:#0f172a;letter-spacing:1px}
-.bid{font-size:.73rem;color:#94a3b8;margin-top:2px;font-weight:500}
-.ub{border-radius:20px;padding:5px 14px;font-size:.73rem;font-weight:700;white-space:nowrap}
+.reg{font-size:1.28rem;font-weight:800;color:#1e293b;letter-spacing:1px}
+.bid{font-size:.74rem;color:#94a3b8;margin-top:2px}
+.ub{border-radius:10px;padding:5px 12px;font-size:.74rem;font-weight:700;white-space:nowrap}
 .u1{background:#fee2e2;color:#dc2626}
-.u2{background:#fef3c7;color:#b45309}
+.u2{background:#fef3c7;color:#d97706}
 .u3{background:#dcfce7;color:#16a34a}
 .u0{background:#f1f5f9;color:#64748b}
-.vinfo{display:flex;gap:20px;flex-wrap:wrap;padding:10px 20px 8px;font-size:.78rem;color:#64748b;border-bottom:1px solid #f8fafc}
-.vinfo b{color:#1e293b;font-weight:600}
-
-/* ── ODO strip ── */
-.odo-strip{display:flex;gap:0;border-bottom:1px solid #f1f5f9}
-.odo-stat{flex:1;padding:12px 16px;text-align:center;border-right:1px solid #f1f5f9}
-.odo-stat:last-child{border-right:none}
-.odo-lbl{font-size:.63rem;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:#94a3b8;margin-bottom:3px}
-.odo-val{font-size:1.05rem;font-weight:700;color:#0f172a}
-.odo-sub{font-size:.65rem;color:#94a3b8;font-weight:500}
-
-/* ── Parts grid ── */
-.cb{padding:14px 16px 18px}
-.st{font-size:.63rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#94a3b8;margin-bottom:10px;margin-top:4px}
+.cb{padding:14px 20px 18px}
+.st{font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#94a3b8;margin-bottom:8px;margin-top:2px}
+/* 3-column grid for parts — collapses to 1 col on very small screens */
 .pg{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px}
-@media(max-width:480px){.pg{grid-template-columns:repeat(2,1fr)}}
-
-/* ── Part tile ── */
-.pc{border-radius:12px;background:#f8fafc;border:1.5px solid #e2e8f0;position:relative;overflow:hidden;transition:box-shadow .15s}
-.pc:hover{box-shadow:0 4px 12px rgba(0,0,0,.08)}
-.pc-stripe{position:absolute;top:0;left:0;width:3px;height:100%;border-radius:3px 0 0 3px}
-.pc-inner{padding:11px 12px 10px 14px}
-.pn{font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:#94a3b8;margin-bottom:3px}
-.pthresh{font-size:.6rem;color:#cbd5e1;font-weight:500}
-.ps{font-size:.9rem;font-weight:700;margin-bottom:6px}
-.ps.sov{color:#dc2626}
-.ps.sds{color:#b45309}
-.ps.sok{color:#16a34a}
-.ps.snd{color:#94a3b8}
-
-/* Progress bar */
-.pb-wrap{margin-bottom:8px}
-.pb-track{width:100%;height:3px;background:#e2e8f0;border-radius:2px;overflow:hidden}
-.pb-fill{height:100%;border-radius:2px;transition:width .3s}
-.pb-fill.fov{background:#dc2626}
-.pb-fill.fds{background:#f59e0b}
-.pb-fill.fok{background:#22c55e}
-.pb-fill.fnd{background:#e2e8f0}
-
-/* Tile detail rows */
-.pd{font-size:.72rem;color:#64748b;margin-top:2px;line-height:1.4}
+@media(max-width:420px){.pg{grid-template-columns:1fr}}
+.pc{border-radius:12px;padding:11px 13px;border:1.5px solid #e2e8f0;background:#f8fafc}
+.pc.ov{background:#fff5f5;border-color:#fecaca}
+.pc.ok{background:#f0fdf4;border-color:#bbf7d0}
+.pn{font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#94a3b8;margin-bottom:3px}
+.ps{font-size:.88rem;font-weight:700}
+.ps.sov{color:#dc2626}.ps.sok{color:#16a34a}.ps.snd{color:#94a3b8}
+.pd{font-size:.75rem;color:#64748b;margin-top:2px}
 .pd b{color:#374151;font-weight:600}
-.neg{color:#dc2626!important}
-.pos{color:#16a34a!important}
-
-/* N/A tile */
-.pc-na{opacity:.38}
-.pc-na .ps{color:#cbd5e1}
-
-/* ── Check flag ── */
-.chk{display:inline-flex;align-items:center;gap:5px;border-radius:8px;padding:7px 13px;font-size:.78rem;font-weight:600;margin-top:12px}
-.chk.warn{background:#fff7ed;color:#ea580c;border:1px solid #fed7aa}
-.chk.clr{background:#f0fdf4;color:#16a34a;border:1px solid #bbf7d0}
-.chk-pms{background:#fee2e2;color:#dc2626;border:1px solid #fca5a5}
-.chk-hst{background:#fef3c7;color:#b45309;border:1px solid #fcd34d}
-
+.or{display:flex;gap:8px}
+.oi{flex:1;background:#f8fafc;border-radius:12px;padding:10px 12px;border:1px solid #e2e8f0;text-align:center}
+.ol{font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#94a3b8;margin-bottom:2px}
+.ov3{font-size:.95rem;font-weight:700;color:#1e293b}
+.os{font-size:.7rem;color:#94a3b8}
+.chk{display:inline-flex;align-items:center;gap:5px;border-radius:8px;padding:6px 12px;font-size:.78rem;font-weight:600;margin-top:12px}
+.chk.warn{background:#fff7ed;color:#ea580c}
+.chk.clr{background:#f0fdf4;color:#16a34a}
 footer{text-align:center;color:#94a3b8;font-size:.74rem;padding:0 0 24px}
 </style>
 </head>
 <body>
-
 <div class="hd">
   <h1>Vehicle Parts Check</h1>
-  <p>Live data · Updated hourly · Search by reg number</p>
-  <div class="nav-pills">
-    <a href="/index.html" class="active">Parts Check</a>
-    <a href="/queue.html">Work Queue</a>
+  <p>Live data - Updated hourly - Search by reg number</p>
+  <div style="display:flex;gap:10px;justify-content:center;margin-bottom:14px">
+    <a href="/index.html" style="color:rgba(255,255,255,.9);font-size:.78rem;text-decoration:none;padding:4px 12px;border-radius:20px;border:1px solid rgba(255,255,255,.4);background:rgba(255,255,255,.15)">Parts Check</a>
+    <a href="/queue.html" style="color:rgba(255,255,255,.55);font-size:.78rem;text-decoration:none;padding:4px 12px;border-radius:20px;border:1px solid rgba(255,255,255,.2)">Work Queue</a>
   </div>
   <div class="sw">
     <input id="si" type="text" placeholder="e.g. KA05AQ6570" autocomplete="off" spellcheck="false"/>
     <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
   </div>
 </div>
-
 <div class="wrap">
   <div id="res">
     <div class="hint">Try:
@@ -130,27 +82,13 @@ footer{text-align:center;color:#94a3b8;font-size:.74rem;padding:0 0 24px}
     </div>
   </div>
 </div>
-
 <footer>Fleet data synced every hour from Metabase</footer>
-
 <script>
 var SB='https://clkfvmmlgwcvntxnolsv.supabase.co';
 var K='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNsa2Z2bW1sZ3djdm50eG5vbHN2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ1NDQ2NTgsImV4cCI6MjA5MDEyMDY1OH0.FA33GFQisWX_hDeGCWqL5yAZmPcuQRdxZX32I23lyoY';
 var si=document.getElementById('si');
 var rv=document.getElementById('res');
 var t;
-
-// Threshold map (km) — used for progress bar
-var THRESH={
-  front_brake:6000, rear_brake:6000, tyre:18000,
-  fr_brake_cable:20000, rr_brake_cable:20000,
-  brake_shoe_spring:18000, cone_set:25000,
-  fr_brake_disc:18000, rr_brake_disc:18000,
-  brake_oil:6000,
-  fr_wheel_bearing:12000, rr_wheel_bearing:12000,
-  side_stand_spring:12000, main_stand_spring:12000,
-  brake:6000 // legacy fallback
-};
 
 document.body.addEventListener('click',function(e){
   var el=e.target.closest('.ex');
@@ -159,13 +97,13 @@ document.body.addEventListener('click',function(e){
 
 si.addEventListener('input',function(){
   clearTimeout(t);
-  var q=si.value.trim().toUpperCase();
-  if(q.length<2){
+  var v=si.value.trim().toUpperCase();
+  if(v.length<2){
     rv.innerHTML='<div class="hint">Try: <span class="ex" data-reg="KA05AQ6570">KA05AQ6570</span> <span class="ex" data-reg="NCRBD00238">NCRBD00238</span> <span class="ex" data-reg="DL9EV7460">DL9EV7460</span></div>';
     return;
   }
   rv.innerHTML='<div class="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>';
-  t=setTimeout(function(){ run(q); },300);
+  t=setTimeout(function(){ run(v); },300);
 });
 
 function go(v){ si.value=v; si.dispatchEvent(new Event('input')); }
@@ -184,128 +122,90 @@ function run(q){
   .catch(function(e){ rv.innerHTML='<div class="nf"><h3>Error</h3><p>'+e.message+'</p></div>'; });
 }
 
-// ── Formatters ────────────────────────────────────────────────────────────────
 function fm(v){ return v!=null?Number(v).toLocaleString('en-IN'):'--'; }
-function fd(d){ return d?new Date(d).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'2-digit'}):'--'; }
+function fd(d){ return d?new Date(d).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'}):'--'; }
+function sc(s){ return !s||s==='No Data'?'snd':s==='Overdue'?'sov':s==='N/A'?'snd':'sok'; }
+function pcc(s){ return !s||s==='No Data'||s==='N/A'?'':s==='Overdue'?'ov':'ok'; }
+function neg(n){ return n!=null&&n<0?'#dc2626':'#16a34a'; }
 
-// ── Part tile renderer ────────────────────────────────────────────────────────
-// status: Overdue / Due Soon / OK / No Data / N/A
-// thresh: number — used to calculate progress bar (optional)
-function partCard(label, status, kmSince, kmRem, lastDate, lastHub, thresh){
+function partCard(label, status, kmSince, kmRem, lastDate, lastHub){
   var s = status || 'No Data';
-
-  // N/A tile — dimmed, no progress bar
   if(s === 'N/A'){
-    return '<div class="pc pc-na">'
-      +'<div class="pc-stripe" style="background:#e2e8f0"></div>'
-      +'<div class="pc-inner">'
+    return '<div class="pc" style="opacity:.45">'
       +'<div class="pn">'+label+'</div>'
       +'<div class="ps snd">N/A</div>'
-      +'<div class="pd" style="color:#cbd5e1;font-size:.68rem">Not applicable for this model</div>'
-      +'</div></div>';
+      +'<div class="pd" style="font-size:.7rem;color:#94a3b8">Not applicable for this model</div>'
+      +'</div>';
   }
-
-  // Status → classes
-  var sc  = s==='Overdue'?'sov':s==='Due Soon'?'sds':s==='OK'?'sok':'snd';
-  var fc  = s==='Overdue'?'fov':s==='Due Soon'?'fds':s==='OK'?'fok':'fnd';
-  var str = s==='Overdue'?'#dc2626':s==='Due Soon'?'#f59e0b':s==='OK'?'#22c55e':'#cbd5e1';
-
-  // Progress bar: % of threshold remaining (clamped 0–100)
-  var pct = 0;
-  if(thresh && kmRem!=null){
-    pct = Math.max(0, Math.min(100, Math.round((kmRem / thresh) * 100)));
-  }
-
-  // km remaining colour
-  var remColor = (kmRem!=null && kmRem < 0) ? 'neg' : (kmRem!=null && s==='OK' ? 'pos' : '');
-
-  var threshLabel = thresh ? ' / '+(thresh/1000)+'k km' : '';
-
-  return '<div class="pc">'
-    +'<div class="pc-stripe" style="background:'+str+'"></div>'
-    +'<div class="pc-inner">'
-    +'<div class="pn">'+label+'<span class="pthresh">'+threshLabel+'</span></div>'
-    +'<div class="ps '+sc+'">'+s+'</div>'
-    +'<div class="pb-wrap">'
-    +'<div class="pb-track"><div class="pb-fill '+fc+'" style="width:'+pct+'%"></div></div>'
-    +'</div>'
-    +(kmSince!=null?'<div class="pd">Since: <b>'+fm(kmSince)+' km</b></div>':'')
-    +(kmRem!=null?'<div class="pd">Rem: <b class="'+remColor+'">'+fm(kmRem)+' km</b></div>':'<div class="pd">Rem: <b>--</b></div>')
-    +'<div class="pd">Last: <b>'+fd(lastDate)+'</b>'+(lastHub?' · '+lastHub:'')+'</div>'
-    +'</div></div>';
+  return '<div class="pc '+pcc(status)+'">'
+    +'<div class="pn">'+label+'</div>'
+    +'<div class="ps '+sc(status)+'">'+s+'</div>'
+    +'<div class="pd">Since: <b>'+fm(kmSince)+' km</b></div>'
+    +'<div class="pd">Rem: <b style="color:'+neg(kmRem)+'">'+fm(kmRem)+' km</b></div>'
+    +'<div class="pd">Last Svc: <b>'+fd(lastDate)+'</b></div>'
+    +(lastHub?'<div class="pd">Hub: <b>'+lastHub+'</b></div>':'')
+    +'</div>';
 }
 
-// ── Vehicle card ──────────────────────────────────────────────────────────────
 function card(v){
-  var ul = v.overall_urgency===1?'Critical':v.overall_urgency===2?'Due Soon':v.overall_urgency===3?'All OK':'—';
-  var uc = 'u'+(v.overall_urgency||0);
+  var ul=v.overall_urgency===1?'Critical':v.overall_urgency===2?'Moderate':v.overall_urgency===3?'Good':'OK';
 
-  // ── hasSplit fix ──
-  // Supabase returns null (not undefined) for missing columns.
-  // null != null is false, so this correctly falls back to legacy brake_status.
-  var hasSplit = v.front_brake_status != null || v.rear_brake_status != null;
-
-  // Disc bikes (model 1,2,3) → Pad label; Drum → Shoe label
-  var isDisc = [1,2,3].indexOf(Number(v.dms_bike_model_id)) !== -1;
-  var frBrakeLabel = isDisc ? 'Fr Brake Pad' : 'Fr Brake Shoe';
-  var rrBrakeLabel = isDisc ? 'Rr Brake Pad' : 'Rr Brake Shoe';
+  // Support both old (brake_*) and new (front_brake_* / rear_brake_*) column schemas
+  var hasSplit = v.front_brake_status !== undefined || v.rear_brake_status !== undefined;
 
   var partsHtml;
   if(hasSplit){
-    partsHtml=
-      partCard(frBrakeLabel,         v.front_brake_status,       v.front_brake_km_since,       v.front_brake_km_remaining,       v.last_front_brake_replaced_date,  v.last_front_brake_replaced_hub,  THRESH.front_brake)
-     +partCard(rrBrakeLabel,         v.rear_brake_status,        v.rear_brake_km_since,        v.rear_brake_km_remaining,        v.last_rear_brake_replaced_date,   v.last_rear_brake_replaced_hub,   THRESH.rear_brake)
-     +partCard('Tyre',               v.tyre_status,              v.tyre_km_since,              v.tyre_km_remaining,              v.last_tyre_replaced_date,         v.last_tyre_replaced_hub,         THRESH.tyre)
-     +partCard('Fr Brake Cable',     v.fr_brake_cable_status,    v.fr_brake_cable_km_since,    v.fr_brake_cable_km_remaining,    v.last_fr_brake_cable_replaced_date,v.last_fr_brake_cable_replaced_hub, THRESH.fr_brake_cable)
-     +partCard('Rr Brake Cable',     v.rr_brake_cable_status,    v.rr_brake_cable_km_since,    v.rr_brake_cable_km_remaining,    v.last_rr_brake_cable_replaced_date,v.last_rr_brake_cable_replaced_hub, THRESH.rr_brake_cable)
-     +partCard('Brake Shoe Spring',  v.brake_shoe_spring_status, v.brake_shoe_spring_km_since, v.brake_shoe_spring_km_remaining, v.last_brake_shoe_spring_replaced_date, v.last_brake_shoe_spring_replaced_hub, THRESH.brake_shoe_spring)
-     +partCard('Cone Set',           v.cone_set_status,          v.cone_set_km_since,          v.cone_set_km_remaining,          v.last_cone_set_replaced_date,     v.last_cone_set_replaced_hub,     THRESH.cone_set)
-     +partCard('Fr Brake Disc',      v.fr_brake_disc_status,     v.fr_brake_disc_km_since,     v.fr_brake_disc_km_remaining,     v.last_fr_brake_disc_replaced_date, v.last_fr_brake_disc_replaced_hub, THRESH.fr_brake_disc)
-     +partCard('Rr Brake Disc',      v.rr_brake_disc_status,     v.rr_brake_disc_km_since,     v.rr_brake_disc_km_remaining,     v.last_rr_brake_disc_replaced_date, v.last_rr_brake_disc_replaced_hub, THRESH.rr_brake_disc)
-     +partCard('Brake Oil',          v.brake_oil_status,         v.brake_oil_km_since,         v.brake_oil_km_remaining,         v.last_brake_oil_replaced_date,    v.last_brake_oil_replaced_hub,    THRESH.brake_oil)
-     +partCard('Fr Wheel Bearing',   v.fr_wheel_bearing_status,  v.fr_wheel_bearing_km_since,  v.fr_wheel_bearing_km_remaining,  v.last_fr_wheel_bearing_replaced_date, v.last_fr_wheel_bearing_replaced_hub, THRESH.fr_wheel_bearing)
-     +partCard('Rr Wheel Bearing',   v.rr_wheel_bearing_status,  v.rr_wheel_bearing_km_since,  v.rr_wheel_bearing_km_remaining,  v.last_rr_wheel_bearing_replaced_date, v.last_rr_wheel_bearing_replaced_hub, THRESH.rr_wheel_bearing)
-     +partCard('Side Stand Spr',     v.side_stand_spring_status, v.side_stand_spring_km_since, v.side_stand_spring_km_remaining, v.last_side_stand_spring_replaced_date, v.last_side_stand_spring_replaced_hub, THRESH.side_stand_spring)
-     +partCard('Main Stand Spr',     v.main_stand_spring_status, v.main_stand_spring_km_since, v.main_stand_spring_km_remaining, v.last_main_stand_spring_replaced_date, v.last_main_stand_spring_replaced_hub, THRESH.main_stand_spring);
+    // Disc bikes (dms_bike_model_id 1,2,3) use Pad; Drum bikes (4-7) use Shoe
+    var isDisc = [1,2,3].indexOf(Number(v.dms_bike_model_id)) !== -1;
+    var frBrakeLabel = isDisc ? 'Fr Brake Pad' : 'Fr Brake Shoe';
+    var rrBrakeLabel = isDisc ? 'Rr Brake Pad' : 'Rr Brake Shoe';
+    partsHtml=partCard(frBrakeLabel,        v.front_brake_status,       v.front_brake_km_since,       v.front_brake_km_remaining,       v.last_front_brake_replaced_date,       v.last_front_brake_replaced_hub)
+      +partCard(rrBrakeLabel,               v.rear_brake_status,        v.rear_brake_km_since,        v.rear_brake_km_remaining,        v.last_rear_brake_replaced_date,        v.last_rear_brake_replaced_hub)
+      +partCard('Tyre',                     v.tyre_status,              v.tyre_km_since,              v.tyre_km_remaining,              v.last_tyre_replaced_date,              v.last_tyre_replaced_hub)
+      +partCard('Fr Brake Cable',           v.fr_brake_cable_status,    v.fr_brake_cable_km_since,    v.fr_brake_cable_km_remaining,    v.last_fr_brake_cable_replaced_date,    v.last_fr_brake_cable_replaced_hub)
+      +partCard('Rr Brake Cable',           v.rr_brake_cable_status,    v.rr_brake_cable_km_since,    v.rr_brake_cable_km_remaining,    v.last_rr_brake_cable_replaced_date,    v.last_rr_brake_cable_replaced_hub)
+      +partCard('Brake Shoe Spring',        v.brake_shoe_spring_status, v.brake_shoe_spring_km_since, v.brake_shoe_spring_km_remaining, v.last_brake_shoe_spring_replaced_date, v.last_brake_shoe_spring_replaced_hub)
+      +partCard('Cone Set',                 v.cone_set_status,          v.cone_set_km_since,          v.cone_set_km_remaining,          v.last_cone_set_replaced_date,          v.last_cone_set_replaced_hub)
+      +partCard('Fr Brake Disc',            v.fr_brake_disc_status,     v.fr_brake_disc_km_since,     v.fr_brake_disc_km_remaining,     v.last_fr_brake_disc_replaced_date,     v.last_fr_brake_disc_replaced_hub)
+      +partCard('Rr Brake Disc',            v.rr_brake_disc_status,     v.rr_brake_disc_km_since,     v.rr_brake_disc_km_remaining,     v.last_rr_brake_disc_replaced_date,     v.last_rr_brake_disc_replaced_hub)
+      +partCard('Brake Oil',                v.brake_oil_status,         v.brake_oil_km_since,         v.brake_oil_km_remaining,         v.last_brake_oil_replaced_date,         v.last_brake_oil_replaced_hub)
+      +partCard('Fr Wheel Bearing',         v.fr_wheel_bearing_status,  v.fr_wheel_bearing_km_since,  v.fr_wheel_bearing_km_remaining,  v.last_fr_wheel_bearing_replaced_date,  v.last_fr_wheel_bearing_replaced_hub)
+      +partCard('Rr Wheel Bearing',         v.rr_wheel_bearing_status,  v.rr_wheel_bearing_km_since,  v.rr_wheel_bearing_km_remaining,  v.last_rr_wheel_bearing_replaced_date,  v.last_rr_wheel_bearing_replaced_hub)
+      +partCard('Side Stand Spr',           v.side_stand_spring_status, v.side_stand_spring_km_since, v.side_stand_spring_km_remaining, v.last_side_stand_spring_replaced_date, v.last_side_stand_spring_replaced_hub)
+      +partCard('Main Stand Spr',           v.main_stand_spring_status, v.main_stand_spring_km_since, v.main_stand_spring_km_remaining, v.last_main_stand_spring_replaced_date, v.last_main_stand_spring_replaced_hub);
   } else {
-    // Legacy fallback: combined brake_status column
-    partsHtml=
-      partCard('Brake',  v.brake_status, v.brake_km_since, v.brake_km_remaining, v.last_brake_replaced_date, v.last_brake_replaced_hub, THRESH.brake)
-     +partCard('Tyre',   v.tyre_status,  v.tyre_km_since,  v.tyre_km_remaining,  v.last_tyre_replaced_date,  v.last_tyre_replaced_hub,  THRESH.tyre);
+    // Fallback: old combined brake column — 2-col layout
+    partsHtml=partCard('Brake', v.brake_status, v.brake_km_since, v.brake_km_remaining, v.last_brake_replaced_date, v.last_brake_replaced_hub)
+      +partCard('Tyre', v.tyre_status, v.tyre_km_since, v.tyre_km_remaining, v.last_tyre_replaced_date, v.last_tyre_replaced_hub);
   }
 
+  // Vehicle status badge colour
   return '<div class="card">'
-    // Header row
-    +'<div class="ch"><div><div class="reg">'+v.reg_number+'</div><div class="bid">Bike #'+v.bike_id+(v.dms_bike_model_id?' · Model '+v.dms_bike_model_id+(isDisc?' (Disc)':' (Drum)'):'')+'</div></div>'
-    +'<div class="ub '+uc+'">'+ul+'</div></div>'
-    // Hub info
-    +(v.deployed_hub||v.last_service_hub
-      ?'<div class="vinfo">'
-        +(v.deployed_hub?'<span>Deployed: <b>'+v.deployed_hub+'</b></span>':'')
-        +(v.last_service_hub?'<span>Last Service: <b>'+v.last_service_hub+'</b></span>':'')
-        +(v.current_status?'<span>Status: <b>'+v.current_status+'</b></span>':'')
-        +'</div>'
-      :'')
-    // ODO strip
-    +'<div class="odo-strip">'
-    +'<div class="odo-stat"><div class="odo-lbl">Est. Current</div><div class="odo-val">'+fm(v.estimated_current_odo)+'</div><div class="odo-sub">km</div></div>'
-    +'<div class="odo-stat"><div class="odo-lbl">Last JC Odo</div><div class="odo-val">'+fm(v.last_jc_odo)+'</div><div class="odo-sub">km</div></div>'
-    +'<div class="odo-stat"><div class="odo-lbl">Days Since JC</div><div class="odo-val">'+(v.days_since_last_jc!=null?v.days_since_last_jc:'--')+'</div><div class="odo-sub">days</div></div>'
-    +'</div>'
-    // Parts
+    +'<div class="ch"><div><div class="reg">'+v.reg_number+'</div><div class="bid">Bike #'+v.bike_id+'</div></div>'
+    +'<div class="ub u'+(v.overall_urgency||0)+'">'+ul+'</div></div>'
+    // Vehicle info row
+    +(v.deployed_hub||v.last_service_hub?
+      '<div style="display:flex;gap:16px;flex-wrap:wrap;padding:10px 14px 4px;font-size:.78rem;color:#64748b;border-bottom:1px solid #f1f5f9">'
+      +(v.deployed_hub?'<span>Deployed: <b style="color:#1e293b">'+v.deployed_hub+'</b></span>':'')
+      +(v.last_service_hub?'<span>Last Service: <b style="color:#1e293b">'+v.last_service_hub+'</b></span>':'')
+      +'</div>'
+    :'')
     +'<div class="cb">'
     +'<div class="st">Parts Status</div>'
     +'<div class="pg">'+partsHtml+'</div>'
-    // Flags
-    +(v.check_required
-      ?'<div class="chk warn">&#9888; Check Required — one or more parts need attention</div>'
-      :'<div class="chk clr">&#10003; No Check Required</div>')
-    // PMS / HST
+    +'<div class="st">Odometer</div>'
+    +'<div class="or">'
+    +'<div class="oi"><div class="ol">Est. Current</div><div class="ov3">'+fm(v.estimated_current_odo)+'</div><div class="os">km</div></div>'
+    +'<div class="oi"><div class="ol">Last JC Odo</div><div class="ov3">'+fm(v.last_jc_odo)+'</div><div class="os">km</div></div>'
+    +'<div class="oi"><div class="ol">Days Since JC</div><div class="ov3">'+(v.days_since_last_jc!=null?v.days_since_last_jc:'--')+'</div><div class="os">days</div></div>'
+    +'</div>'
+    +(v.check_required?'<div class="chk warn">&#9888; Check Required</div>':'<div class="chk clr">&#10003; No Check Required</div>')
+    // PMS / HST activity flags based on days since last JC
     +(v.days_since_last_jc!=null && v.days_since_last_jc > 30
-      ?'<div class="chk chk-pms" style="margin-left:8px">&#9888; PMS Required — '+v.days_since_last_jc+' days since last JC</div>'
-      :v.days_since_last_jc!=null && v.days_since_last_jc > 15
-        ?'<div class="chk chk-hst" style="margin-left:8px">&#9888; HST Activity Required — '+v.days_since_last_jc+' days since last JC</div>'
-        :'')
+      ? '<div class="chk" style="background:#fee2e2;color:#dc2626;border-color:#fca5a5">&#9888; PMS Required — '+v.days_since_last_jc+' days since last JC (threshold: 30 days)</div>'
+      : v.days_since_last_jc!=null && v.days_since_last_jc > 15
+        ? '<div class="chk" style="background:#fef3c7;color:#d97706;border-color:#fcd34d">&#9888; HST Activity Required — '+v.days_since_last_jc+' days since last JC (threshold: 15 days)</div>'
+        : '')
     +'</div></div>';
 }
 </script>
