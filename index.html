@@ -781,7 +781,7 @@ function dlCSV(bikeId, reg){
     fetch(base+'job_card?bike_id=eq.'+bikeId+'&select=id,created_at,bike_odo,hub_id,dms_api_call_json&order=created_at.desc',h).then(function(r){return r.json();}),
     fetch(base+'dms_job_card_history?bike_id=eq.'+bikeId+'&select=dms_jc_no,start_time,bike_odo,hub_name,dms_cat,line_type,item_name,qty,amount,technician_name&order=start_time.desc',h).then(function(r){return r.json();})
   ]).then(function(results){
-    var newJC=results[0]||[], oldJC=results[1]||[];
+    var newJC=Array.isArray(results[0])?results[0]:[], oldJC=Array.isArray(results[1])?results[1]:[];
     var rows=[];
 
     // Normalise new-flow JC into unified row format
