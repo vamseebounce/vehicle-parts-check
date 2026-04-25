@@ -263,9 +263,14 @@ body.pinned #main{margin-left:var(--sb-width)}
 .chk.pms{background:var(--overdue-bg);color:var(--overdue);border:1px solid #FECACA}
 .chk.hst{background:var(--due-bg);color:var(--due);border:1px solid #FDE68A}
 
-/* Download */
+/* Download + Query box */
 .dl-btn{display:inline-flex;align-items:center;gap:6px;background:var(--text);color:#fff;border:none;border-radius:8px;padding:7px 14px;font-size:.76rem;font-weight:600;cursor:pointer;font-family:inherit;transition:background .15s;margin-top:10px}
 .dl-btn:hover{background:#374151}
+.qbox-wrap{margin-top:12px;border-top:1px solid var(--border);padding-top:12px;display:flex;flex-direction:column;gap:6px}
+.qbox{width:100%;border:1.5px solid var(--border);border-radius:8px;padding:8px 10px;font-size:.78rem;font-family:inherit;color:var(--text);resize:vertical;outline:none;transition:border-color .15s;background:#fff;box-sizing:border-box}
+.qbox:focus{border-color:#94A3B8}
+.q-btn{align-self:flex-start;display:inline-flex;align-items:center;gap:5px;background:#EFF6FF;color:#1D4ED8;border:1.5px solid #BFDBFE;border-radius:8px;padding:6px 13px;font-size:.75rem;font-weight:600;cursor:pointer;font-family:inherit;transition:background .15s}
+.q-btn:hover{background:#DBEAFE}
 
 /* ── Footer ── */
 .site-footer{background:var(--sb-bg);color:rgba(255,255,255,.6);padding:40px 20px 32px;text-align:center;margin-top:auto}
@@ -760,6 +765,8 @@ function card(v){
     +'<div class="cb">'+partsHtml+flags
     // Download
     +'<button class="dl-btn" onclick="dlCSV('+v.bike_id+',\''+v.reg_number+'\')">⬇ Download Report</button>'
+    +'<div class="qbox-wrap"><textarea class="qbox" id="q'+v.bike_id+'" placeholder="Type a query or note about this vehicle…" rows="2"></textarea>'
+    +'<button class="q-btn" onclick="sendQuery('+v.bike_id+',\''+v.reg_number+'\')">✉ Send to Vamsee</button></div>'
     +'</div></div>';
 }
 
@@ -777,56 +784,19 @@ function dlCSV(bikeId, reg){
   var base=SB+'/rest/v1/';
   var today=new Date().toISOString().slice(0,10);
 
-  Promise.all([
-    fetch(base+'job_card?bike_id=eq.'+bikeId+'&select=id,created_at,bike_odo,hub_id,dms_api_call_json&order=created_at.desc',h).then(function(r){return r.json();}),
-    fetch(base+'dms_job_card_history?bike_id=eq.'+bikeId+'&select=dms_jc_no,start_time,bike_odo,hub_name,dms_cat,line_type,item_name,qty,amount,technician_name&order=start_time.desc',h).then(function(r){return r.json();})
-  ]).then(function(results){
-    var newJC=Array.isArray(results[0])?results[0]:[], oldJC=Array.isArray(results[1])?results[1]:[];
-    var rows=[];
-
-    // Normalise new-flow JC into unified row format
-    newJC.forEach(function(jc){
-      var date=jc.created_at?jc.created_at.slice(0,16).replace('T',' '):'';
-      var parsed=null;
-      try{ parsed=typeof jc.dms_api_call_json==='string'?JSON.parse(jc.dms_api_call_json):jc.dms_api_call_json; }catch(e){}
-      var svcType=parsed&&parsed.iServType?parsed.iServType:'';
-      var items=parsed&&parsed.iItemData
-        ?parsed.iItemData.filter(function(i){return i.iItemName&&i.iItemName.trim()&&(i.iAmt>0||i.iQty>0);})
-        :[];
-      if(items.length){
-        items.forEach(function(item){
-          rows.push([jc.id,date,'Hub '+jc.hub_id,jc.bike_odo,svcType,item.iPL==='P'?'Part':item.iPL==='L'?'Labour':'Other',item.iItemName,item.iQty||'',item.iAmt||'','','New Flow']);
-        });
-      } else {
-        rows.push([jc.id,date,'Hub '+jc.hub_id,jc.bike_odo,svcType,'','','','','','New Flow']);
-      }
-    });
-
-    // Normalise old DMS into same format
-    oldJC.forEach(function(jc){
-      rows.push([
-        jc.dms_jc_no||'',
-        jc.start_time?jc.start_time.slice(0,10):'',
-        jc.hub_name||'',
-        jc.bike_odo||'',
-        jc.dms_cat||'',
-        jc.line_type||'',
-        jc.item_name||'',
-        jc.qty||'',
-        jc.amount||'',
-        jc.technician_name||'',
-        'Old DMS'
-      ]);
-    });
-
-    // Sort all rows by date descending
-    rows.sort(function(a,b){ return String(b[0]).localeCompare(String(a[0])); });
-
+  fetch(base+'jc_history?bike_id=eq.'+bikeId
+    +'&select=jc_no,jc_date,hub_name,bike_odo,service_type,line_type,item_name,qty,amount,technician_name,source'
+    +'&order=jc_date.desc,jc_no.asc',h)
+  .then(function(r){return r.json();})
+  .then(function(data){
+    var rows=Array.isArray(data)?data:[];
     var lines=[];
-    lines.push('JC History - '+reg+' (downloaded '+today+')');
-    lines.push(csvRow(['JC No','Date','Hub','ODO','Service Type','Item Type','Item Name','Qty','Amount (₹)','Technician','Source']));
-    rows.forEach(function(r){ lines.push(csvRow(r)); });
 
+    lines.push('JC History - '+reg+' (downloaded '+today+')');
+    lines.push(csvRow(['JC No','Date','Hub','ODO','Service Type','Item Type','Item Name','Qty','Amount (Rs)','Technician','Source']));
+    rows.forEach(function(r){
+      lines.push(csvRow([r.jc_no,r.jc_date,r.hub_name,r.bike_odo,r.service_type,r.line_type,r.item_name,r.qty,r.amount,r.technician_name,r.source]));
+    });
     if(!rows.length) lines.push('No JC history found for this vehicle');
 
     var blob=new Blob(['﻿'+lines.join('\n')],{type:'text/csv;charset=utf-8;'});
@@ -835,6 +805,16 @@ function dlCSV(bikeId, reg){
     a.download='JC_History_'+reg+'_'+today+'.csv';
     a.click();
   }).catch(function(e){ alert('Download failed: '+e.message); });
+}
+
+// ── Query box → email ─────────────────────────────────────────────
+function sendQuery(bikeId, reg){
+  var txt=document.getElementById('q'+bikeId);
+  var query=(txt&&txt.value.trim())||'';
+  if(!query){ txt&&txt.focus(); return; }
+  var subject=encodeURIComponent('FleetPro Query: '+reg);
+  var body=encodeURIComponent('Vehicle: '+reg+'\nBike ID: '+bikeId+'\n\n'+query);
+  window.location.href='mailto:vamsee@bounceshare.com?subject='+subject+'&body='+body;
 }
 </script>
 </body>
