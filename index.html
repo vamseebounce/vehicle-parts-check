@@ -736,10 +736,7 @@ function card(v){
 
   // Flags
   var flags='<div class="flags">';
-  if(v.check_required) flags+='<div class="chk warn">⚠ Check Required</div>';
-  else flags+='<div class="chk clr">✓ No Check Required</div>';
   if(v.days_since_last_jc>30) flags+='<div class="chk pms">⚠ PMS Required — '+v.days_since_last_jc+' days since JC</div>';
-  else if(v.days_since_last_jc>15) flags+='<div class="chk hst">⚠ HST Activity — '+v.days_since_last_jc+' days since JC</div>';
   flags+='</div>';
 
   return '<div class="card">'
@@ -752,7 +749,6 @@ function card(v){
       '<div class="vinfo">'
       +(v.deployed_hub?'<span>Deployed Hub: <b>'+v.deployed_hub+'</b></span>':'')
       +(v.last_service_hub?'<span>Last Service Hub: <b>'+v.last_service_hub+'</b></span>':'')
-      +(v.current_status?'<span>Status: <b>'+v.current_status+'</b></span>':'')
       +'</div>':'')
     // ODO
     +'<div class="odo-strip">'
@@ -768,28 +764,77 @@ function card(v){
 }
 
 // ── Download CSV ─────────────────────────────────────────────────────
+function csvCell(v){
+  if(v==null||v===undefined) return '';
+  var s=String(v);
+  return (s.indexOf(',')>=0||s.indexOf('"')>=0||s.indexOf('\n')>=0)
+    ?'"'+s.replace(/"/g,'""')+'"':s;
+}
+function csvRow(arr){ return arr.map(csvCell).join(','); }
+
 function dlCSV(bikeId, reg){
-  fetch(SB+'/rest/v1/vehicle_parts_check_flag?bike_id=eq.'+bikeId+'&select=*',
-    {headers:{apikey:ANON_KEY,Authorization:'Bearer '+K}})
-  .then(function(r){return r.json();})
-  .then(function(d){
-    if(!d||!d.length) return alert('No data found');
-    var cols=Object.keys(d[0]);
-    var rows=[cols.join(',')];
-    d.forEach(function(row){
-      rows.push(cols.map(function(c){
-        var val=row[c];
-        if(val==null) return '';
-        return (String(val).indexOf(',')>=0||String(val).indexOf('"')>=0)
-          ?'"'+String(val).replace(/"/g,'""')+'"':String(val);
-      }).join(','));
+  var h={headers:{apikey:ANON_KEY,Authorization:'Bearer '+K}};
+  var base=SB+'/rest/v1/';
+  var today=new Date().toISOString().slice(0,10);
+
+  Promise.all([
+    fetch(base+'job_card?bike_id=eq.'+bikeId+'&select=id,created_at,bike_odo,hub_id,dms_api_call_json&order=created_at.desc',h).then(function(r){return r.json();}),
+    fetch(base+'dms_job_card_history?bike_id=eq.'+bikeId+'&select=dms_jc_no,start_time,bike_odo,hub_name,dms_cat,line_type,item_name,qty,amount,technician_name&order=start_time.desc',h).then(function(r){return r.json();})
+  ]).then(function(results){
+    var newJC=results[0]||[], oldJC=results[1]||[];
+    var rows=[];
+
+    // Normalise new-flow JC into unified row format
+    newJC.forEach(function(jc){
+      var date=jc.created_at?jc.created_at.slice(0,16).replace('T',' '):'';
+      var parsed=null;
+      try{ parsed=typeof jc.dms_api_call_json==='string'?JSON.parse(jc.dms_api_call_json):jc.dms_api_call_json; }catch(e){}
+      var svcType=parsed&&parsed.iServType?parsed.iServType:'';
+      var items=parsed&&parsed.iItemData
+        ?parsed.iItemData.filter(function(i){return i.iItemName&&i.iItemName.trim()&&(i.iAmt>0||i.iQty>0);})
+        :[];
+      if(items.length){
+        items.forEach(function(item){
+          rows.push([jc.id,date,'Hub '+jc.hub_id,jc.bike_odo,svcType,item.iPL==='P'?'Part':item.iPL==='L'?'Labour':'Other',item.iItemName,item.iQty||'',item.iAmt||'','','New Flow']);
+        });
+      } else {
+        rows.push([jc.id,date,'Hub '+jc.hub_id,jc.bike_odo,svcType,'','','','','','New Flow']);
+      }
     });
-    var blob=new Blob([rows.join('\n')],{type:'text/csv'});
+
+    // Normalise old DMS into same format
+    oldJC.forEach(function(jc){
+      rows.push([
+        jc.dms_jc_no||'',
+        jc.start_time?jc.start_time.slice(0,10):'',
+        jc.hub_name||'',
+        jc.bike_odo||'',
+        jc.dms_cat||'',
+        jc.line_type||'',
+        jc.item_name||'',
+        jc.qty||'',
+        jc.amount||'',
+        jc.technician_name||'',
+        'Old DMS'
+      ]);
+    });
+
+    // Sort all rows by date descending
+    rows.sort(function(a,b){ return String(b[0]).localeCompare(String(a[0])); });
+
+    var lines=[];
+    lines.push('JC History — '+reg+' (downloaded '+today+')');
+    lines.push(csvRow(['JC No','Date','Hub','ODO','Service Type','Item Type','Item Name','Qty','Amount (₹)','Technician','Source']));
+    rows.forEach(function(r){ lines.push(csvRow(r)); });
+
+    if(!rows.length) lines.push('No JC history found for this vehicle');
+
+    var blob=new Blob([lines.join('\n')],{type:'text/csv'});
     var a=document.createElement('a');
     a.href=URL.createObjectURL(blob);
-    a.download='FleetPro_'+reg+'_'+new Date().toISOString().slice(0,10)+'.csv';
+    a.download='JC_History_'+reg+'_'+today+'.csv';
     a.click();
-  });
+  }).catch(function(e){ alert('Download failed: '+e.message); });
 }
 </script>
 </body>
