@@ -830,11 +830,28 @@ function submitFeedback(){
   var txt=document.getElementById('fb-text');
   var msg=(txt&&txt.value.trim())||'';
   if(!msg){ txt&&txt.focus(); return; }
-  var subject=encodeURIComponent('FleetPro Feedback');
-  var body=encodeURIComponent(msg);
-  window.location.href='mailto:vamsee@bounceshare.com?subject='+subject+'&body='+body;
-  txt.value='';
-  document.getElementById('fb-popup').classList.remove('open');
+  var btn=document.querySelector('.fb-submit');
+  btn.textContent='Submitting…';
+  btn.disabled=true;
+  fetch(SB+'/rest/v1/feedback',{
+    method:'POST',
+    headers:{apikey:ANON_KEY,Authorization:'Bearer '+K,'Content-Type':'application/json',Prefer:'return=minimal'},
+    body:JSON.stringify({message:msg, submitted_by: (sbClient.auth.user&&sbClient.auth.user()&&sbClient.auth.user().email)||null})
+  }).then(function(r){
+    btn.textContent='Submit';
+    btn.disabled=false;
+    if(r.ok||r.status===201){
+      txt.value='';
+      document.getElementById('fb-popup').classList.remove('open');
+      var t=document.createElement('div');
+      t.style.cssText='position:fixed;bottom:80px;right:24px;background:#22C55E;color:#fff;padding:8px 16px;border-radius:8px;font-size:.78rem;font-weight:600;z-index:2000';
+      t.textContent='Feedback submitted!';
+      document.body.appendChild(t);
+      setTimeout(function(){t.remove();},3000);
+    } else {
+      alert('Could not submit feedback. Please try again.');
+    }
+  }).catch(function(){ btn.textContent='Submit'; btn.disabled=false; alert('Network error. Please try again.'); });
 }
 </script>
 </body>
