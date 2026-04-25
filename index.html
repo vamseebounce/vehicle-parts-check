@@ -162,7 +162,7 @@ body.pinned #main{margin-left:var(--sb-width)}
 .sw svg{position:absolute;right:16px;top:50%;transform:translateY(-50%);color:#9CA3AF;pointer-events:none}
 
 /* ── Content ── */
-.content-section{flex:1;padding:0 16px 40px;max-width:740px;margin:0 auto;width:100%}
+.content-section{flex:1;padding:0 16px 40px;max-width:1100px;margin:0 auto;width:100%}
 .hint{text-align:center;color:rgba(255,255,255,.5);font-size:.78rem;margin-top:14px;line-height:2.2}
 .hint span{background:rgba(255,255,255,.12);color:rgba(255,255,255,.85);border-radius:8px;padding:3px 10px;font-size:.75rem;margin:2px;cursor:pointer;font-weight:600;letter-spacing:.5px;transition:background .15s;display:inline-block}
 .hint span:hover{background:rgba(255,255,255,.22)}
@@ -211,8 +211,8 @@ body.pinned #main{margin-left:var(--sb-width)}
 .sc-ok{background:var(--ok-bg);color:var(--ok)}
 
 /* Parts grid */
-.pg{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px}
-@media(max-width:520px){.pg{grid-template-columns:repeat(2,1fr)}}
+.pg{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:14px}
+@media(max-width:900px){.pg{grid-template-columns:repeat(3,1fr)}}@media(max-width:520px){.pg{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:340px){.pg{grid-template-columns:1fr}}
 
 /* Part tile */
@@ -659,8 +659,8 @@ function card(v){
   var uc='u'+(v.overall_urgency||0);
   var hasSplit=v.front_brake_status!=null||v.rear_brake_status!=null;
   var isDisc=[1,2,3].indexOf(Number(v.dms_bike_model_id))!==-1;
-  var frLbl=isDisc?'Fr Brake Pad':'Fr Brake Shoe';
-  var rrLbl=isDisc?'Rr Brake Pad':'Rr Brake Shoe';
+  var frLbl=isDisc?'Front Brake Pad':'Front Brake Shoe';
+  var rrLbl=isDisc?'Rear Brake Pad':'Rear Brake Shoe';
 
   var partsHtml;
   if(hasSplit){
@@ -668,17 +668,17 @@ function card(v){
       {label:frLbl,             st:v.front_brake_status,       ks:v.front_brake_km_since,       kr:v.front_brake_km_remaining,       ld:v.last_front_brake_replaced_date,  lh:v.last_front_brake_replaced_hub,  th:THRESH.front_brake},
       {label:rrLbl,             st:v.rear_brake_status,        ks:v.rear_brake_km_since,        kr:v.rear_brake_km_remaining,        ld:v.last_rear_brake_replaced_date,   lh:v.last_rear_brake_replaced_hub,   th:THRESH.rear_brake},
       {label:'Tyre',            st:v.tyre_status,              ks:v.tyre_km_since,              kr:v.tyre_km_remaining,              ld:v.last_tyre_replaced_date,         lh:v.last_tyre_replaced_hub,         th:THRESH.tyre},
-      {label:'Fr Brake Cable',  st:v.fr_brake_cable_status,    ks:v.fr_brake_cable_km_since,    kr:v.fr_brake_cable_km_remaining,    ld:v.last_fr_brake_cable_replaced_date,lh:v.last_fr_brake_cable_replaced_hub,th:THRESH.fr_brake_cable},
-      {label:'Rr Brake Cable',  st:v.rr_brake_cable_status,    ks:v.rr_brake_cable_km_since,    kr:v.rr_brake_cable_km_remaining,    ld:v.last_rr_brake_cable_replaced_date,lh:v.last_rr_brake_cable_replaced_hub,th:THRESH.rr_brake_cable},
-      {label:'Brake Shoe Spr',  st:v.brake_shoe_spring_status, ks:v.brake_shoe_spring_km_since, kr:v.brake_shoe_spring_km_remaining, ld:v.last_brake_shoe_spring_replaced_date,lh:v.last_brake_shoe_spring_replaced_hub,th:THRESH.brake_shoe_spring},
+      {label:'Front Brake Cable',  st:v.fr_brake_cable_status,    ks:v.fr_brake_cable_km_since,    kr:v.fr_brake_cable_km_remaining,    ld:v.last_fr_brake_cable_replaced_date,lh:v.last_fr_brake_cable_replaced_hub,th:THRESH.fr_brake_cable},
+      {label:'Rear Brake Cable',  st:v.rr_brake_cable_status,    ks:v.rr_brake_cable_km_since,    kr:v.rr_brake_cable_km_remaining,    ld:v.last_rr_brake_cable_replaced_date,lh:v.last_rr_brake_cable_replaced_hub,th:THRESH.rr_brake_cable},
+      {label:'Brake Shoe Spring',  st:v.brake_shoe_spring_status, ks:v.brake_shoe_spring_km_since, kr:v.brake_shoe_spring_km_remaining, ld:v.last_brake_shoe_spring_replaced_date,lh:v.last_brake_shoe_spring_replaced_hub,th:THRESH.brake_shoe_spring},
       {label:'Cone Set',        st:v.cone_set_status,          ks:v.cone_set_km_since,          kr:v.cone_set_km_remaining,          ld:v.last_cone_set_replaced_date,     lh:v.last_cone_set_replaced_hub,     th:THRESH.cone_set},
-      {label:'Fr Brake Disc',   st:v.fr_brake_disc_status,     ks:v.fr_brake_disc_km_since,     kr:v.fr_brake_disc_km_remaining,     ld:v.last_fr_brake_disc_replaced_date, lh:v.last_fr_brake_disc_replaced_hub,th:THRESH.fr_brake_disc},
-      {label:'Rr Brake Disc',   st:v.rr_brake_disc_status,     ks:v.rr_brake_disc_km_since,     kr:v.rr_brake_disc_km_remaining,     ld:v.last_rr_brake_disc_replaced_date, lh:v.last_rr_brake_disc_replaced_hub,th:THRESH.rr_brake_disc},
+      {label:'Front Brake Disc',   st:v.fr_brake_disc_status,     ks:v.fr_brake_disc_km_since,     kr:v.fr_brake_disc_km_remaining,     ld:v.last_fr_brake_disc_replaced_date, lh:v.last_fr_brake_disc_replaced_hub,th:THRESH.fr_brake_disc},
+      {label:'Rear Brake Disc',   st:v.rr_brake_disc_status,     ks:v.rr_brake_disc_km_since,     kr:v.rr_brake_disc_km_remaining,     ld:v.last_rr_brake_disc_replaced_date, lh:v.last_rr_brake_disc_replaced_hub,th:THRESH.rr_brake_disc},
       {label:'Brake Oil',       st:v.brake_oil_status,         ks:v.brake_oil_km_since,         kr:v.brake_oil_km_remaining,         ld:v.last_brake_oil_replaced_date,    lh:v.last_brake_oil_replaced_hub,    th:THRESH.brake_oil},
-      {label:'Fr Wheel Brg',    st:v.fr_wheel_bearing_status,  ks:v.fr_wheel_bearing_km_since,  kr:v.fr_wheel_bearing_km_remaining,  ld:v.last_fr_wheel_bearing_replaced_date,lh:v.last_fr_wheel_bearing_replaced_hub,th:THRESH.fr_wheel_bearing},
-      {label:'Rr Wheel Brg',    st:v.rr_wheel_bearing_status,  ks:v.rr_wheel_bearing_km_since,  kr:v.rr_wheel_bearing_km_remaining,  ld:v.last_rr_wheel_bearing_replaced_date,lh:v.last_rr_wheel_bearing_replaced_hub,th:THRESH.rr_wheel_bearing},
-      {label:'Side Stand Spr',  st:v.side_stand_spring_status, ks:v.side_stand_spring_km_since, kr:v.side_stand_spring_km_remaining, ld:v.last_side_stand_spring_replaced_date,lh:v.last_side_stand_spring_replaced_hub,th:THRESH.side_stand_spring},
-      {label:'Main Stand Spr',  st:v.main_stand_spring_status, ks:v.main_stand_spring_km_since, kr:v.main_stand_spring_km_remaining, ld:v.last_main_stand_spring_replaced_date,lh:v.last_main_stand_spring_replaced_hub,th:THRESH.main_stand_spring}
+      {label:'Front Wheel Bearing',    st:v.fr_wheel_bearing_status,  ks:v.fr_wheel_bearing_km_since,  kr:v.fr_wheel_bearing_km_remaining,  ld:v.last_fr_wheel_bearing_replaced_date,lh:v.last_fr_wheel_bearing_replaced_hub,th:THRESH.fr_wheel_bearing},
+      {label:'Rear Wheel Bearing',    st:v.rr_wheel_bearing_status,  ks:v.rr_wheel_bearing_km_since,  kr:v.rr_wheel_bearing_km_remaining,  ld:v.last_rr_wheel_bearing_replaced_date,lh:v.last_rr_wheel_bearing_replaced_hub,th:THRESH.rr_wheel_bearing},
+      {label:'Side Stand Spring',  st:v.side_stand_spring_status, ks:v.side_stand_spring_km_since, kr:v.side_stand_spring_km_remaining, ld:v.last_side_stand_spring_replaced_date,lh:v.last_side_stand_spring_replaced_hub,th:THRESH.side_stand_spring},
+      {label:'Main Stand Spring',  st:v.main_stand_spring_status, ks:v.main_stand_spring_km_since, kr:v.main_stand_spring_km_remaining, ld:v.last_main_stand_spring_replaced_date,lh:v.last_main_stand_spring_replaced_hub,th:THRESH.main_stand_spring}
     ];
     parts.sort(function(a,b){return sr(a.st)-sr(b.st);});
 
