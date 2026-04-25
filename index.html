@@ -750,8 +750,8 @@ function card(v){
     // Hub
     +(v.deployed_hub||v.last_service_hub?
       '<div class="vinfo">'
-      +(v.deployed_hub?'<span>Hub: <b>'+v.deployed_hub+'</b></span>':'')
-      +(v.last_service_hub?'<span>Last Svc: <b>'+v.last_service_hub+'</b></span>':'')
+      +(v.deployed_hub?'<span>Deployed Hub: <b>'+v.deployed_hub+'</b></span>':'')
+      +(v.last_service_hub?'<span>Last Service Hub: <b>'+v.last_service_hub+'</b></span>':'')
       +(v.current_status?'<span>Status: <b>'+v.current_status+'</b></span>':'')
       +'</div>':'')
     // ODO
