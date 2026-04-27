@@ -400,7 +400,6 @@ body.pinned #main{margin-left:var(--sb-width)}
       <span class="tb-page">Preventive Maintenance</span>
     </div>
     <div class="tb-right">
-      <div class="crit-badge" id="critBadge"></div>
       <button id="logout-btn" onclick="signOut()" style="display:none;background:none;border:1px solid #E5E7EB;border-radius:8px;padding:5px 12px;font-size:.72rem;font-weight:600;color:#6B7280;cursor:pointer;font-family:'Inter',sans-serif;transition:all .15s" onmouseover="this.style.borderColor='#E8191C';this.style.color='#E8191C'" onmouseout="this.style.borderColor='#E5E7EB';this.style.color='#6B7280'">Sign out</button>
     </div>
   </header>
@@ -450,7 +449,7 @@ body.pinned #main{margin-left:var(--sb-width)}
   <textarea class="fb-area" id="fb-text" rows="4" placeholder="Type your feedback here…"></textarea>
   <button class="fb-submit" onclick="submitFeedback()">Submit</button>
 </div>
-<button class="fb-fab" onclick="toggleFeedback()">✉ Feedback</button>
+<button class="fb-fab" id="fb-fab" onclick="toggleFeedback()" style="display:none">✉ Feedback</button>
 
 </div><!-- /main -->
 
@@ -528,6 +527,7 @@ async function signOut(){
     K = session.access_token;
     hideAuthScreen();
     document.getElementById('logout-btn').style.display='block';
+    document.getElementById('fb-fab').style.display='flex';
   } else {
     showAuthScreen();
   }
@@ -540,6 +540,7 @@ async function signOut(){
       hideAuthScreen();
       document.getElementById('logout-btn').style.display='block';
       document.getElementById('logout-btn').title='Signed in as '+session.user.email;
+      document.getElementById('fb-fab').style.display='flex';
     } else if(event==='SIGNED_OUT'){
       K = ANON_KEY;
       document.getElementById('logout-btn').style.display='none';
@@ -608,7 +609,7 @@ document.body.addEventListener('click',function(e){
 
 si.addEventListener('input',function(){
   clearTimeout(t);
-  var q=si.value.trim().toUpperCase();
+  var q=si.value.trim().toUpperCase().replace(/[\s\-]/g,'');
   if(q.length<2){rv.innerHTML='';return;}
   rv.innerHTML='<div class="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>';
   t=setTimeout(function(){ run(q); },300);
