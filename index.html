@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Bounce Daily — FleetPro</title>
+<title>FleetPro — Bounce Fleet Operations</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"/>
@@ -11,34 +11,17 @@
 <style>
 
 /* ── Auth Screen ── */
-#auth-screen{
-  position:fixed;inset:0;z-index:1000;
-  background:linear-gradient(135deg,#1A1A2E 0%,#0f2460 100%);
-  display:flex;align-items:center;justify-content:center;
-  font-family:'Inter',sans-serif;
-}
+#auth-screen{position:fixed;inset:0;z-index:1000;background:linear-gradient(135deg,#1A1A2E 0%,#0f2460 100%);display:flex;align-items:center;justify-content:center;font-family:'Inter',sans-serif;}
 #auth-screen.hidden{display:none!important}
-.auth-card{
-  background:#fff;border-radius:24px;padding:40px 36px;
-  width:100%;max-width:380px;box-shadow:0 24px 80px rgba(0,0,0,.3);
-  text-align:center;
-}
+.auth-card{background:#fff;border-radius:24px;padding:40px 36px;width:100%;max-width:380px;box-shadow:0 24px 80px rgba(0,0,0,.3);text-align:center;}
 .auth-logo{display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:24px}
 .auth-logo-name{font-size:1.1rem;font-weight:800;color:#0F172A}
 .auth-logo-sub{font-size:.7rem;color:#6B7280;font-weight:500;letter-spacing:.5px;text-transform:uppercase;margin-top:2px}
 .auth-title{font-size:1.3rem;font-weight:800;color:#0F172A;margin-bottom:6px}
 .auth-sub{font-size:.82rem;color:#6B7280;margin-bottom:28px;line-height:1.6}
-.auth-input{
-  width:100%;padding:13px 16px;border:1.5px solid #E5E7EB;border-radius:12px;
-  font-size:.9rem;font-family:'Inter',sans-serif;color:#111827;outline:none;
-  transition:border-color .15s;margin-bottom:12px;
-}
+.auth-input{width:100%;padding:13px 16px;border:1.5px solid #E5E7EB;border-radius:12px;font-size:.9rem;font-family:'Inter',sans-serif;color:#111827;outline:none;transition:border-color .15s;margin-bottom:12px;}
 .auth-input:focus{border-color:#E8191C}
-.auth-btn{
-  width:100%;padding:13px;background:#E8191C;color:#fff;border:none;
-  border-radius:12px;font-size:.9rem;font-weight:700;cursor:pointer;
-  font-family:'Inter',sans-serif;transition:background .15s;
-}
+.auth-btn{width:100%;padding:13px;background:#E8191C;color:#fff;border:none;border-radius:12px;font-size:.9rem;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;transition:background .15s;}
 .auth-btn:hover{background:#B01010}
 .auth-btn:disabled{background:#CBD5E1;cursor:not-allowed}
 .auth-domain{display:inline-block;background:#F0FDF4;color:#16A34A;border:1px solid #BBF7D0;border-radius:8px;padding:4px 12px;font-size:.75rem;font-weight:600;margin-bottom:20px}
@@ -50,28 +33,10 @@
 .auth-sent .resend{background:none;border:none;color:#E8191C;font-size:.8rem;font-weight:600;cursor:pointer;margin-top:16px;font-family:'Inter',sans-serif}
 
 :root{
-  --brand:#E8191C;
-  --brand-dark:#B01010;
-  --brand-bg:#FEF2F2;
-  --sb-bg:#1A1A2E;
-  --sb-text:rgba(255,255,255,.7);
-  --sb-active:#fff;
-  --sb-hover:rgba(255,255,255,.08);
-  --sb-width:260px;
-  --topbar-h:56px;
-  --bg:#F5F6FA;
-  --card:#fff;
-  --border:#E5E7EB;
-  --text:#111827;
-  --muted:#6B7280;
-  --overdue:#DC2626;
-  --overdue-bg:#FEF2F2;
-  --due:#D97706;
-  --due-bg:#FFFBEB;
-  --ok:#16A34A;
-  --ok-bg:#F0FDF4;
-  --na:#CBD5E1;
-  --na-bg:#F8FAFC;
+  --brand:#E8191C;--brand-dark:#B01010;--brand-bg:#FEF2F2;
+  --sb-bg:#1A1A2E;--sb-text:rgba(255,255,255,.7);--sb-active:#fff;
+  --sb-hover:rgba(255,255,255,.08);--sb-width:260px;--topbar-h:56px;
+  --bg:#F5F6FA;--card:#fff;--border:#E5E7EB;--text:#111827;--muted:#6B7280;
   --shadow:0 1px 3px rgba(0,0,0,.08),0 1px 2px rgba(0,0,0,.04);
   --shadow-md:0 4px 16px rgba(0,0,0,.1);
 }
@@ -83,31 +48,18 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
 #ov.show{display:block}
 
 /* ── Sidebar ── */
-#sb{
-  position:fixed;top:0;left:0;bottom:0;width:var(--sb-width);
-  background:var(--sb-bg);z-index:200;
-  transform:translateX(-100%);transition:transform .25s ease;
-  display:flex;flex-direction:column;overflow:hidden;
-}
+#sb{position:fixed;top:0;left:0;bottom:0;width:var(--sb-width);background:var(--sb-bg);z-index:200;transform:translateX(-100%);transition:transform .25s ease;display:flex;flex-direction:column;overflow:hidden;}
 #sb.open{transform:translateX(0)}
 body.pinned #sb{transform:translateX(0)}
 body.pinned #main{margin-left:var(--sb-width)}
-
 .sb-header{padding:20px 16px 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,.06)}
 .sb-brand{display:flex;align-items:center;gap:10px;text-decoration:none}
-.bd-logo{flex-shrink:0}
-@keyframes morph{
-  0%,100%{border-radius:60% 40% 55% 45%/50% 60% 40% 50%}
-  33%{border-radius:40% 60% 45% 55%/60% 40% 60% 40%}
-  66%{border-radius:55% 45% 60% 40%/40% 55% 45% 60%}
-}
-.sb-brand-text{line-height:1.2}
-.sb-brand-text .t1{font-size:.82rem;font-weight:700;color:rgba(255,255,255,.5);letter-spacing:.5px;text-transform:uppercase;font-size:.6rem}
+@keyframes morph{0%,100%{border-radius:60% 40% 55% 45%/50% 60% 40% 50%}33%{border-radius:40% 60% 45% 55%/60% 40% 60% 40%}66%{border-radius:55% 45% 60% 40%/40% 55% 45% 60%}}
+.sb-brand-text .t1{font-size:.6rem;font-weight:700;color:rgba(255,255,255,.5);letter-spacing:.5px;text-transform:uppercase}
 .sb-brand-text .t2{font-size:.78rem;font-weight:800;color:#fff;letter-spacing:-.01em}
 .pin-btn{background:none;border:none;cursor:pointer;color:rgba(255,255,255,.35);font-size:.8rem;padding:4px 6px;border-radius:6px;transition:all .15s;display:flex;align-items:center;gap:3px;font-family:inherit}
 .pin-btn:hover{color:#fff;background:rgba(255,255,255,.08)}
 .pin-btn.pinned{color:var(--brand)}
-
 .sb-section{padding:12px 8px 4px}
 .sb-label{font-size:.6rem;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:rgba(255,255,255,.25);padding:0 8px 8px}
 .sb-item{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:10px;text-decoration:none;color:var(--sb-text);font-size:.82rem;font-weight:500;transition:all .15s;margin-bottom:2px}
@@ -115,181 +67,57 @@ body.pinned #main{margin-left:var(--sb-width)}
 .sb-item.active{background:rgba(232,25,28,.18);color:#fff;font-weight:600}
 .sb-item.active .si{color:var(--brand)}
 .si{font-size:1rem;width:20px;text-align:center;flex-shrink:0}
-.sb-item .badge{margin-left:auto;background:var(--brand);color:#fff;border-radius:10px;padding:1px 7px;font-size:.65rem;font-weight:700}
-
 .sb-spacer{flex:1}
 .sb-footer{padding:12px 16px;border-top:1px solid rgba(255,255,255,.06)}
 .sb-ver{font-size:.65rem;color:rgba(255,255,255,.25);font-weight:500}
 
 /* ── Top Bar ── */
 #main{transition:margin-left .25s ease;min-height:100vh;display:flex;flex-direction:column}
-#topbar{
-  position:sticky;top:0;z-index:100;
-  height:var(--topbar-h);background:#fff;
-  border-bottom:1px solid var(--border);
-  display:flex;align-items:center;gap:12px;padding:0 16px;
-  box-shadow:var(--shadow);
-}
-#hbg{
-  width:36px;height:36px;background:none;border:none;cursor:pointer;
-  display:flex;flex-direction:column;justify-content:center;align-items:center;gap:5px;
-  border-radius:8px;transition:background .15s;flex-shrink:0;
-}
+#topbar{position:sticky;top:0;z-index:100;height:var(--topbar-h);background:#fff;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;padding:0 16px;box-shadow:var(--shadow);}
+#hbg{width:36px;height:36px;background:none;border:none;cursor:pointer;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:5px;border-radius:8px;transition:background .15s;flex-shrink:0;}
 #hbg:hover{background:#F3F4F6}
 #hbg span{display:block;width:18px;height:2px;background:var(--text);border-radius:2px;transition:all .2s}
 .tb-brand{display:flex;align-items:center;gap:6px;flex:1;min-width:0}
-.tb-logo{display:flex;align-items:center;gap:7px;font-size:.85rem;font-weight:800;color:var(--brand);letter-spacing:-.01em;white-space:nowrap}
+.tb-logo{display:flex;align-items:center;gap:7px;font-size:.85rem;font-weight:800;color:var(--brand);letter-spacing:-.01em;white-space:nowrap;text-decoration:none}
 .tb-dot{width:26px;height:26px;background:var(--brand);border-radius:60% 40% 55% 45%/50% 60% 40% 50%;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:.55rem;color:#fff;flex-shrink:0;animation:morph 6s ease-in-out infinite}
-.tb-sep{color:var(--border);font-size:.9rem}
-.tb-page{font-size:.82rem;font-weight:600;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .tb-right{display:flex;align-items:center;gap:8px;margin-left:auto;flex-shrink:0}
-.crit-badge{background:var(--overdue-bg);color:var(--overdue);border:1px solid #FECACA;border-radius:20px;padding:4px 12px;font-size:.72rem;font-weight:700;white-space:nowrap;display:none}
-.crit-badge.show{display:block}
 
-/* ── Search Section ── */
-.search-section{background:linear-gradient(135deg,var(--sb-bg) 0%,#0f2460 100%);padding:36px 20px 52px;text-align:center;position:relative;overflow:hidden}
-.search-section::after{content:'';position:absolute;bottom:-1px;left:0;right:0;height:40px;background:var(--bg);clip-path:ellipse(55% 100% at 50% 100%)}
-.search-title{font-size:1.35rem;font-weight:800;color:#fff;letter-spacing:-.02em;margin-bottom:4px}
-.search-sub{font-size:.8rem;color:rgba(255,255,255,.45);margin-bottom:20px}
-.sw{max-width:480px;margin:0 auto;position:relative}
-.sw input{
-  width:100%;padding:14px 50px 14px 20px;border:none;border-radius:14px;
-  font-size:.95rem;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;
-  background:#fff;box-shadow:0 4px 24px rgba(0,0,0,.2);outline:none;
-  font-family:'Inter',sans-serif;color:var(--text);
-}
-.sw input::placeholder{text-transform:none;letter-spacing:0;font-weight:400;color:#9CA3AF;font-size:.88rem}
-.sw svg{position:absolute;right:16px;top:50%;transform:translateY(-50%);color:#9CA3AF;pointer-events:none}
+/* ── Home Hero ── */
+.home-hero{background:linear-gradient(135deg,var(--sb-bg) 0%,#0f2460 100%);padding:48px 20px 64px;text-align:center;position:relative;overflow:hidden}
+.home-hero::after{content:'';position:absolute;bottom:-1px;left:0;right:0;height:40px;background:var(--bg);clip-path:ellipse(55% 100% at 50% 100%)}
+.home-hero-title{font-size:1.7rem;font-weight:900;color:#fff;letter-spacing:-.03em;margin-bottom:6px}
+.home-hero-sub{font-size:.85rem;color:rgba(255,255,255,.45)}
 
-/* ── Content ── */
-.content-section{flex:1;padding:0 16px 40px;max-width:1100px;margin:0 auto;width:100%}
-.hint{text-align:center;color:rgba(255,255,255,.5);font-size:.78rem;margin-top:14px;line-height:2.2}
-.hint span{background:rgba(255,255,255,.12);color:rgba(255,255,255,.85);border-radius:8px;padding:3px 10px;font-size:.75rem;margin:2px;cursor:pointer;font-weight:600;letter-spacing:.5px;transition:background .15s;display:inline-block}
-.hint span:hover{background:rgba(255,255,255,.22)}
-.dots{text-align:center;padding:50px}
-.dot{display:inline-block;width:8px;height:8px;background:var(--brand);border-radius:50%;margin:0 3px;animation:bop 1s infinite}
-.dot:nth-child(2){animation-delay:.15s}.dot:nth-child(3){animation-delay:.3s}
-@keyframes bop{0%,100%{transform:translateY(0)}45%{transform:translateY(-9px)}}
-.nf{text-align:center;padding:60px 20px}
-.nf .ic{font-size:3rem;margin-bottom:12px}
-.nf h3{color:var(--text);margin-bottom:6px;font-weight:700}
-.nf p{color:var(--muted);font-size:.875rem}
+/* ── Tile Grid ── */
+.tile-section{max-width:800px;margin:-24px auto 0;padding:0 16px 60px;width:100%}
+.tile-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+@media(max-width:600px){.tile-grid{grid-template-columns:1fr}}
+.tile{background:var(--card);border-radius:20px;box-shadow:var(--shadow-md);border:1px solid var(--border);overflow:hidden;text-decoration:none;color:inherit;display:flex;flex-direction:column;transition:box-shadow .2s,transform .15s;cursor:pointer}
+.tile:hover{box-shadow:0 8px 32px rgba(0,0,0,.13);transform:translateY(-2px)}
+.tile-accent{height:4px}
+.tile-body{padding:22px 22px 18px;flex:1;display:flex;flex-direction:column;gap:4px}
+.tile-icon{font-size:1.6rem;margin-bottom:8px}
+.tile-title{font-size:1rem;font-weight:800;color:#0F172A;margin-bottom:2px}
+.tile-desc{font-size:.76rem;color:var(--muted);margin-bottom:14px}
+.tile-stat{font-size:2.4rem;font-weight:900;letter-spacing:-.03em;line-height:1}
+.tile-stat-label{font-size:.75rem;color:var(--muted);font-weight:500;margin-bottom:10px}
+.tile-breakdown{font-size:.74rem;color:var(--muted);margin-bottom:16px}
+.tile-breakdown b{font-weight:700}
+.tile-cta{display:inline-flex;align-items:center;gap:5px;padding:8px 16px;border-radius:10px;font-size:.78rem;font-weight:700;border:none;cursor:pointer;font-family:inherit;transition:background .15s;margin-top:auto;align-self:flex-start}
+.tile-loading{font-size:.8rem;color:var(--muted);animation:pulse 1.5s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:.5}50%{opacity:1}}
+.tile-err{font-size:.75rem;color:#DC2626}
 
-/* ── Vehicle Card ── */
-.card{background:var(--card);border-radius:20px;box-shadow:var(--shadow-md);margin-top:20px;overflow:hidden;border:1px solid var(--border)}
+/* ── Footer ── */
+.site-footer{background:var(--sb-bg);color:rgba(255,255,255,.6);padding:40px 20px 32px;text-align:center;margin-top:auto}
+.footer-brand{display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:16px}
+.footer-brand-text{font-size:.95rem;font-weight:800;color:#fff}
+.footer-taglines{margin-bottom:20px}
+.footer-taglines p{font-size:.82rem;color:rgba(255,255,255,.5);line-height:1.9}
+.footer-taglines p strong{color:rgba(255,255,255,.8);font-weight:600}
+.footer-meta{font-size:.68rem;color:rgba(255,255,255,.25);margin-top:16px;border-top:1px solid rgba(255,255,255,.06);padding-top:16px}
 
-/* Card Header */
-.ch{padding:16px 20px;display:flex;justify-content:space-between;align-items:flex-start;border-bottom:1px solid #F9FAFB}
-.reg{font-size:1.25rem;font-weight:800;color:#0F172A;letter-spacing:.8px}
-.bid{font-size:.7rem;color:var(--muted);margin-top:2px;font-weight:500}
-.ub{border-radius:20px;padding:5px 14px;font-size:.72rem;font-weight:700;white-space:nowrap}
-.u1{background:var(--overdue-bg);color:var(--overdue)}
-.u2{background:var(--due-bg);color:var(--due)}
-.u3{background:var(--ok-bg);color:var(--ok)}
-.u0{background:#F1F5F9;color:#64748B}
-
-/* Hub info */
-.vinfo{display:flex;gap:16px;flex-wrap:wrap;padding:10px 20px;font-size:.76rem;color:var(--muted);border-bottom:1px solid #F9FAFB;background:#FAFAFA}
-.vinfo b{color:var(--text);font-weight:600}
-
-/* ODO strip */
-.odo-strip{display:flex;border-bottom:1px solid var(--border)}
-.odo-stat{flex:1;padding:14px 16px;text-align:center;border-right:1px solid var(--border)}
-.odo-stat:last-child{border-right:none}
-.odo-lbl{font-size:.58rem;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);margin-bottom:3px}
-.odo-val{font-size:1.1rem;font-weight:800;color:#0F172A}
-.odo-sub{font-size:.62rem;color:var(--muted);font-weight:500}
-
-/* Parts section */
-.cb{padding:16px 16px 20px}
-.sec-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
-.sec-title{font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--muted)}
-.sec-counts{display:flex;gap:8px}
-.sc{font-size:.65rem;font-weight:700;border-radius:10px;padding:2px 8px}
-.sc-ov{background:var(--overdue-bg);color:var(--overdue)}
-.sc-ds{background:var(--due-bg);color:var(--due)}
-.sc-ok{background:var(--ok-bg);color:var(--ok)}
-
-/* Parts grid */
-.pg{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:14px}
-@media(max-width:900px){.pg{grid-template-columns:repeat(3,1fr)}}@media(max-width:520px){.pg{grid-template-columns:repeat(2,1fr)}}
-@media(max-width:340px){.pg{grid-template-columns:1fr}}
-
-/* Part tile */
-.pc{border-radius:12px;background:#F8FAFC;border:1.5px solid var(--border);position:relative;overflow:hidden;transition:box-shadow .15s}
-.pc:hover{box-shadow:0 4px 12px rgba(0,0,0,.08)}
-.pc.pov{background:var(--overdue-bg);border-color:#FECACA}
-.pc.pds{background:var(--due-bg);border-color:#FDE68A}
-.pc.pok{background:var(--ok-bg);border-color:#BBF7D0}
-.pc-stripe{position:absolute;top:0;left:0;width:3px;height:100%}
-.pc-inner{padding:10px 11px 9px 13px}
-/* Header row: part name + threshold */
-.pc-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:3px}
-.pn{font-size:.59rem;font-weight:700;text-transform:uppercase;letter-spacing:.65px;color:var(--muted);flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.pthresh{font-size:.6rem;color:#94A3B8;font-weight:700;letter-spacing:.3px;flex-shrink:0;margin-left:5px}
-/* Status */
-.ps{font-size:.85rem;font-weight:700;margin-bottom:4px;line-height:1.2}
-.ps.sov{color:var(--overdue)}
-.ps.sds{color:var(--due)}
-.ps.sok{color:var(--ok)}
-.ps.snd{color:var(--muted)}
-/* Progress bar + rem label */
-.pb-wrap{margin-bottom:5px}
-.pb-row{display:flex;align-items:center;gap:6px;margin-bottom:2px}
-.pb-track{flex:1;height:5px;background:rgba(0,0,0,.08);border-radius:3px;overflow:hidden}
-.pb-fill{height:100%;border-radius:3px;transition:width .4s ease}
-.pb-fill.fov{background:var(--overdue)}
-.pb-fill.fds{background:var(--due)}
-.pb-fill.fok{background:var(--ok)}
-.pb-fill.fnd{background:#E2E8F0}
-.pb-rem{font-size:.64rem;font-weight:700;flex-shrink:0;white-space:nowrap}
-/* Data rows */
-.pd-grid{display:grid;grid-template-columns:1fr 1fr;gap:1px 8px;margin-bottom:3px}
-.pd{font-size:.68rem;color:var(--muted);line-height:1.5}
-.pd b{color:#374151;font-weight:600}
-.pd-lbl{font-size:.58rem;text-transform:uppercase;letter-spacing:.4px;opacity:.55;display:block;line-height:1.2}
-.pd-hub{font-size:.66rem;color:#64748B;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border-top:1px solid rgba(0,0,0,.06);padding-top:4px;margin-top:2px;cursor:default}
-.neg{color:var(--overdue)!important}
-.pos{color:var(--ok)!important}
-/* N/A tiles: minimal */
-.pc-na{opacity:.35}
-.pc-na .ps{color:#CBD5E1;font-size:.75rem}
-
-/* Flags */
-.flags{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
-.chk{display:inline-flex;align-items:center;gap:5px;border-radius:8px;padding:6px 12px;font-size:.76rem;font-weight:600}
-.chk.warn{background:var(--overdue-bg);color:var(--overdue);border:1px solid #FECACA}
-.chk.clr{background:var(--ok-bg);color:var(--ok);border:1px solid #BBF7D0}
-.chk.pms{background:var(--overdue-bg);color:var(--overdue);border:1px solid #FECACA}
-.chk.hst{background:var(--due-bg);color:var(--due);border:1px solid #FDE68A}
-
-/* Download + History */
-.dl-btn{display:inline-flex;align-items:center;gap:6px;background:var(--text);color:#fff;border:none;border-radius:8px;padding:7px 14px;font-size:.76rem;font-weight:600;cursor:pointer;font-family:inherit;transition:background .15s;margin-top:10px}
-.dl-btn:hover{background:#374151}
-.jc-section{margin-top:14px;border-top:1px solid var(--border);padding-top:14px;display:none}
-.jc-section.open{display:block}
-.jc-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px}
-.jc-hdr-title{font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--muted)}
-.jc-hdr-meta{font-size:.72rem;color:var(--muted)}
-.jc-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;border-radius:10px;border:1px solid var(--border);max-height:360px;overflow-y:auto}
-.jc-tbl{width:100%;border-collapse:collapse;font-size:.73rem}
-.jc-tbl th{background:#F8FAFC;padding:8px 10px;text-align:left;font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);white-space:nowrap;border-bottom:1px solid var(--border);position:sticky;top:0;z-index:1}
-.jc-tbl td{padding:7px 10px;border-bottom:1px solid #F1F5F9;color:var(--text);white-space:nowrap}
-.jc-tbl tr:last-child td{border-bottom:none}
-.jc-tbl tr:hover td{background:#FAFAFA}
-.jc-no{font-weight:700;color:#0F172A}
-.jc-amt{font-weight:600;text-align:right}
-.jc-tag{display:inline-block;border-radius:4px;padding:1px 6px;font-size:.6rem;font-weight:700}
-.jc-tag.labour{background:#EFF6FF;color:#2563EB}
-.jc-tag.parts{background:#F0FDF4;color:#16A34A}
-.jc-tag.old{background:#F1F5F9;color:#64748B}
-.jc-filters{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;align-items:center}
-.jc-filter{border:1.5px solid var(--border);border-radius:8px;padding:5px 10px;font-size:.73rem;font-family:inherit;color:var(--text);background:#fff;outline:none;cursor:pointer;transition:border-color .15s}
-.jc-filter:focus{border-color:#94A3B8}
-.jc-filter-clear{background:none;border:1.5px solid var(--border);border-radius:8px;padding:5px 10px;font-size:.72rem;font-family:inherit;color:var(--muted);cursor:pointer;transition:all .15s}
-.jc-filter-clear:hover{border-color:#E8191C;color:#E8191C}
-.jc-count{font-size:.72rem;color:var(--muted);margin-left:auto}
-/* Feedback widget */
+/* Feedback */
 .fb-fab{position:fixed;bottom:24px;right:24px;z-index:1000;background:var(--text);color:#fff;border:none;border-radius:50px;padding:10px 18px;font-size:.78rem;font-weight:700;font-family:inherit;cursor:pointer;box-shadow:0 4px 16px rgba(0,0,0,.18);display:flex;align-items:center;gap:7px;transition:background .15s}
 .fb-fab:hover{background:#374151}
 .fb-popup{position:fixed;bottom:70px;right:24px;z-index:1001;background:#fff;border:1.5px solid var(--border);border-radius:14px;box-shadow:0 8px 32px rgba(0,0,0,.13);padding:16px;width:300px;display:none;flex-direction:column;gap:10px}
@@ -301,32 +129,13 @@ body.pinned #main{margin-left:var(--sb-width)}
 .fb-submit{background:var(--text);color:#fff;border:none;border-radius:8px;padding:7px 14px;font-size:.75rem;font-weight:700;font-family:inherit;cursor:pointer;align-self:flex-end;transition:background .15s}
 .fb-submit:hover{background:#374151}
 
-/* ── Footer ── */
-.site-footer{background:var(--sb-bg);color:rgba(255,255,255,.6);padding:40px 20px 32px;text-align:center;margin-top:auto}
-.footer-brand{display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:16px}
-.blob-sm{flex-shrink:0}
-.footer-brand-text{font-size:.95rem;font-weight:800;color:#fff}
-.footer-taglines{margin-bottom:20px}
-.footer-taglines p{font-size:.82rem;color:rgba(255,255,255,.5);line-height:1.9}
-.footer-taglines p strong{color:rgba(255,255,255,.8);font-weight:600}
-.footer-meta{font-size:.68rem;color:rgba(255,255,255,.25);margin-top:16px;border-top:1px solid rgba(255,255,255,.06);padding-top:16px}
-
-/* ── Mobile adjustments ── */
-@media(max-width:767px){
-  body.pinned #main{margin-left:0}
-  body.pinned #sb{transform:translateX(0)}
-  .pin-btn{display:none}
-  .odo-val{font-size:.95rem}
-  .reg{font-size:1.1rem}
-}
-@media(min-width:768px){
-  .content-section{padding:0 24px 60px}
-}
+@media(max-width:767px){body.pinned #main{margin-left:0}body.pinned #sb{transform:translateX(0)}.pin-btn{display:none}}
+@media(min-width:768px){.tile-section{padding:0 24px 60px}}
 </style>
 </head>
 <body>
 
-<!-- ── Auth Screen ── -->
+<!-- Auth Screen -->
 <div id="auth-screen">
   <div class="auth-card">
     <div class="auth-logo">
@@ -336,19 +145,14 @@ body.pinned #main{margin-left:var(--sb-width)}
         <div class="auth-logo-sub">FleetPro</div>
       </div>
     </div>
-
     <div class="auth-title">Welcome to FleetPro</div>
     <div class="auth-sub">Enter your work email and we'll send you a one-click sign-in link.</div>
     <div class="auth-domain">@bounceshare.com only</div>
-
-    <!-- Email form -->
     <div id="auth-form">
       <input id="auth-email" class="auth-input" type="email" placeholder="you@bounceshare.com" autocomplete="email"/>
       <button id="auth-submit" class="auth-btn" onclick="sendMagicLink()">Send Magic Link</button>
       <div id="auth-msg" class="auth-msg"></div>
     </div>
-
-    <!-- Sent confirmation -->
     <div id="auth-sent" class="auth-sent">
       <div class="big-icon">📬</div>
       <h3>Check your inbox</h3>
@@ -358,13 +162,12 @@ body.pinned #main{margin-left:var(--sb-width)}
   </div>
 </div>
 
-<!-- Overlay -->
 <div id="ov"></div>
 
 <!-- Sidebar -->
 <nav id="sb">
   <div class="sb-header">
-    <a href="/index.html" class="sb-brand">
+    <a href="./index.html" class="sb-brand">
       <img src="logo.jpg" width="44" height="44" style="border-radius:10px;object-fit:cover;flex-shrink:0"/>
       <div class="sb-brand-text">
         <div class="t1">Bounce Daily</div>
@@ -376,40 +179,29 @@ body.pinned #main{margin-left:var(--sb-width)}
       Pin
     </button>
   </div>
-
   <div class="sb-section">
     <div class="sb-label">Fleet Tools</div>
-    <a href="/index.html" class="sb-item active">
-      <span class="si">🔧</span>
-      <span>Preventive Maintenance</span>
+    <a href="./index.html" class="sb-item active">
+      <span class="si">🏠</span><span>Home</span>
     </a>
-    <a href="/queue.html" class="sb-item">
-      <span class="si">📋</span>
-      <span>Pending JobCards</span>
+    <a href="./maintenance.html" class="sb-item">
+      <span class="si">🔧</span><span>Preventive Maintenance</span>
+    </a>
+    <a href="./queue.html" class="sb-item">
+      <span class="si">📋</span><span>Pending JobCards</span>
     </a>
   </div>
-
   <div class="sb-section" style="margin-top:8px">
     <div class="sb-label">Coming Soon</div>
-    <div class="sb-item" style="opacity:.4;cursor:default">
-      <span class="si">📊</span><span>Fleet Analytics</span>
-    </div>
-    <div class="sb-item" style="opacity:.4;cursor:default">
-      <span class="si">🔔</span><span>Alert Centre</span>
-    </div>
+    <div class="sb-item" style="opacity:.4;cursor:default"><span class="si">📊</span><span>Fleet Analytics</span></div>
+    <div class="sb-item" style="opacity:.4;cursor:default"><span class="si">🔔</span><span>Alert Centre</span></div>
   </div>
-
   <div class="sb-spacer"></div>
-
-  <div class="sb-footer">
-    <div class="sb-ver">FleetPro v2 · Data synced hourly</div>
-  </div>
+  <div class="sb-footer"><div class="sb-ver">FleetPro v3 · Data synced hourly</div></div>
 </nav>
 
 <!-- Main -->
 <div id="main">
-
-  <!-- Top bar -->
   <header id="topbar">
     <button id="hbg" onclick="toggleSidebar()" aria-label="Menu">
       <span></span><span></span><span></span>
@@ -419,37 +211,51 @@ body.pinned #main{margin-left:var(--sb-width)}
         <img src="logo.jpg" width="30" height="30" style="border-radius:7px;object-fit:cover;flex-shrink:0"/>
         FleetPro
       </span>
-      <span class="tb-sep">›</span>
-      <span class="tb-page">Preventive Maintenance</span>
     </div>
     <div class="tb-right">
       <button id="logout-btn" onclick="signOut()" style="display:none;background:none;border:1px solid #E5E7EB;border-radius:8px;padding:5px 12px;font-size:.72rem;font-weight:600;color:#6B7280;cursor:pointer;font-family:'Inter',sans-serif;transition:all .15s" onmouseover="this.style.borderColor='#E8191C';this.style.color='#E8191C'" onmouseout="this.style.borderColor='#E5E7EB';this.style.color='#6B7280'">Sign out</button>
     </div>
   </header>
 
-  <!-- Search -->
-  <section class="search-section">
-    <div>
-      <h2 class="search-title">Maintenance Check</h2>
-      <p class="search-sub">Search by registration number to view maintenance status</p>
-      <div class="sw">
-        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-        <input id="si" type="text" placeholder="e.g. KA05AQ6570" autocomplete="off" spellcheck="false"/>
-      </div>
-      <div class="hint">Try:
-        <span class="ex" data-reg="KA05AQ6570">KA05AQ6570</span>
-        <span class="ex" data-reg="NCRBD00238">NCRBD00238</span>
-        <span class="ex" data-reg="DL9EV7460">DL9EV7460</span>
-      </div>
+  <section class="home-hero">
+    <h1 class="home-hero-title">Fleet Operations Hub</h1>
+    <p class="home-hero-sub">All your fleet tools in one place</p>
+  </section>
+
+  <section class="tile-section">
+    <div class="tile-grid">
+
+      <!-- PM Tile -->
+      <a class="tile" href="./maintenance.html">
+        <div class="tile-accent" style="background:#E8191C"></div>
+        <div class="tile-body">
+          <div class="tile-icon">🔧</div>
+          <div class="tile-title">Preventive Maintenance</div>
+          <div class="tile-desc">Component health &amp; service schedule</div>
+          <div id="pm-stat" class="tile-stat tile-loading">—</div>
+          <div id="pm-label" class="tile-stat-label tile-loading">loading…</div>
+          <div id="pm-breakdown" class="tile-breakdown"></div>
+          <button class="tile-cta" style="background:#FEF2F2;color:#E8191C">Open →</button>
+        </div>
+      </a>
+
+      <!-- OOS Tile -->
+      <a class="tile" href="./queue.html">
+        <div class="tile-accent" style="background:#0f2460"></div>
+        <div class="tile-body">
+          <div class="tile-icon">📋</div>
+          <div class="tile-title">Pending OOS Vehicles</div>
+          <div class="tile-desc">FIFO repair queue by hub</div>
+          <div id="oos-stat" class="tile-stat tile-loading">—</div>
+          <div id="oos-label" class="tile-stat-label tile-loading">loading…</div>
+          <div id="oos-breakdown" class="tile-breakdown"></div>
+          <button class="tile-cta" style="background:#EFF6FF;color:#1D4ED8">Open →</button>
+        </div>
+      </a>
+
     </div>
   </section>
 
-  <!-- Results -->
-  <section class="content-section">
-    <div id="res"></div>
-  </section>
-
-  <!-- Footer -->
   <footer class="site-footer">
     <div class="footer-brand">
       <img src="logo.jpg" width="32" height="32" style="border-radius:8px;object-fit:cover;flex-shrink:0"/>
@@ -459,581 +265,170 @@ body.pinned #main{margin-left:var(--sb-width)}
       <p><strong>Keep Every Bike Road-Ready.</strong></p>
       <p>Real-time fleet health · Zero surprises · Always on</p>
     </div>
-    <div class="footer-meta">
-      FleetPro · Preventive Maintenance Tool · Bounce Fleet Operations<br/>
-      Data synced every hour from Metabase · Internal use only
-    </div>
+    <div class="footer-meta">FleetPro v3 · Fleet Operations Dashboard · Bounce Fleet Operations<br/>Data synced every hour · Internal use only</div>
   </footer>
 
-<!-- Feedback widget -->
-<div class="fb-popup" id="fb-popup">
-  <div class="fb-title">Send Feedback</div>
-  <div class="fb-sub">Suggestions, bugs, or anything on your mind</div>
-  <textarea class="fb-area" id="fb-text" rows="4" placeholder="Type your feedback here…"></textarea>
-  <button class="fb-submit" onclick="submitFeedback()">Submit</button>
+  <div class="fb-popup" id="fb-popup">
+    <div class="fb-title">Send Feedback</div>
+    <div class="fb-sub">Suggestions, bugs, or anything on your mind</div>
+    <textarea class="fb-area" id="fb-text" rows="4" placeholder="Type your feedback here…"></textarea>
+    <button class="fb-submit" onclick="submitFeedback()">Submit</button>
+  </div>
+  <button class="fb-fab" id="fb-fab" onclick="toggleFeedback()" style="display:none">✉ Feedback</button>
 </div>
-<button class="fb-fab" id="fb-fab" onclick="toggleFeedback()" style="display:none">✉ Feedback</button>
-
-</div><!-- /main -->
 
 <script>
-// ── Supabase config ──────────────────────────────────────────────────
 var SB_URL='https://clkfvmmlgwcvntxnolsv.supabase.co';
 var ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNsa2Z2bW1sZ3djdm50eG5vbHN2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ1NDQ2NTgsImV4cCI6MjA5MDEyMDY1OH0.FA33GFQisWX_hDeGCWqL5yAZmPcuQRdxZX32I23lyoY';
 var SB=SB_URL;
-var CURRENT_USER_EMAIL=null;
 var K=ANON_KEY;
+var CURRENT_USER_EMAIL=null;
 
-// ── Supabase Auth client ─────────────────────────────────────────────
-var sbClient = supabase.createClient(SB_URL, ANON_KEY, {
-  auth: {
-    persistSession: true,
-    storageKey: 'fleetpro_session',
-    autoRefreshToken: true
-  }
-});
+var sbClient=supabase.createClient(SB_URL,ANON_KEY,{auth:{persistSession:true,storageKey:'fleetpro_session',autoRefreshToken:true}});
 
-// ── Auth helpers ─────────────────────────────────────────────────────
-function showAuthScreen(){
-  document.getElementById('auth-screen').classList.remove('hidden');
-  showForm();
-}
-function hideAuthScreen(){ document.getElementById('auth-screen').classList.add('hidden'); }
-
+function showAuthScreen(){document.getElementById('auth-screen').classList.remove('hidden');showForm();}
+function hideAuthScreen(){document.getElementById('auth-screen').classList.add('hidden');}
 function showForm(){
   document.getElementById('auth-form').style.display='block';
   document.getElementById('auth-sent').style.display='none';
   document.getElementById('auth-msg').textContent='';
   document.getElementById('auth-email').value='';
 }
-
 async function sendMagicLink(){
   var email=document.getElementById('auth-email').value.trim().toLowerCase();
   var msg=document.getElementById('auth-msg');
   var btn=document.getElementById('auth-submit');
-  if(!email){ msg.textContent='Please enter your email.'; return; }
-  if(!email.endsWith('@bounceshare.com')){ msg.textContent='Only @bounceshare.com emails are allowed.'; return; }
-  btn.disabled=true; btn.textContent='Sending…';
-  msg.textContent='';
-  var res = await sbClient.auth.signInWithOtp({
-    email: email,
-    options:{ emailRedirectTo: window.location.origin+window.location.pathname }
-  });
-  btn.disabled=false; btn.textContent='Send Magic Link';
-  if(res.error){ msg.textContent=res.error.message; }
-  else {
-    document.getElementById('auth-form').style.display='none';
-    document.getElementById('auth-sent').style.display='block';
-    document.getElementById('auth-sent-email').textContent=email;
-  }
+  if(!email){msg.textContent='Please enter your email.';return;}
+  if(!email.endsWith('@bounceshare.com')){msg.textContent='Only @bounceshare.com emails are allowed.';return;}
+  btn.disabled=true;btn.textContent='Sending…';msg.textContent='';
+  var res=await sbClient.auth.signInWithOtp({email:email,options:{emailRedirectTo:window.location.origin+window.location.pathname}});
+  btn.disabled=false;btn.textContent='Send Magic Link';
+  if(res.error){msg.textContent=res.error.message;}
+  else{document.getElementById('auth-form').style.display='none';document.getElementById('auth-sent').style.display='block';document.getElementById('auth-sent-email').textContent=email;}
 }
+document.getElementById('auth-email').addEventListener('keydown',function(e){if(e.key==='Enter')sendMagicLink();});
+async function signOut(){await sbClient.auth.signOut();document.getElementById('logout-btn').style.display='none';showAuthScreen();}
 
-document.getElementById('auth-email').addEventListener('keydown',function(e){
-  if(e.key==='Enter') sendMagicLink();
-});
-
-async function signOut(){
-  await sbClient.auth.signOut();
-  document.getElementById('logout-btn').style.display='none';
-  showAuthScreen();
-}
-
-// ── Session bootstrap ────────────────────────────────────────────────
 (async function(){
-  // Copy logo base64 into auth screen logo
-  var mainLogo = document.querySelector('.sb-brand img');
-  if(mainLogo) document.getElementById('auth-logo-img').src = mainLogo.src;
-
-  var { data: { session } } = await sbClient.auth.getSession();
-
+  var mainLogo=document.querySelector('.sb-brand img');
+  if(mainLogo)document.getElementById('auth-logo-img').src=mainLogo.src;
+  var{data:{session}}=await sbClient.auth.getSession();
   if(session){
-    K = session.access_token;
+    K=session.access_token;CURRENT_USER_EMAIL=session.user.email;
     hideAuthScreen();
     document.getElementById('logout-btn').style.display='block';
     document.getElementById('fb-fab').style.display='flex';
-  } else {
-    showAuthScreen();
-  }
-
-  // Listen for auth state changes (magic link callback)
-  sbClient.auth.onAuthStateChange(function(event, session){
-    if((event==='SIGNED_IN' || event==='INITIAL_SESSION') && session){
-      K = session.access_token;
-      CURRENT_USER_EMAIL = session.user.email;
+    loadTileStats();
+  } else {showAuthScreen();}
+  sbClient.auth.onAuthStateChange(function(event,session){
+    if((event==='SIGNED_IN'||event==='INITIAL_SESSION')&&session){
+      K=session.access_token;CURRENT_USER_EMAIL=session.user.email;
       hideAuthScreen();
       document.getElementById('logout-btn').style.display='block';
       document.getElementById('logout-btn').title='Signed in as '+session.user.email;
       document.getElementById('fb-fab').style.display='flex';
-    } else if(event==='SIGNED_OUT'){
-      K = ANON_KEY;
-      document.getElementById('logout-btn').style.display='none';
-      showAuthScreen();
-    } else if(event==='TOKEN_REFRESHED' && session){
-      K = session.access_token;
-    }
+      loadTileStats();
+    } else if(event==='SIGNED_OUT'){K=ANON_KEY;document.getElementById('logout-btn').style.display='none';showAuthScreen();}
+    else if(event==='TOKEN_REFRESHED'&&session){K=session.access_token;}
   });
 })();
 
 // ── Sidebar ──────────────────────────────────────────────────────────
-var pinned = localStorage.getItem('sb_pinned')==='1';
-var sbOpen = false;
-
+var pinned=localStorage.getItem('sb_pinned')==='1';
+var sbOpen=false;
 function applyPin(){
-  if(pinned){
-    document.body.classList.add('pinned');
-    document.getElementById('pinBtn').classList.add('pinned');
-    document.getElementById('pinBtn').title='Unpin sidebar';
-    document.getElementById('ov').classList.remove('show');
-    document.getElementById('sb').classList.add('open');
-    sbOpen=true;
-  } else {
-    document.body.classList.remove('pinned');
-    document.getElementById('pinBtn').classList.remove('pinned');
-    document.getElementById('pinBtn').title='Pin sidebar';
-  }
+  if(pinned){document.body.classList.add('pinned');document.getElementById('pinBtn').classList.add('pinned');document.getElementById('pinBtn').title='Unpin sidebar';document.getElementById('ov').classList.remove('show');document.getElementById('sb').classList.add('open');sbOpen=true;}
+  else{document.body.classList.remove('pinned');document.getElementById('pinBtn').classList.remove('pinned');document.getElementById('pinBtn').title='Pin sidebar';}
 }
-
-function toggleSidebar(){
-  if(pinned){togglePin();return;}
-  sbOpen=!sbOpen;
-  document.getElementById('sb').classList.toggle('open',sbOpen);
-  document.getElementById('ov').classList.toggle('show',sbOpen);
-}
-
-function closeSidebar(){
-  if(pinned) return;
-  sbOpen=false;
-  document.getElementById('sb').classList.remove('open');
-  document.getElementById('ov').classList.remove('show');
-}
-
-function togglePin(){
-  pinned=!pinned;
-  localStorage.setItem('sb_pinned',pinned?'1':'0');
-  applyPin();
-  if(!pinned){
-    sbOpen=false;
-    document.getElementById('sb').classList.remove('open');
-  }
-}
-
+function toggleSidebar(){if(pinned){togglePin();return;}sbOpen=!sbOpen;document.getElementById('sb').classList.toggle('open',sbOpen);document.getElementById('ov').classList.toggle('show',sbOpen);}
+function closeSidebar(){if(pinned)return;sbOpen=false;document.getElementById('sb').classList.remove('open');document.getElementById('ov').classList.remove('show');}
+function togglePin(){pinned=!pinned;localStorage.setItem('sb_pinned',pinned?'1':'0');applyPin();if(!pinned){sbOpen=false;document.getElementById('sb').classList.remove('open');}}
 document.getElementById('ov').addEventListener('click',closeSidebar);
 applyPin();
 
-// ── Search ───────────────────────────────────────────────────────────
-var si=document.getElementById('si');
-var rv=document.getElementById('res');
-var t;
+// ── Tile Stats ───────────────────────────────────────────────────────
+function fmtTime(mins){if(!mins&&mins!==0)return '—';var h=Math.floor(mins/60);var m=mins%60;if(h===0)return m+'m';return m===0?h+'h':h+'h '+m+'m';}
 
-document.body.addEventListener('click',function(e){
-  var el=e.target.closest('.ex');
-  if(el){ go(el.dataset.reg); }
-});
-
-si.addEventListener('input',function(){
-  clearTimeout(t);
-  var q=si.value.trim().toUpperCase().replace(/[\s\-]/g,'');
-  if(q.length<2){rv.innerHTML='';return;}
-  rv.innerHTML='<div class="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>';
-  t=setTimeout(function(){ run(q); },300);
-});
-
-function go(v){ si.value=v; si.dispatchEvent(new Event('input')); }
-
-function run(q){
-  fetch(SB+'/rest/v1/vehicle_parts_check_flag?reg_number=ilike.'+encodeURIComponent('%'+q+'%')+'&limit=10&select=*&order=overall_urgency.asc',
-    {headers:{apikey:ANON_KEY,Authorization:'Bearer '+K}})
-  .then(function(r){return r.json();})
-  .then(function(d){
-    if(!d||!d.length){
-      rv.innerHTML='<div class="nf"><div class="ic">🔍</div><h3>Not found</h3><p>No vehicle matching <b>'+q+'</b></p></div>';
-      return;
-    }
-    rv.innerHTML=d.map(card).join('');
-  })
-  .catch(function(e){rv.innerHTML='<div class="nf"><h3>Error</h3><p>'+e.message+'</p></div>';});
-}
-
-// ── Formatters ───────────────────────────────────────────────────────
-function fm(v){return v!=null?Number(v).toLocaleString('en-IN'):'--';}
-function fd(d){return d?new Date(d).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'2-digit'}):'--';}
-
-// ── Thresholds ───────────────────────────────────────────────────────
-var THRESH={
-  front_brake:6000,rear_brake:6000,tyre:18000,
-  fr_brake_cable:20000,rr_brake_cable:20000,
-  brake_shoe_spring:18000,cone_set:25000,
-  fr_brake_disc:18000,rr_brake_disc:18000,
-  brake_oil:6000,
-  fr_wheel_bearing:12000,rr_wheel_bearing:12000,
-  side_stand_spring:12000,main_stand_spring:12000,
-  brake:6000
-};
-
-// ── Sort rank ────────────────────────────────────────────────────────
-function sr(s){return s==='Overdue'?1:s==='Due Soon'?2:s==='OK'?3:s==='N/A'?5:4;}
-
-// ── Part tile ────────────────────────────────────────────────────────
-function partCard(label,status,kmSince,kmRem,lastDate,lastHub,thresh){
-  var s=status||'No Data';
-  if(s==='N/A'){
-    return '<div class="pc pc-na">'
-      +'<div class="pc-stripe" style="background:#E2E8F0"></div>'
-      +'<div class="pc-inner">'
-      +'<div class="pc-head"><span class="pn">'+label+'</span></div>'
-      +'<div class="ps snd">N/A</div>'
-      +'</div></div>';
-  }
-  var sc=s==='Overdue'?'sov':s==='Due Soon'?'sds':s==='OK'?'sok':'snd';
-  var fc=s==='Overdue'?'fov':s==='Due Soon'?'fds':s==='OK'?'fok':'fnd';
-  var str=s==='Overdue'?'var(--overdue)':s==='Due Soon'?'var(--due)':s==='OK'?'var(--ok)':'var(--na)';
-  var tc=s==='Overdue'?'pov':s==='Due Soon'?'pds':s==='OK'?'pok':'';
-  var icon=s==='Overdue'?'✕ ':s==='Due Soon'?'◷ ':s==='OK'?'✓ ':'';
-  var threshLabel=thresh?(thresh/1000)+'K':'';
-  // Progress bar: % of threshold USED (fills as km accumulate → full = at/past threshold)
-  var pct=0;
-  if(thresh&&kmSince!=null) pct=Math.min(100,Math.round((kmSince/thresh)*100));
-  // Rem label next to bar
-  var remColor=(kmRem!=null&&kmRem<0)?'neg':(kmRem!=null&&s==='OK'?'pos':'');
-  var remTxt=kmRem!=null
-    ?(kmRem<0?fm(Math.abs(kmRem))+'km over':fm(kmRem)+'km rem')
-    :'--';
-  // Hub: strip long company prefix, keep location name
-  var hubDisplay=lastHub
-    ?lastHub.replace(/bounce electric \d+ private ltd[\s\-–]*/i,'').trim()||lastHub
-    :'';
-
-  return '<div class="pc '+tc+'">'
-    +'<div class="pc-stripe" style="background:'+str+'"></div>'
-    +'<div class="pc-inner">'
-    // Header: name + threshold
-    +'<div class="pc-head"><span class="pn">'+label+'</span><span class="pthresh">'+threshLabel+'</span></div>'
-    // Status
-    +'<div class="ps '+sc+'">'+icon+s+'</div>'
-    // Bar + rem label
-    +'<div class="pb-wrap"><div class="pb-row">'
-    +'<div class="pb-track"><div class="pb-fill '+fc+'" style="width:'+pct+'%"></div></div>'
-    +'<span class="pb-rem '+remColor+'">'+remTxt+'</span>'
-    +'</div></div>'
-    // Since + Last date on one row
-    +'<div class="pd-grid">'
-    +(kmSince!=null?'<div class="pd"><span class="pd-lbl">Since</span><b>'+fm(kmSince)+'km</b></div>':'<div></div>')
-    +(lastDate?'<div class="pd"><span class="pd-lbl">Last</span><b>'+fd(lastDate)+'</b></div>':'<div></div>')
-    +'</div>'
-    // Hub — truncated single line
-    +(hubDisplay?'<div class="pd-hub" title="'+(lastHub||'')+'">'+hubDisplay+'</div>':'')
-    +'</div></div>';
-}
-
-// ── Vehicle card ─────────────────────────────────────────────────────
-var MODEL_NAMES={1:'e.1x+',2:'e.1x',3:'e.1xc+',4:'e.3',5:'e.3 Low Speed',6:'Star',7:'e.3 Low Speed Gen2'};
-function card(v){
-  var ul=v.overall_urgency===1?'Critical':v.overall_urgency===2?'Due Soon':v.overall_urgency===3?'All OK':'—';
-  var uc='u'+(v.overall_urgency||0);
-  var hasSplit=v.front_brake_status!=null||v.rear_brake_status!=null;
-  var isDisc=[1,2,3].indexOf(Number(v.dms_bike_model_id))!==-1;
-  var frLbl=isDisc?'Front Brake Pad':'Front Brake Shoe';
-  var rrLbl=isDisc?'Rear Brake Pad':'Rear Brake Shoe';
-
-  var partsHtml;
-  if(hasSplit){
-    var parts=[
-      {label:frLbl,             st:v.front_brake_status,       ks:v.front_brake_km_since,       kr:v.front_brake_km_remaining,       ld:v.last_front_brake_replaced_date,  lh:v.last_front_brake_replaced_hub,  th:THRESH.front_brake},
-      {label:rrLbl,             st:v.rear_brake_status,        ks:v.rear_brake_km_since,        kr:v.rear_brake_km_remaining,        ld:v.last_rear_brake_replaced_date,   lh:v.last_rear_brake_replaced_hub,   th:THRESH.rear_brake},
-      {label:'Tyre',            st:v.tyre_status,              ks:v.tyre_km_since,              kr:v.tyre_km_remaining,              ld:v.last_tyre_replaced_date,         lh:v.last_tyre_replaced_hub,         th:THRESH.tyre},
-      {label:'Front Brake Cable',  st:v.fr_brake_cable_status,    ks:v.fr_brake_cable_km_since,    kr:v.fr_brake_cable_km_remaining,    ld:v.last_fr_brake_cable_replaced_date,lh:v.last_fr_brake_cable_replaced_hub,th:THRESH.fr_brake_cable},
-      {label:'Rear Brake Cable',  st:v.rr_brake_cable_status,    ks:v.rr_brake_cable_km_since,    kr:v.rr_brake_cable_km_remaining,    ld:v.last_rr_brake_cable_replaced_date,lh:v.last_rr_brake_cable_replaced_hub,th:THRESH.rr_brake_cable},
-      {label:'Brake Shoe Spring',  st:v.brake_shoe_spring_status, ks:v.brake_shoe_spring_km_since, kr:v.brake_shoe_spring_km_remaining, ld:v.last_brake_shoe_spring_replaced_date,lh:v.last_brake_shoe_spring_replaced_hub,th:THRESH.brake_shoe_spring},
-      {label:'Cone Set',        st:v.cone_set_status,          ks:v.cone_set_km_since,          kr:v.cone_set_km_remaining,          ld:v.last_cone_set_replaced_date,     lh:v.last_cone_set_replaced_hub,     th:THRESH.cone_set},
-      {label:'Front Brake Disc',   st:v.fr_brake_disc_status,     ks:v.fr_brake_disc_km_since,     kr:v.fr_brake_disc_km_remaining,     ld:v.last_fr_brake_disc_replaced_date, lh:v.last_fr_brake_disc_replaced_hub,th:THRESH.fr_brake_disc},
-      {label:'Rear Brake Disc',   st:v.rr_brake_disc_status,     ks:v.rr_brake_disc_km_since,     kr:v.rr_brake_disc_km_remaining,     ld:v.last_rr_brake_disc_replaced_date, lh:v.last_rr_brake_disc_replaced_hub,th:THRESH.rr_brake_disc},
-      {label:'Brake Oil',       st:v.brake_oil_status,         ks:v.brake_oil_km_since,         kr:v.brake_oil_km_remaining,         ld:v.last_brake_oil_replaced_date,    lh:v.last_brake_oil_replaced_hub,    th:THRESH.brake_oil},
-      {label:'Front Wheel Bearing',    st:v.fr_wheel_bearing_status,  ks:v.fr_wheel_bearing_km_since,  kr:v.fr_wheel_bearing_km_remaining,  ld:v.last_fr_wheel_bearing_replaced_date,lh:v.last_fr_wheel_bearing_replaced_hub,th:THRESH.fr_wheel_bearing},
-      {label:'Rear Wheel Bearing',    st:v.rr_wheel_bearing_status,  ks:v.rr_wheel_bearing_km_since,  kr:v.rr_wheel_bearing_km_remaining,  ld:v.last_rr_wheel_bearing_replaced_date,lh:v.last_rr_wheel_bearing_replaced_hub,th:THRESH.rr_wheel_bearing},
-      {label:'Side Stand Spring',  st:v.side_stand_spring_status, ks:v.side_stand_spring_km_since, kr:v.side_stand_spring_km_remaining, ld:v.last_side_stand_spring_replaced_date,lh:v.last_side_stand_spring_replaced_hub,th:THRESH.side_stand_spring},
-      {label:'Main Stand Spring',  st:v.main_stand_spring_status, ks:v.main_stand_spring_km_since, kr:v.main_stand_spring_km_remaining, ld:v.last_main_stand_spring_replaced_date,lh:v.last_main_stand_spring_replaced_hub,th:THRESH.main_stand_spring}
-    ];
-    parts.sort(function(a,b){return sr(a.st)-sr(b.st);});
-
-    // Count badges
-    var cov=parts.filter(function(p){return p.st==='Overdue';}).length;
-    var cds=parts.filter(function(p){return p.st==='Due Soon';}).length;
-    var cok=parts.filter(function(p){return p.st==='OK';}).length;
-    var counts=(cov?'<span class="sc sc-ov">'+cov+' Overdue</span>':'')
-              +(cds?'<span class="sc sc-ds">'+cds+' Due Soon</span>':'')
-              +(cok?'<span class="sc sc-ok">'+cok+' OK</span>':'');
-
-    partsHtml='<div class="sec-hd"><div class="sec-title">Component Health Matrix</div><div class="sec-counts">'+counts+'</div></div>'
-      +'<div class="pg">'+parts.map(function(p){return partCard(p.label,p.st,p.ks,p.kr,p.ld,p.lh,p.th);}).join('')+'</div>';
-  } else {
-    partsHtml='<div class="sec-hd"><div class="sec-title">Component Health</div></div>'
-      +'<div class="pg">'
-      +partCard('Brake',v.brake_status,v.brake_km_since,v.brake_km_remaining,v.last_brake_replaced_date,v.last_brake_replaced_hub,THRESH.brake)
-      +partCard('Tyre',v.tyre_status,v.tyre_km_since,v.tyre_km_remaining,v.last_tyre_replaced_date,v.last_tyre_replaced_hub,THRESH.tyre)
-      +'</div>';
-  }
-
-  // Flags
-  var flags='<div class="flags">';
-  if(v.days_since_last_jc>30) flags+='<div class="chk pms">⚠ PMS Required — '+v.days_since_last_jc+' days since JC</div>';
-  flags+='</div>';
-
-  return '<div class="card">'
-    // Header
-    +'<div class="ch"><div><div class="reg">'+v.reg_number+'</div>'
-    +'<div class="bid">Bike #'+v.bike_id+(v.dms_bike_model_id?' · '+(MODEL_NAMES[Number(v.dms_bike_model_id)]||('Model '+v.dms_bike_model_id))+' ('+(isDisc?'Disc':'Drum')+')'  :'')+'</div></div>'
-    +'<div class="ub '+uc+'">'+ul+'</div></div>'
-    // Hub
-    +(v.deployed_hub||v.last_service_hub?
-      '<div class="vinfo">'
-      +(v.deployed_hub?'<span>Deployed Hub: <b>'+v.deployed_hub+'</b></span>':'')
-      +(v.last_service_hub?'<span>Last Service Hub: <b>'+v.last_service_hub+'</b></span>':'')
-      +'</div>':'')
-    // ODO
-    +'<div class="odo-strip">'
-    +'<div class="odo-stat"><div class="odo-lbl">Est. Current</div><div class="odo-val">'+fm(v.estimated_current_odo)+'</div><div class="odo-sub">km</div></div>'
-    +'<div class="odo-stat"><div class="odo-lbl">Last JC Odo</div><div class="odo-val">'+fm(v.last_jc_odo)+'</div><div class="odo-sub">km</div></div>'
-    +'<div class="odo-stat"><div class="odo-lbl">Days Since JC</div><div class="odo-val">'+(v.days_since_last_jc!=null?v.days_since_last_jc:'--')+'</div><div class="odo-sub">days</div></div>'
-    +'</div>'
-    // Parts
-    +'<div class="cb">'+partsHtml+flags
-    // View JC History toggle
-    +'<button class="dl-btn" onclick="showJCHistory('+v.bike_id+',\''+v.reg_number+'\',this)">📋 View JC History</button>'
-    +'<div class="jc-section"></div>'
-    +'</div></div>';
-}
-
-// ── View JC History ──────────────────────────────────────────────────
-var JC_CACHE={};  // bikeId → full rows array
-
-function jcTagCls(r){
-  var src=r.source||'';
-  var lt=(r.line_type||'').toLowerCase();
-  return src==='old_dms'?'old':(lt.indexOf('labour')>=0?'labour':'parts');
-}
-
-function renderJCRows(section, rows){
-  var hub=section.querySelector('.jc-f-hub').value;
-  var type=section.querySelector('.jc-f-type').value;
-  var svc=section.querySelector('.jc-f-svc').value;
-  var item=(section.querySelector('.jc-f-item').value||'').trim().toLowerCase();
-  var filtered=rows.filter(function(r){
-    if(hub&&(r.hub_name||'')!==hub) return false;
-    if(type){
-      var tc=jcTagCls(r);
-      if(tc!==type) return false;
-    }
-    if(svc&&(r.service_type||'')!==svc) return false;
-    if(item&&(r.item_name||'').toLowerCase().indexOf(item)<0) return false;
-    return true;
-  });
-  var jcSet={};
-  filtered.forEach(function(r){if(r.jc_no) jcSet[r.jc_no]=1;});
-  var jcCount=Object.keys(jcSet).length;
-  section.querySelector('.jc-count').textContent=filtered.length+' entries · '+jcCount+' JCs';
-  var tbody=section.querySelector('.jc-tbl tbody');
-  if(!tbody) return;
-  if(!filtered.length){
-    tbody.innerHTML='<tr><td colspan="10" style="text-align:center;padding:20px;color:var(--muted)">No matching entries</td></tr>';
-    return;
-  }
-  tbody.innerHTML=filtered.map(function(r){
-    var tc=jcTagCls(r);
-    return '<tr>'
-      +'<td class="jc-no">'+(r.jc_no||'--')+'</td>'
-      +'<td>'+fd(r.jc_date)+'</td>'
-      +'<td>'+(r.hub_name||'--')+'</td>'
-      +'<td>'+(r.bike_odo!=null?fm(r.bike_odo):'--')+'</td>'
-      +'<td>'+(r.service_type||'--')+'</td>'
-      +'<td><span class="jc-tag '+tc+'">'+(r.line_type||'--')+'</span></td>'
-      +'<td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;cursor:default" title="'+(r.item_name||'')+'">'+(r.item_name||'--')+'</td>'
-      +'<td>'+(r.qty!=null?r.qty:'--')+'</td>'
-      +'<td class="jc-amt">'+(r.amount!=null?'₹'+fm(r.amount):'--')+'</td>'
-      +'<td>'+(r.technician_name||'--')+'</td>'
-      +'</tr>';
-  }).join('');
-}
-
-function buildJCSection(section, rows, bikeId, reg){
-  var hubs=[],types=[],svcs=[];
-  var hubSet={},typeSet={},svcSet={};
-  rows.forEach(function(r){
-    if(r.hub_name&&!hubSet[r.hub_name]){hubSet[r.hub_name]=1;hubs.push(r.hub_name);}
-    var tc=jcTagCls(r);
-    if(!typeSet[tc]){typeSet[tc]=1;types.push(tc);}
-    if(r.service_type&&!svcSet[r.service_type]){svcSet[r.service_type]=1;svcs.push(r.service_type);}
-  });
-  hubs.sort(); svcs.sort();
-
-  var jcSet={};
-  rows.forEach(function(r){if(r.jc_no) jcSet[r.jc_no]=1;});
-
-  var filterHtml='<div class="jc-filters">'
-    +'<select class="jc-filter jc-f-hub"><option value="">All Hubs</option>'
-    +hubs.map(function(h){return '<option>'+h+'</option>';}).join('')
-    +'</select>'
-    +'<select class="jc-filter jc-f-type"><option value="">All Types</option>'
-    +types.map(function(t){return '<option value="'+t+'">'+(t==='labour'?'Labour':t==='parts'?'Parts':'Old DMS')+'</option>';}).join('')
-    +'</select>'
-    +'<select class="jc-filter jc-f-svc"><option value="">All Services</option>'
-    +svcs.map(function(s){return '<option>'+s+'</option>';}).join('')
-    +'</select>'
-    +'<input type="text" class="jc-filter jc-f-item" placeholder="Search item…" style="min-width:130px"/>'
-    +'<button class="jc-filter-clear" onclick="clearJCFilters(this)">✕ Clear</button>'
-    +'<span class="jc-count">'+rows.length+' entries · '+Object.keys(jcSet).length+' JCs</span>'
-    +'</div>';
-
-  var html='<div class="jc-hdr">'
-    +'<div class="jc-hdr-title">JC History</div>'
-    +'<button class="dl-btn" style="margin-top:0" onclick="dlCSV('+bikeId+',\''+reg+'\')">⬇ Download CSV</button>'
-    +'</div>'
-    +filterHtml
-    +'<div class="jc-wrap"><table class="jc-tbl">'
-    +'<thead><tr>'
-    +'<th>JC No</th><th>Date</th><th>Hub</th><th>ODO</th><th>Service</th>'
-    +'<th>Type</th><th>Item</th><th>Qty</th><th>Amount</th><th>Technician</th>'
-    +'</tr></thead><tbody></tbody>'
-    +'</table></div>';
-
-  section.innerHTML=html;
-  // Wire up filter events
-  section.querySelectorAll('select.jc-filter').forEach(function(el){
-    el.addEventListener('change',function(){ renderJCRows(section, rows); });
-  });
-  var itemInput=section.querySelector('.jc-f-item');
-  if(itemInput){
-    var jcIt;
-    itemInput.addEventListener('input',function(){ clearTimeout(jcIt); jcIt=setTimeout(function(){ renderJCRows(section,rows); },200); });
-  }
-  renderJCRows(section, rows);
-}
-
-function clearJCFilters(btn){
-  var section=btn.closest('.jc-section');
-  section.querySelectorAll('select.jc-filter').forEach(function(el){el.value='';});
-  var itemEl=section.querySelector('.jc-f-item');
-  if(itemEl) itemEl.value='';
-  var bikeId=section.dataset.bikeId;
-  if(bikeId&&JC_CACHE[bikeId]) renderJCRows(section,JC_CACHE[bikeId]);
-}
-
-function showJCHistory(bikeId, reg, btn){
-  var section=btn.nextElementSibling;
-  if(!section||!section.classList.contains('jc-section')) return;
-
-  // Toggle close
-  if(section.classList.contains('open')){
-    section.classList.remove('open');
-    btn.innerHTML='📋 View JC History';
-    return;
-  }
-  // Already loaded — just show
-  if(section.dataset.loaded==='1'){
-    section.classList.add('open');
-    btn.innerHTML='✕ Hide JC History';
-    return;
-  }
-
-  btn.innerHTML='Loading…';
-  btn.disabled=true;
-
-  fetch(SB+'/rest/v1/jc_history?bike_id=eq.'+bikeId
-    +'&select=jc_no,jc_date,hub_name,bike_odo,service_type,line_type,item_name,qty,amount,technician_name,source'
-    +'&order=jc_date.desc,jc_no.asc',
-    {headers:{apikey:ANON_KEY,Authorization:'Bearer '+K}})
-  .then(function(r){return r.json();})
-  .then(function(data){
-    btn.disabled=false;
-    var rows=Array.isArray(data)?data:[];
-    JC_CACHE[bikeId]=rows;
-    section.dataset.bikeId=bikeId;
-
-    if(!rows.length){
-      section.innerHTML='<div style="text-align:center;padding:24px;color:var(--muted);font-size:.8rem">No JC history found for this vehicle</div>';
-    } else {
-      buildJCSection(section, rows, bikeId, reg);
-    }
-
-    section.dataset.loaded='1';
-    section.classList.add('open');
-    btn.innerHTML='✕ Hide JC History';
-  })
-  .catch(function(e){
-    btn.disabled=false;
-    btn.innerHTML='📋 View JC History';
-    alert('Failed to load JC history: '+e.message);
-  });
-}
-
-// ── Download CSV ─────────────────────────────────────────────────────
-function csvCell(v){
-  if(v==null||v===undefined) return '';
-  var s=String(v);
-  return (s.indexOf(',')>=0||s.indexOf('"')>=0||s.indexOf('\n')>=0)
-    ?'"'+s.replace(/"/g,'""')+'"':s;
-}
-function csvRow(arr){ return arr.map(csvCell).join(','); }
-
-function dlCSV(bikeId, reg){
+async function loadTileStats(){
   var h={headers:{apikey:ANON_KEY,Authorization:'Bearer '+K}};
   var base=SB+'/rest/v1/';
-  var today=new Date().toISOString().slice(0,10);
 
-  fetch(base+'jc_history?bike_id=eq.'+bikeId
-    +'&select=jc_no,jc_date,hub_name,bike_odo,service_type,line_type,item_name,qty,amount,technician_name,source'
-    +'&order=jc_date.desc,jc_no.asc',h)
+  // PM stats
+  fetch(base+'vehicle_parts_check_flag?select=overall_urgency,check_required',h)
   .then(function(r){return r.json();})
   .then(function(data){
-    var rows=Array.isArray(data)?data:[];
-    var lines=[];
+    if(!Array.isArray(data)){
+      document.getElementById('pm-stat').textContent='—';
+      document.getElementById('pm-label').textContent='could not load';
+      document.getElementById('pm-stat').className='tile-stat tile-err';
+      return;
+    }
+    var attention=data.filter(function(r){return r.check_required;}).length;
+    var overdue=data.filter(function(r){return r.overall_urgency===1;}).length;
+    var dueSoon=data.filter(function(r){return r.overall_urgency===2;}).length;
+    var el=document.getElementById('pm-stat');
+    el.textContent=attention;
+    el.className='tile-stat';
+    el.style.color='#E8191C';
+    document.getElementById('pm-label').textContent='bikes need attention';
+    document.getElementById('pm-label').className='tile-stat-label';
+    document.getElementById('pm-breakdown').innerHTML=
+      (overdue?'<b style="color:#DC2626">'+overdue+' Overdue</b>':'')
+      +(overdue&&dueSoon?' · ':'')
+      +(dueSoon?'<b style="color:#D97706">'+dueSoon+' Due Soon</b>':'')
+      +(!overdue&&!dueSoon?'<b style="color:#16A34A">All bikes OK ✓</b>':'');
+  }).catch(function(){
+    document.getElementById('pm-stat').textContent='—';
+    document.getElementById('pm-label').textContent='error loading';
+  });
 
-    lines.push('JC History - '+reg+' (downloaded '+today+')');
-    lines.push(csvRow(['JC No','Date','Hub','ODO','Service Type','Item Type','Item Name','Qty','Amount (Rs)','Technician','Source']));
-    rows.forEach(function(r){
-      lines.push(csvRow([r.jc_no,r.jc_date,r.hub_name,r.bike_odo,r.service_type,r.line_type,r.item_name,r.qty,r.amount,r.technician_name,r.source]));
-    });
-    if(!rows.length) lines.push('No JC history found for this vehicle');
-
-    var blob=new Blob(['﻿'+lines.join('\n')],{type:'text/csv;charset=utf-8;'});
-    var a=document.createElement('a');
-    a.href=URL.createObjectURL(blob);
-    a.download='JC_History_'+reg+'_'+today+'.csv';
-    a.click();
-  }).catch(function(e){ alert('Download failed: '+e.message); });
+  // OOS stats
+  fetch(base+'oos_work_queue?select=hub,estimated_mins',h)
+  .then(function(r){return r.json();})
+  .then(function(data){
+    if(!Array.isArray(data)){
+      document.getElementById('oos-stat').textContent='—';
+      document.getElementById('oos-label').textContent='could not load';
+      document.getElementById('oos-stat').className='tile-stat tile-err';
+      return;
+    }
+    var count=data.length;
+    var hubs=new Set(data.map(function(r){return r.hub;}).filter(Boolean)).size;
+    var totalMins=data.reduce(function(s,r){return s+(r.estimated_mins||0)+60;},0);
+    var el=document.getElementById('oos-stat');
+    el.textContent=count;
+    el.className='tile-stat';
+    el.style.color='#0f2460';
+    document.getElementById('oos-label').textContent='vehicles in queue';
+    document.getElementById('oos-label').className='tile-stat-label';
+    document.getElementById('oos-breakdown').innerHTML=
+      count===0
+      ?'<b style="color:#16A34A">Queue clear ✓</b>'
+      :'<b>'+hubs+' hub'+(hubs!==1?'s':'')+'</b> · Est. <b>'+fmtTime(totalMins)+'</b> total';
+  }).catch(function(){
+    document.getElementById('oos-stat').textContent='—';
+    document.getElementById('oos-label').textContent='error loading';
+  });
 }
 
-// ── Feedback widget ───────────────────────────────────────────────
-function toggleFeedback(){
-  var p=document.getElementById('fb-popup');
-  p.classList.toggle('open');
-  if(p.classList.contains('open')) document.getElementById('fb-text').focus();
-}
+// ── Feedback ─────────────────────────────────────────────────────────
+function toggleFeedback(){var p=document.getElementById('fb-popup');p.classList.toggle('open');if(p.classList.contains('open'))document.getElementById('fb-text').focus();}
 function submitFeedback(){
   var txt=document.getElementById('fb-text');
   var msg=(txt&&txt.value.trim())||'';
-  if(!msg){ txt&&txt.focus(); return; }
+  if(!msg){txt&&txt.focus();return;}
   var btn=document.querySelector('.fb-submit');
-  btn.textContent='Submitting…';
-  btn.disabled=true;
-  fetch(SB+'/rest/v1/feedback',{
-    method:'POST',
-    headers:{apikey:ANON_KEY,Authorization:'Bearer '+K,'Content-Type':'application/json',Prefer:'return=minimal'},
-    body:JSON.stringify({message:msg, submitted_by: CURRENT_USER_EMAIL})
-  }).then(function(r){
-    btn.textContent='Submit';
-    btn.disabled=false;
+  btn.textContent='Submitting…';btn.disabled=true;
+  fetch(SB+'/rest/v1/feedback',{method:'POST',headers:{apikey:ANON_KEY,Authorization:'Bearer '+K,'Content-Type':'application/json',Prefer:'return=minimal'},body:JSON.stringify({message:msg,submitted_by:CURRENT_USER_EMAIL})})
+  .then(function(r){
+    btn.textContent='Submit';btn.disabled=false;
     if(r.ok||r.status===201){
-      txt.value='';
-      document.getElementById('fb-popup').classList.remove('open');
+      txt.value='';document.getElementById('fb-popup').classList.remove('open');
       var t=document.createElement('div');
       t.style.cssText='position:fixed;bottom:80px;right:24px;background:#22C55E;color:#fff;padding:8px 16px;border-radius:8px;font-size:.78rem;font-weight:600;z-index:2000';
-      t.textContent='Feedback submitted!';
-      document.body.appendChild(t);
-      setTimeout(function(){t.remove();},3000);
-    } else {
-      alert('Could not submit feedback. Please try again.');
-    }
-  }).catch(function(){ btn.textContent='Submit'; btn.disabled=false; alert('Network error. Please try again.'); });
+      t.textContent='Feedback submitted!';document.body.appendChild(t);setTimeout(function(){t.remove();},3000);
+    } else {alert('Could not submit feedback.');}
+  }).catch(function(){btn.textContent='Submit';btn.disabled=false;alert('Network error.');});
 }
 </script>
 </body>
