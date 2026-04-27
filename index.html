@@ -671,11 +671,9 @@ function partCard(label,status,kmSince,kmRem,lastDate,lastHub,thresh){
   var tc=s==='Overdue'?'pov':s==='Due Soon'?'pds':s==='OK'?'pok':'';
   var icon=s==='Overdue'?'✕ ':s==='Due Soon'?'◷ ':s==='OK'?'✓ ':'';
   var threshLabel=thresh?(thresh/1000)+'K':'';
-  // Progress bar: overdue = full red bar; otherwise % remaining
+  // Progress bar: % of threshold USED (fills as km accumulate → full = at/past threshold)
   var pct=0;
-  if(thresh&&kmRem!=null){
-    pct=s==='Overdue'?100:Math.max(0,Math.min(100,Math.round((kmRem/thresh)*100)));
-  }
+  if(thresh&&kmSince!=null) pct=Math.min(100,Math.round((kmSince/thresh)*100));
   // Rem label next to bar
   var remColor=(kmRem!=null&&kmRem<0)?'neg':(kmRem!=null&&s==='OK'?'pos':'');
   var remTxt=kmRem!=null
