@@ -263,9 +263,26 @@ body.pinned #main{margin-left:var(--sb-width)}
 .chk.pms{background:var(--overdue-bg);color:var(--overdue);border:1px solid #FECACA}
 .chk.hst{background:var(--due-bg);color:var(--due);border:1px solid #FDE68A}
 
-/* Download + Query box */
+/* Download + History */
 .dl-btn{display:inline-flex;align-items:center;gap:6px;background:var(--text);color:#fff;border:none;border-radius:8px;padding:7px 14px;font-size:.76rem;font-weight:600;cursor:pointer;font-family:inherit;transition:background .15s;margin-top:10px}
 .dl-btn:hover{background:#374151}
+.jc-section{margin-top:14px;border-top:1px solid var(--border);padding-top:14px;display:none}
+.jc-section.open{display:block}
+.jc-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px}
+.jc-hdr-title{font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--muted)}
+.jc-hdr-meta{font-size:.72rem;color:var(--muted)}
+.jc-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;border-radius:10px;border:1px solid var(--border);max-height:360px;overflow-y:auto}
+.jc-tbl{width:100%;border-collapse:collapse;font-size:.73rem}
+.jc-tbl th{background:#F8FAFC;padding:8px 10px;text-align:left;font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);white-space:nowrap;border-bottom:1px solid var(--border);position:sticky;top:0;z-index:1}
+.jc-tbl td{padding:7px 10px;border-bottom:1px solid #F1F5F9;color:var(--text);white-space:nowrap}
+.jc-tbl tr:last-child td{border-bottom:none}
+.jc-tbl tr:hover td{background:#FAFAFA}
+.jc-no{font-weight:700;color:#0F172A}
+.jc-amt{font-weight:600;text-align:right}
+.jc-tag{display:inline-block;border-radius:4px;padding:1px 6px;font-size:.6rem;font-weight:700}
+.jc-tag.labour{background:#EFF6FF;color:#2563EB}
+.jc-tag.parts{background:#F0FDF4;color:#16A34A}
+.jc-tag.old{background:#F1F5F9;color:#64748B}
 /* Feedback widget */
 .fb-fab{position:fixed;bottom:24px;right:24px;z-index:1000;background:var(--text);color:#fff;border:none;border-radius:50px;padding:10px 18px;font-size:.78rem;font-weight:700;font-family:inherit;cursor:pointer;box-shadow:0 4px 16px rgba(0,0,0,.18);display:flex;align-items:center;gap:7px;transition:background .15s}
 .fb-fab:hover{background:#374151}
@@ -774,9 +791,90 @@ function card(v){
     +'</div>'
     // Parts
     +'<div class="cb">'+partsHtml+flags
-    // Download
-    +'<button class="dl-btn" onclick="dlCSV('+v.bike_id+',\''+v.reg_number+'\')">⬇ Download Report</button>'
+    // View JC History toggle
+    +'<button class="dl-btn" onclick="showJCHistory('+v.bike_id+',\''+v.reg_number+'\',this)">📋 View JC History</button>'
+    +'<div class="jc-section"></div>'
     +'</div></div>';
+}
+
+// ── View JC History ──────────────────────────────────────────────────
+function showJCHistory(bikeId, reg, btn){
+  var section=btn.nextElementSibling;
+  if(!section||!section.classList.contains('jc-section')) return;
+
+  // Toggle close
+  if(section.classList.contains('open')){
+    section.classList.remove('open');
+    btn.innerHTML='📋 View JC History';
+    return;
+  }
+  // Already loaded — just show
+  if(section.dataset.loaded==='1'){
+    section.classList.add('open');
+    btn.innerHTML='✕ Hide JC History';
+    return;
+  }
+
+  btn.innerHTML='Loading…';
+  btn.disabled=true;
+
+  fetch(SB+'/rest/v1/jc_history?bike_id=eq.'+bikeId
+    +'&select=jc_no,jc_date,hub_name,bike_odo,service_type,line_type,item_name,qty,amount,technician_name,source'
+    +'&order=jc_date.desc,jc_no.asc',
+    {headers:{apikey:ANON_KEY,Authorization:'Bearer '+K}})
+  .then(function(r){return r.json();})
+  .then(function(data){
+    btn.disabled=false;
+    var rows=Array.isArray(data)?data:[];
+    var jcSet={};
+    rows.forEach(function(r){if(r.jc_no) jcSet[r.jc_no]=1;});
+    var jcCount=Object.keys(jcSet).length;
+
+    var html='<div class="jc-hdr">'
+      +'<div class="jc-hdr-title">JC History</div>'
+      +'<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">'
+      +(rows.length?'<span class="jc-hdr-meta">'+rows.length+' entries · '+jcCount+' JCs</span>':'')
+      +'<button class="dl-btn" style="margin-top:0" onclick="dlCSV('+bikeId+',\''+reg+'\')">⬇ Download CSV</button>'
+      +'</div></div>';
+
+    if(!rows.length){
+      html+='<div style="text-align:center;padding:24px;color:var(--muted);font-size:.8rem">No JC history found for this vehicle</div>';
+    } else {
+      html+='<div class="jc-wrap"><table class="jc-tbl">'
+        +'<thead><tr>'
+        +'<th>JC No</th><th>Date</th><th>Hub</th><th>ODO</th><th>Service</th>'
+        +'<th>Type</th><th>Item</th><th>Qty</th><th>Amount</th><th>Technician</th>'
+        +'</tr></thead><tbody>';
+      rows.forEach(function(r){
+        var src=r.source||'';
+        var lt=(r.line_type||'').toLowerCase();
+        var tagCls=src==='old_dms'?'old':(lt.indexOf('labour')>=0?'labour':'parts');
+        html+='<tr>'
+          +'<td class="jc-no">'+(r.jc_no||'--')+'</td>'
+          +'<td>'+fd(r.jc_date)+'</td>'
+          +'<td>'+(r.hub_name||'--')+'</td>'
+          +'<td>'+(r.bike_odo!=null?fm(r.bike_odo):'--')+'</td>'
+          +'<td>'+(r.service_type||'--')+'</td>'
+          +'<td><span class="jc-tag '+tagCls+'">'+(r.line_type||'--')+'</span></td>'
+          +'<td style="max-width:160px;overflow:hidden;text-overflow:ellipsis">'+(r.item_name||'--')+'</td>'
+          +'<td>'+(r.qty!=null?r.qty:'--')+'</td>'
+          +'<td class="jc-amt">'+(r.amount!=null?'₹'+fm(r.amount):'--')+'</td>'
+          +'<td>'+(r.technician_name||'--')+'</td>'
+          +'</tr>';
+      });
+      html+='</tbody></table></div>';
+    }
+
+    section.innerHTML=html;
+    section.dataset.loaded='1';
+    section.classList.add('open');
+    btn.innerHTML='✕ Hide JC History';
+  })
+  .catch(function(e){
+    btn.disabled=false;
+    btn.innerHTML='📋 View JC History';
+    alert('Failed to load JC history: '+e.message);
+  });
 }
 
 // ── Download CSV ─────────────────────────────────────────────────────
