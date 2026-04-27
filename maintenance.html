@@ -398,15 +398,45 @@ body.pinned #main{margin-left:var(--sb-width)}
         <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
         <input id="si" type="text" placeholder="e.g. KA05AQ6570" autocomplete="off" spellcheck="false"/>
       </div>
-      <div class="hint">Try:
+      <div class="hint" id="hint-area">Try:
         <span class="ex" data-reg="KA05AQ6570">KA05AQ6570</span>
         <span class="ex" data-reg="NCRBD00238">NCRBD00238</span>
         <span class="ex" data-reg="DL9EV7460">DL9EV7460</span>
+      </div>
+      <div id="sync-time" style="text-align:center;color:rgba(255,255,255,.3);font-size:.68rem;margin-top:10px;display:none">
+        Last synced: <span id="sync-time-val">—</span>
       </div>
     </div>
   </section>
 
   <section class="content-section">
+    <div id="filter-bar" style="display:none;background:#fff;border-radius:16px;padding:14px 16px;margin-top:20px;border:1px solid var(--border);box-shadow:var(--shadow)">
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        <span style="font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);white-space:nowrap;flex-shrink:0">Filter</span>
+        <select id="f-urgency" class="jc-filter" onchange="applyResFilters()" style="min-width:130px">
+          <option value="">All Urgency</option>
+          <option value="1">🔴 Critical</option>
+          <option value="2">🟡 Due Soon</option>
+          <option value="3">✅ All OK</option>
+        </select>
+        <select id="f-hub" class="jc-filter" onchange="applyResFilters()" style="min-width:140px">
+          <option value="">All Hubs</option>
+        </select>
+        <select id="f-comp" class="jc-filter" onchange="applyResFilters()" style="min-width:180px">
+          <option value="">All Components</option>
+          <option value="tyre">Tyre — Overdue / Due Soon</option>
+          <option value="front_brake">Front Brake — Overdue / Due Soon</option>
+          <option value="rear_brake">Rear Brake — Overdue / Due Soon</option>
+          <option value="cone_set">Cone Set — Overdue / Due Soon</option>
+          <option value="bearing">Wheel Bearing — Overdue / Due Soon</option>
+          <option value="brake_oil">Brake Oil — Overdue / Due Soon</option>
+          <option value="cable">Brake Cable — Overdue / Due Soon</option>
+          <option value="spring">Spring — Overdue / Due Soon</option>
+        </select>
+        <button class="jc-filter-clear" onclick="clearResFilters()">✕ Clear</button>
+        <span id="filter-count" style="font-size:.72rem;color:var(--muted);margin-left:auto;white-space:nowrap"></span>
+      </div>
+    </div>
     <div id="res"></div>
   </section>
 
@@ -440,6 +470,7 @@ var ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZ
 var SB=SB_URL;
 var CURRENT_USER_EMAIL=null;
 var K=ANON_KEY;
+var lastResults=[];
 
 var sbClient=supabase.createClient(SB_URL,ANON_KEY,{auth:{persistSession:true,storageKey:'fleetpro_session',autoRefreshToken:true}});
 
@@ -466,6 +497,36 @@ async function sendMagicLink(){
 document.getElementById('auth-email').addEventListener('keydown',function(e){if(e.key==='Enter')sendMagicLink();});
 async function signOut(){await sbClient.auth.signOut();document.getElementById('logout-btn').style.display='none';showAuthScreen();}
 
+function fmtSyncTime(ts){
+  if(!ts)return '—';
+  var d=new Date(ts);
+  return d.toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'2-digit'})+' · '+d.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',hour12:true});
+}
+
+function loadPostAuthData(){
+  // Last sync time
+  fetch(SB+'/rest/v1/vehicle_parts_check_flag?select=created_at&order=created_at.desc&limit=1',
+    {headers:{apikey:ANON_KEY,Authorization:'Bearer '+K}})
+  .then(function(r){return r.json();})
+  .then(function(d){
+    if(d&&d.length){
+      var el=document.getElementById('sync-time-val');if(el)el.textContent=fmtSyncTime(d[0].created_at);
+      var st=document.getElementById('sync-time');if(st)st.style.display='block';
+    }
+  }).catch(function(){});
+  // Random critical bikes for Try hints
+  fetch(SB+'/rest/v1/vehicle_parts_check_flag?select=reg_number&overall_urgency=in.(1,2)&limit=100',
+    {headers:{apikey:ANON_KEY,Authorization:'Bearer '+K}})
+  .then(function(r){return r.json();})
+  .then(function(d){
+    if(!d||d.length<3)return;
+    for(var i=d.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var tmp=d[i];d[i]=d[j];d[j]=tmp;}
+    var picks=d.slice(0,3).map(function(v){return v.reg_number;});
+    var hintEl=document.getElementById('hint-area');
+    if(hintEl)hintEl.innerHTML='Try: '+picks.map(function(r){return '<span class="ex" data-reg="'+r+'">'+r+'</span>';}).join(' ');
+  }).catch(function(){});
+}
+
 (async function(){
   var mainLogo=document.querySelector('.sb-brand img');
   if(mainLogo)document.getElementById('auth-logo-img').src=mainLogo.src;
@@ -475,6 +536,7 @@ async function signOut(){await sbClient.auth.signOut();document.getElementById('
     hideAuthScreen();
     document.getElementById('logout-btn').style.display='block';
     document.getElementById('fb-fab').style.display='flex';
+    loadPostAuthData();
   } else {showAuthScreen();}
   sbClient.auth.onAuthStateChange(function(event,session){
     if((event==='SIGNED_IN'||event==='INITIAL_SESSION')&&session){
@@ -483,6 +545,7 @@ async function signOut(){await sbClient.auth.signOut();document.getElementById('
       document.getElementById('logout-btn').style.display='block';
       document.getElementById('logout-btn').title='Signed in as '+session.user.email;
       document.getElementById('fb-fab').style.display='flex';
+      loadPostAuthData();
     } else if(event==='SIGNED_OUT'){K=ANON_KEY;document.getElementById('logout-btn').style.display='none';showAuthScreen();}
     else if(event==='TOKEN_REFRESHED'&&session){K=session.access_token;}
   });
@@ -507,20 +570,77 @@ document.body.addEventListener('click',function(e){var el=e.target.closest('.ex'
 si.addEventListener('input',function(){
   clearTimeout(t);
   var q=si.value.trim().toUpperCase().replace(/[\s\-]/g,'');
-  if(q.length<2){rv.innerHTML='';return;}
+  if(q.length<2){rv.innerHTML='';lastResults=[];document.getElementById('filter-bar').style.display='none';return;}
   rv.innerHTML='<div class="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>';
   t=setTimeout(function(){run(q);},300);
 });
 function go(v){si.value=v;si.dispatchEvent(new Event('input'));}
 function run(q){
-  fetch(SB+'/rest/v1/vehicle_parts_check_flag?reg_number=ilike.'+encodeURIComponent('%'+q+'%')+'&limit=10&select=*&order=overall_urgency.asc',
+  fetch(SB+'/rest/v1/vehicle_parts_check_flag?reg_number=ilike.'+encodeURIComponent('%'+q+'%')+'&limit=20&select=*&order=overall_urgency.asc',
     {headers:{apikey:ANON_KEY,Authorization:'Bearer '+K}})
   .then(function(r){return r.json();})
   .then(function(d){
-    if(!d||!d.length){rv.innerHTML='<div class="nf"><div class="ic">🔍</div><h3>Not found</h3><p>No vehicle matching <b>'+q+'</b></p></div>';return;}
-    rv.innerHTML=d.map(card).join('');
+    if(!d||!d.length){
+      lastResults=[];
+      document.getElementById('filter-bar').style.display='none';
+      rv.innerHTML='<div class="nf"><div class="ic">🔍</div><h3>Not found</h3><p>No vehicle matching <b>'+q+'</b></p></div>';return;
+    }
+    lastResults=d;
+    // Populate hub filter from results
+    var hubs=[];var hubSet={};
+    d.forEach(function(v){var h=v.deployed_hub;if(h&&!hubSet[h]){hubSet[h]=1;hubs.push(h);}});
+    hubs.sort();
+    var hubSel=document.getElementById('f-hub');
+    if(hubSel)hubSel.innerHTML='<option value="">All Hubs</option>'+hubs.map(function(h){return '<option>'+h+'</option>';}).join('');
+    // Reset filters and show bar
+    var fu=document.getElementById('f-urgency');if(fu)fu.value='';
+    var fc=document.getElementById('f-comp');if(fc)fc.value='';
+    document.getElementById('filter-bar').style.display=d.length>1?'block':'none';
+    renderCards(d);
   })
   .catch(function(e){rv.innerHTML='<div class="nf"><h3>Error</h3><p>'+e.message+'</p></div>';});
+}
+
+function compCheck(v,comp){
+  var bad=['Overdue','Due Soon'];
+  function ck(s){return bad.indexOf(s)>=0;}
+  if(comp==='tyre')return ck(v.tyre_status);
+  if(comp==='front_brake')return ck(v.front_brake_status)||ck(v.brake_status);
+  if(comp==='rear_brake')return ck(v.rear_brake_status)||ck(v.brake_status);
+  if(comp==='cone_set')return ck(v.cone_set_status);
+  if(comp==='bearing')return ck(v.fr_wheel_bearing_status)||ck(v.rr_wheel_bearing_status);
+  if(comp==='brake_oil')return ck(v.brake_oil_status);
+  if(comp==='cable')return ck(v.fr_brake_cable_status)||ck(v.rr_brake_cable_status);
+  if(comp==='spring')return ck(v.brake_shoe_spring_status)||ck(v.side_stand_spring_status)||ck(v.main_stand_spring_status);
+  return false;
+}
+
+function applyResFilters(){
+  if(!lastResults.length)return;
+  var urgency=document.getElementById('f-urgency').value;
+  var hub=document.getElementById('f-hub').value;
+  var comp=document.getElementById('f-comp').value;
+  var filtered=lastResults.filter(function(v){
+    if(urgency&&String(v.overall_urgency)!==urgency)return false;
+    if(hub&&v.deployed_hub!==hub)return false;
+    if(comp&&!compCheck(v,comp))return false;
+    return true;
+  });
+  renderCards(filtered);
+}
+
+function clearResFilters(){
+  var fu=document.getElementById('f-urgency');if(fu)fu.value='';
+  var fh=document.getElementById('f-hub');if(fh)fh.value='';
+  var fc=document.getElementById('f-comp');if(fc)fc.value='';
+  if(lastResults.length)renderCards(lastResults);
+}
+
+function renderCards(data){
+  var fc=document.getElementById('filter-count');
+  if(fc)fc.textContent=data.length+(lastResults.length!==data.length?' of '+lastResults.length+' vehicles':' vehicle'+(data.length!==1?'s':''));
+  if(!data.length){rv.innerHTML='<div class="nf"><div class="ic">🔍</div><h3>No matches</h3><p>Try adjusting the filters above</p></div>';return;}
+  rv.innerHTML=data.map(card).join('');
 }
 
 function fm(v){return v!=null?Number(v).toLocaleString('en-IN'):'--';}
