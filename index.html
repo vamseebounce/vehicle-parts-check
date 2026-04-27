@@ -626,11 +626,6 @@ function run(q){
       rv.innerHTML='<div class="nf"><div class="ic">🔍</div><h3>Not found</h3><p>No vehicle matching <b>'+q+'</b></p></div>';
       return;
     }
-    // Alert badge
-    var crits=d.filter(function(x){return x.overall_urgency===1;}).length;
-    var cb=document.getElementById('critBadge');
-    if(crits>0){cb.textContent=crits+' Critical';cb.classList.add('show');}
-    else{cb.classList.remove('show');}
     rv.innerHTML=d.map(card).join('');
   })
   .catch(function(e){rv.innerHTML='<div class="nf"><h3>Error</h3><p>'+e.message+'</p></div>';});
