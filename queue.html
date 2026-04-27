@@ -9,14 +9,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"/>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <style>
-
-/* ── Auth Screen ── */
-#auth-screen{
-  position:fixed;inset:0;z-index:1000;
-  background:linear-gradient(135deg,#1A1A2E 0%,#0f2460 100%);
-  display:flex;align-items:center;justify-content:center;
-  font-family:'Inter',sans-serif;
-}
+#auth-screen{position:fixed;inset:0;z-index:1000;background:linear-gradient(135deg,#1A1A2E 0%,#0f2460 100%);display:flex;align-items:center;justify-content:center;font-family:'Inter',sans-serif;}
 #auth-screen.hidden{display:none!important}
 .auth-card{background:#fff;border-radius:24px;padding:40px 36px;width:100%;max-width:380px;box-shadow:0 24px 80px rgba(0,0,0,.3);text-align:center;}
 .auth-logo{display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:24px}
@@ -38,7 +31,7 @@
 .auth-sent .resend{background:none;border:none;color:#E8191C;font-size:.8rem;font-weight:600;cursor:pointer;margin-top:16px;font-family:'Inter',sans-serif}
 
 :root{
-  --brand:#E8191C;--brand-dark:#B01010;--brand-bg:#FEF2F2;
+  --brand:#E8191C;--brand-dark:#B01010;
   --sb-bg:#1A1A2E;--sb-text:rgba(255,255,255,.7);--sb-active:#fff;
   --sb-hover:rgba(255,255,255,.08);--sb-width:260px;--topbar-h:56px;
   --bg:#F5F6FA;--card:#fff;--border:#E5E7EB;--text:#111827;--muted:#6B7280;
@@ -48,11 +41,9 @@
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
 
-/* ── Overlay ── */
 #ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:150;backdrop-filter:blur(2px)}
 #ov.show{display:block}
 
-/* ── Sidebar ── */
 #sb{position:fixed;top:0;left:0;bottom:0;width:var(--sb-width);background:var(--sb-bg);z-index:200;transform:translateX(-100%);transition:transform .25s ease;display:flex;flex-direction:column;overflow:hidden;}
 #sb.open{transform:translateX(0)}
 body.pinned #sb{transform:translateX(0)}
@@ -76,7 +67,6 @@ body.pinned #main{margin-left:var(--sb-width)}
 .sb-footer{padding:12px 16px;border-top:1px solid rgba(255,255,255,.06)}
 .sb-ver{font-size:.65rem;color:rgba(255,255,255,.25);font-weight:500}
 
-/* ── Top Bar ── */
 #main{transition:margin-left .25s ease;min-height:100vh;display:flex;flex-direction:column}
 #topbar{position:sticky;top:0;z-index:100;height:var(--topbar-h);background:#fff;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;padding:0 16px;box-shadow:var(--shadow);}
 #hbg{width:36px;height:36px;background:none;border:none;cursor:pointer;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:5px;border-radius:8px;transition:background .15s;flex-shrink:0;}
@@ -89,43 +79,58 @@ body.pinned #main{margin-left:var(--sb-width)}
 .tb-right{display:flex;align-items:center;gap:8px;margin-left:auto;flex-shrink:0}
 
 /* ── Queue Hero ── */
-.queue-hero{background:linear-gradient(135deg,var(--sb-bg) 0%,#0f2460 100%);padding:36px 20px 52px;position:relative;overflow:hidden}
+.queue-hero{background:linear-gradient(135deg,var(--sb-bg) 0%,#0f2460 100%);padding:28px 24px 52px;position:relative;overflow:hidden}
 .queue-hero::after{content:'';position:absolute;bottom:-1px;left:0;right:0;height:40px;background:var(--bg);clip-path:ellipse(55% 100% at 50% 100%)}
-.hero-inner{max-width:900px;margin:0 auto;display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:16px}
+.hero-inner{max-width:1400px;margin:0 auto;display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:16px}
 .hero-text h1{font-size:1.35rem;font-weight:900;color:#fff;letter-spacing:-.02em;margin-bottom:4px}
 .hero-text p{font-size:.8rem;color:rgba(255,255,255,.45)}
-.hero-meta{display:flex;gap:16px;flex-wrap:wrap}
-.hero-stat{text-align:center;min-width:60px}
-.hero-stat-val{font-size:1.4rem;font-weight:900;color:#fff;line-height:1}
-.hero-stat-lbl{font-size:.62rem;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.6px;margin-top:3px;font-weight:600}
+.hero-meta{display:flex;gap:24px;flex-wrap:wrap}
+.hero-stat{text-align:right}
+.hero-stat-val{font-size:1.8rem;font-weight:900;color:#fff;line-height:1}
+.hero-stat-lbl{font-size:.6rem;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.7px;margin-top:3px;font-weight:700}
 
 /* ── Filter Bar ── */
-.filter-bar{max-width:900px;margin:0 auto;padding:16px 16px 0;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.filter-wrap{background:#fff;border-bottom:1px solid var(--border);padding:12px 0;box-shadow:var(--shadow)}
+.filter-inner{max-width:1400px;margin:0 auto;padding:0 24px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .filter-label{font-size:.7rem;color:var(--muted);font-weight:700;letter-spacing:.3px;white-space:nowrap}
-.filter-select,.filter-input{padding:7px 12px;border-radius:20px;border:1.5px solid var(--border);background:#fff;color:var(--text);font-size:.82rem;font-family:inherit;outline:none;cursor:pointer;transition:border-color .15s;}
-.filter-select{min-width:180px}
-.filter-input{flex:1;min-width:200px}
-.filter-select:focus,.filter-input:focus{border-color:#0f2460}
-.synced{max-width:900px;margin:6px auto 0;padding:0 16px;text-align:right;color:#94A3B8;font-size:.72rem}
+.filter-select{padding:6px 10px;border-radius:8px;border:1.5px solid var(--border);background:#fff;color:var(--text);font-size:.8rem;font-family:inherit;outline:none;cursor:pointer;transition:border-color .15s;}
+.filter-select:focus{border-color:#94A3B8}
+.filter-input{padding:6px 10px;border-radius:8px;border:1.5px solid var(--border);background:#fff;color:var(--text);font-size:.8rem;font-family:inherit;outline:none;transition:border-color .15s;min-width:0;}
+.filter-input:focus{border-color:#94A3B8}
+.filter-input::placeholder{color:#9CA3AF}
+.filter-divider{width:1px;height:20px;background:var(--border);margin:0 4px;flex-shrink:0}
+.parts-toggle{display:inline-flex;align-items:center;gap:5px;padding:6px 10px;border-radius:8px;border:1.5px solid var(--border);font-size:.8rem;font-weight:600;cursor:pointer;background:#fff;color:var(--muted);transition:all .15s;font-family:inherit;white-space:nowrap}
+.parts-toggle.on{background:#EDE9FE;border-color:#A78BFA;color:#6D28D9}
+.filter-clear{background:none;border:1.5px solid var(--border);border-radius:8px;padding:6px 10px;font-size:.78rem;font-family:inherit;color:var(--muted);cursor:pointer;transition:all .15s;white-space:nowrap}
+.filter-clear:hover{border-color:#E8191C;color:#E8191C}
+.filter-result-count{font-size:.72rem;color:var(--muted);margin-left:auto;white-space:nowrap}
+.synced-bar{max-width:1400px;margin:0 auto;padding:5px 24px;text-align:right;font-size:.7rem;color:#94A3B8}
 
 /* ── Content ── */
-.content-section{flex:1;max-width:900px;margin:0 auto;padding:16px 16px 60px;width:100%}
+.content-wrap{flex:1;max-width:1400px;margin:0 auto;padding:16px 24px 60px;width:100%}
 
 /* ── Hub Section ── */
-.hub-section{margin-bottom:24px}
-.hub-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;padding:0 4px;flex-wrap:wrap;gap:6px}
+.hub-section{margin-bottom:28px}
+.hub-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:6px}
 .hub-name{font-size:1rem;font-weight:800;color:#0F172A}
-.hub-meta{font-size:.76rem;color:var(--muted);display:flex;gap:12px;flex-wrap:wrap}
+.hub-meta{font-size:.76rem;color:var(--muted);display:flex;gap:14px}
 .hub-meta b{color:var(--text);font-weight:700}
 
 /* ── Queue Table ── */
-.qtable{width:100%;border-collapse:collapse;background:var(--card);border-radius:16px;overflow:hidden;box-shadow:var(--shadow-md);border:1px solid var(--border)}
-.qtable th{background:#F8FAFC;padding:9px 12px;text-align:left;font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:#94A3B8;border-bottom:1px solid #F1F5F9}
-.qtable td{padding:11px 12px;font-size:.82rem;color:#374151;border-bottom:1px solid #F8FAFC;vertical-align:middle}
+.qtable{width:100%;border-collapse:collapse;background:var(--card);border-radius:14px;overflow:hidden;box-shadow:var(--shadow-md);border:1px solid var(--border)}
+.qtable th{background:#F8FAFC;padding:9px 12px;text-align:left;font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:#94A3B8;border-bottom:1px solid #F1F5F9;white-space:nowrap}
+.qtable td{padding:10px 12px;font-size:.82rem;color:#374151;border-bottom:1px solid #F8FAFC;vertical-align:top}
 .qtable tr:last-child td{border-bottom:none}
 .qtable tr:hover td{background:#FAFAFA}
+/* Column widths */
+.qtable .col-pos{width:36px}
+.qtable .col-reg{width:130px}
+.qtable .col-since{width:110px}
+.qtable .col-age{width:66px}
+.qtable .col-work{min-width:200px}
+.qtable .col-est{width:76px;text-align:right}
+.qtable .col-cumul{width:80px;text-align:right}
 
-/* Queue position badge */
 .qpos{width:26px;height:26px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:800;background:#E2E8F0;color:#475569;flex-shrink:0}
 .qpos.q1{background:#FEE2E2;color:#DC2626}
 .qpos.q2{background:#FEF3C7;color:#D97706}
@@ -133,7 +138,6 @@ body.pinned #main{margin-left:var(--sb-width)}
 
 .q-reg{font-weight:800;color:#0F172A;font-size:.88rem;letter-spacing:.5px}
 
-/* OOS age badge */
 .age-badge{display:inline-block;padding:2px 8px;border-radius:8px;font-size:.7rem;font-weight:700}
 .age-0{background:#DCFCE7;color:#16A34A}
 .age-1{background:#FEF9C3;color:#CA8A04}
@@ -141,10 +145,16 @@ body.pinned #main{margin-left:var(--sb-width)}
 .age-3{background:#FEE2E2;color:#DC2626}
 
 .q-time{font-weight:700;color:#0F172A}
-.q-cumul{color:#94A3B8;font-size:.78rem}
-.parts-tag{display:inline-block;margin-left:6px;font-size:.65rem;background:#EDE9FE;color:#7C3AED;padding:1px 6px;border-radius:6px;font-weight:600}
+.q-cumul{color:#94A3B8;font-size:.78rem;font-weight:600}
+.q-no-work{color:#CBD5E1;font-style:italic;font-size:.78rem}
 
-/* Search highlight */
+/* Work cell */
+.work-cell{display:flex;flex-direction:column;gap:4px}
+.work-items{font-size:.78rem;color:#374151;line-height:1.5}
+.parts-chip{display:inline-flex;align-items:center;gap:3px;background:#EDE9FE;color:#7C3AED;border-radius:6px;padding:2px 7px;font-size:.65rem;font-weight:700;width:fit-content}
+.no-work-chip{color:#CBD5E1;font-size:.78rem;font-style:italic}
+
+/* Highlight */
 .hi{background:#FEF9C3;border-radius:2px;padding:0 1px}
 
 /* States */
@@ -167,11 +177,9 @@ body.pinned #main{margin-left:var(--sb-width)}
 .fb-submit{background:var(--text);color:#fff;border:none;border-radius:8px;padding:7px 14px;font-size:.75rem;font-weight:700;font-family:inherit;cursor:pointer;align-self:flex-end;transition:background .15s}
 .fb-submit:hover{background:#374151}
 
-/* ── Footer ── */
 .site-footer{background:var(--sb-bg);color:rgba(255,255,255,.6);padding:40px 20px 32px;text-align:center;margin-top:auto}
 .footer-brand{display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:16px}
 .footer-brand-text{font-size:.95rem;font-weight:800;color:#fff}
-.footer-taglines{margin-bottom:20px}
 .footer-taglines p{font-size:.82rem;color:rgba(255,255,255,.5);line-height:1.9}
 .footer-taglines p strong{color:rgba(255,255,255,.8);font-weight:600}
 .footer-meta{font-size:.68rem;color:rgba(255,255,255,.25);margin-top:16px;border-top:1px solid rgba(255,255,255,.06);padding-top:16px}
@@ -180,27 +188,21 @@ body.pinned #main{margin-left:var(--sb-width)}
   body.pinned #main{margin-left:0}
   body.pinned #sb{transform:translateX(0)}
   .pin-btn{display:none}
-  .qtable th:nth-child(7),.qtable td:nth-child(7){display:none}
+  .qtable .col-cumul,.qtable th:last-child{display:none}
   .hero-meta{display:none}
-}
-@media(min-width:768px){
-  .content-section{padding:16px 24px 60px}
-  .filter-bar{padding:16px 24px 0}
-  .synced{padding:6px 24px 0}
+  .filter-inner{padding:0 12px}
+  .content-wrap{padding:12px 12px 60px}
+  .synced-bar{padding:5px 12px}
 }
 </style>
 </head>
 <body>
 
-<!-- Auth Screen -->
 <div id="auth-screen">
   <div class="auth-card">
     <div class="auth-logo">
       <img id="auth-logo-img" width="44" height="44" style="border-radius:10px;object-fit:cover;flex-shrink:0"/>
-      <div>
-        <div class="auth-logo-name">Bounce Daily</div>
-        <div class="auth-logo-sub">FleetPro</div>
-      </div>
+      <div><div class="auth-logo-name">Bounce Daily</div><div class="auth-logo-sub">FleetPro</div></div>
     </div>
     <div class="auth-title">Welcome to FleetPro</div>
     <div class="auth-sub">Enter your work email and we'll send you a one-click sign-in link.</div>
@@ -221,32 +223,21 @@ body.pinned #main{margin-left:var(--sb-width)}
 
 <div id="ov"></div>
 
-<!-- Sidebar -->
 <nav id="sb">
   <div class="sb-header">
     <a href="./index.html" class="sb-brand">
       <img src="logo.jpg" width="44" height="44" style="border-radius:10px;object-fit:cover;flex-shrink:0"/>
-      <div class="sb-brand-text">
-        <div class="t1">Bounce Daily</div>
-        <div class="t2">FleetPro</div>
-      </div>
+      <div class="sb-brand-text"><div class="t1">Bounce Daily</div><div class="t2">FleetPro</div></div>
     </a>
     <button class="pin-btn" id="pinBtn" onclick="togglePin()" title="Pin sidebar">
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2v10M8 6l4-4 4 4M8 18l4 4 4-4M12 12v10"/></svg>
-      Pin
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2v10M8 6l4-4 4 4M8 18l4 4 4-4M12 12v10"/></svg>Pin
     </button>
   </div>
   <div class="sb-section">
     <div class="sb-label">Fleet Tools</div>
-    <a href="./index.html" class="sb-item">
-      <span class="si">🏠</span><span>Home</span>
-    </a>
-    <a href="./maintenance.html" class="sb-item">
-      <span class="si">🔧</span><span>Preventive Maintenance</span>
-    </a>
-    <a href="./queue.html" class="sb-item active">
-      <span class="si">📋</span><span>Pending JobCards</span>
-    </a>
+    <a href="./index.html" class="sb-item"><span class="si">🏠</span><span>Home</span></a>
+    <a href="./maintenance.html" class="sb-item"><span class="si">🔧</span><span>Preventive Maintenance</span></a>
+    <a href="./queue.html" class="sb-item active"><span class="si">📋</span><span>Pending JobCards</span></a>
   </div>
   <div class="sb-section" style="margin-top:8px">
     <div class="sb-label">Coming Soon</div>
@@ -257,16 +248,12 @@ body.pinned #main{margin-left:var(--sb-width)}
   <div class="sb-footer"><div class="sb-ver">FleetPro v3 · Data synced hourly</div></div>
 </nav>
 
-<!-- Main -->
 <div id="main">
   <header id="topbar">
-    <button id="hbg" onclick="toggleSidebar()" aria-label="Menu">
-      <span></span><span></span><span></span>
-    </button>
+    <button id="hbg" onclick="toggleSidebar()" aria-label="Menu"><span></span><span></span><span></span></button>
     <div class="tb-brand">
       <a href="./index.html" class="tb-logo">
-        <img src="logo.jpg" width="30" height="30" style="border-radius:7px;object-fit:cover;flex-shrink:0"/>
-        FleetPro
+        <img src="logo.jpg" width="30" height="30" style="border-radius:7px;object-fit:cover;flex-shrink:0"/>FleetPro
       </a>
       <span class="tb-sep">›</span>
       <span class="tb-page">Pending JobCards</span>
@@ -276,14 +263,13 @@ body.pinned #main{margin-left:var(--sb-width)}
     </div>
   </header>
 
-  <!-- Hero -->
   <section class="queue-hero">
     <div class="hero-inner">
       <div class="hero-text">
         <h1>OOS Work Queue</h1>
-        <p>FIFO repair order · Updated hourly · Est. time includes +1 hr parts coordination</p>
+        <p>FIFO repair order · Updated hourly · Parts buffer +1h only when parts required</p>
       </div>
-      <div class="hero-meta" id="hero-meta" style="display:none">
+      <div class="hero-meta" id="hero-meta">
         <div class="hero-stat">
           <div class="hero-stat-val" id="h-vehicles">—</div>
           <div class="hero-stat-lbl">Vehicles</div>
@@ -301,18 +287,34 @@ body.pinned #main{margin-left:var(--sb-width)}
   </section>
 
   <!-- Filter Bar -->
-  <div class="filter-bar">
-    <span class="filter-label">Hub</span>
-    <select id="hubSelect" class="filter-select" onchange="setHub(this.value)">
-      <option value="ALL">All Hubs</option>
-    </select>
-    <span class="filter-label">Work type</span>
-    <input id="workFilter" type="text" class="filter-input" placeholder="e.g. puncture, brake, handle lock…" oninput="renderContent()"/>
-  </div>
-  <div class="synced" id="synced"></div>
+  <div class="filter-wrap">
+    <div class="filter-inner">
+      <span class="filter-label">Hub</span>
+      <select id="hubSelect" class="filter-select" onchange="setHub(this.value)">
+        <option value="ALL">All Hubs</option>
+      </select>
 
-  <!-- Content -->
-  <section class="content-section">
+      <div class="filter-divider"></div>
+
+      <span class="filter-label">Work type</span>
+      <input id="workFilter" type="text" class="filter-input" style="width:200px" placeholder="brake, handle, puncture…" oninput="renderContent()"/>
+
+      <div class="filter-divider"></div>
+
+      <span class="filter-label">Reg #</span>
+      <input id="regFilter" type="text" class="filter-input" style="width:140px;text-transform:uppercase" placeholder="e.g. BLRBD" oninput="renderContent()"/>
+
+      <div class="filter-divider"></div>
+
+      <button id="partsToggle" class="parts-toggle" onclick="toggleParts()">📦 Parts Only</button>
+
+      <button class="filter-clear" onclick="clearFilters()">✕ Clear</button>
+      <span class="filter-result-count" id="filter-count"></span>
+    </div>
+    <div class="synced-bar" id="synced"></div>
+  </div>
+
+  <section class="content-wrap">
     <div id="content">
       <div class="dots"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
     </div>
@@ -345,22 +347,19 @@ var ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZ
 var SB=SB_URL;
 var K=ANON_KEY;
 var CURRENT_USER_EMAIL=null;
-var PARTS_BUFFER=60; // +1 hr per vehicle
+var PARTS_BUFFER=60;
+var allData=[];
+var activeHub='ALL';
+var partsOnly=false;
 
 var sbClient=supabase.createClient(SB_URL,ANON_KEY,{auth:{persistSession:true,storageKey:'fleetpro_session',autoRefreshToken:true}});
 
 function showAuthScreen(){document.getElementById('auth-screen').classList.remove('hidden');showForm();}
 function hideAuthScreen(){document.getElementById('auth-screen').classList.add('hidden');}
-function showForm(){
-  document.getElementById('auth-form').style.display='block';
-  document.getElementById('auth-sent').style.display='none';
-  document.getElementById('auth-msg').textContent='';
-  document.getElementById('auth-email').value='';
-}
+function showForm(){document.getElementById('auth-form').style.display='block';document.getElementById('auth-sent').style.display='none';document.getElementById('auth-msg').textContent='';document.getElementById('auth-email').value='';}
 async function sendMagicLink(){
   var email=document.getElementById('auth-email').value.trim().toLowerCase();
-  var msg=document.getElementById('auth-msg');
-  var btn=document.getElementById('auth-submit');
+  var msg=document.getElementById('auth-msg');var btn=document.getElementById('auth-submit');
   if(!email){msg.textContent='Please enter your email.';return;}
   if(!email.endsWith('@bounceshare.com')){msg.textContent='Only @bounceshare.com emails are allowed.';return;}
   btn.disabled=true;btn.textContent='Sending…';msg.textContent='';
@@ -378,25 +377,20 @@ async function signOut(){await sbClient.auth.signOut();document.getElementById('
   var{data:{session}}=await sbClient.auth.getSession();
   if(session){
     K=session.access_token;CURRENT_USER_EMAIL=session.user.email;
-    hideAuthScreen();
-    document.getElementById('logout-btn').style.display='block';
-    document.getElementById('fb-fab').style.display='flex';
+    hideAuthScreen();document.getElementById('logout-btn').style.display='block';document.getElementById('fb-fab').style.display='flex';
     loadQueue();
   } else {showAuthScreen();}
   sbClient.auth.onAuthStateChange(function(event,session){
     if((event==='SIGNED_IN'||event==='INITIAL_SESSION')&&session){
       K=session.access_token;CURRENT_USER_EMAIL=session.user.email;
-      hideAuthScreen();
-      document.getElementById('logout-btn').style.display='block';
-      document.getElementById('logout-btn').title='Signed in as '+session.user.email;
-      document.getElementById('fb-fab').style.display='flex';
+      hideAuthScreen();document.getElementById('logout-btn').style.display='block';document.getElementById('logout-btn').title='Signed in as '+session.user.email;document.getElementById('fb-fab').style.display='flex';
       loadQueue();
     } else if(event==='SIGNED_OUT'){K=ANON_KEY;document.getElementById('logout-btn').style.display='none';showAuthScreen();}
     else if(event==='TOKEN_REFRESHED'&&session){K=session.access_token;}
   });
 })();
 
-// ── Sidebar ──────────────────────────────────────────────────────────
+// ── Sidebar ─────────────────────────────────────────────────────────
 var pinned=localStorage.getItem('sb_pinned')==='1';
 var sbOpen=false;
 function applyPin(){
@@ -409,49 +403,41 @@ function togglePin(){pinned=!pinned;localStorage.setItem('sb_pinned',pinned?'1':
 document.getElementById('ov').addEventListener('click',closeSidebar);
 applyPin();
 
-// ── Queue Data ────────────────────────────────────────────────────────
-var allData=[];
-var activeHub='ALL';
-
+// ── Queue helpers ────────────────────────────────────────────────────
 function fmtTime(mins){
-  if(!mins&&mins!==0)return '—';
+  if(!mins||mins<=0)return '—';
   var h=Math.floor(mins/60);var m=mins%60;
   if(h===0)return m+'m';
   return m===0?h+'h':h+'h '+m+'m';
 }
-
 function fmtDate(iso){
   if(!iso)return '—';
   return new Date(iso).toLocaleString('en-IN',{timeZone:'Asia/Kolkata',day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit',hour12:true});
 }
-
 function ageCls(days){
-  if(days<1)return 'age-0';
-  if(days<2)return 'age-1';
-  if(days<3)return 'age-2';
-  return 'age-3';
+  if(days<1)return 'age-0';if(days<2)return 'age-1';if(days<3)return 'age-2';return 'age-3';
 }
-
-function posCls(pos){
-  if(pos===1)return 'q1';
-  if(pos===2)return 'q2';
-  if(pos===3)return 'q3';
-  return '';
+function posCls(pos){return pos===1?'q1':pos===2?'q2':pos===3?'q3':'';}
+// Multi-term highlight (any match)
+function highlight(text,terms){
+  if(!text||text==='—')return text||'—';
+  var result=text;
+  terms.forEach(function(kw){
+    if(!kw)return;
+    var re=new RegExp('('+kw.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+')','gi');
+    result=result.replace(re,'<span class="hi">$1</span>');
+  });
+  return result;
 }
+// Est time per vehicle: labour + 1h buffer only if has_parts
+function estMins(r){return (r.labour_mins||0)+(r.has_parts?PARTS_BUFFER:0);}
 
-function highlight(text,kw){
-  if(!kw||!text)return text||'—';
-  var re=new RegExp('('+kw.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+')','gi');
-  return text.replace(re,'<span class="hi">$1</span>');
-}
-
+// ── Load ────────────────────────────────────────────────────────────
 async function loadQueue(){
   try{
-    var res=await fetch(
-      SB_URL+'/rest/v1/oos_work_queue?select=*&order=hub.asc,queue_position.asc',
-      {headers:{apikey:ANON_KEY,Authorization:'Bearer '+K}}
-    );
-    if(!res.ok)throw new Error('Supabase error: '+res.status);
+    var res=await fetch(SB_URL+'/rest/v1/oos_work_queue?select=*&order=hub.asc,queue_position.asc',
+      {headers:{apikey:ANON_KEY,Authorization:'Bearer '+K}});
+    if(!res.ok)throw new Error('HTTP '+res.status);
     allData=await res.json();
     if(allData.length>0&&allData[0].synced_at){
       var d=new Date(allData[0].synced_at);
@@ -464,86 +450,122 @@ async function loadQueue(){
     return;
   }
   populateHubDropdown();
-  updateHeroStats();
   renderContent();
 }
 
 function populateHubDropdown(){
   var hubs=[...new Set(allData.map(function(r){return r.hub;}).filter(Boolean))].sort();
   var sel=document.getElementById('hubSelect');
+  // Clear except first
+  while(sel.options.length>1)sel.remove(1);
   hubs.forEach(function(h){var opt=document.createElement('option');opt.value=h;opt.textContent=h;sel.appendChild(opt);});
 }
 
-function updateHeroStats(){
-  var total=allData.length;
-  var hubs=new Set(allData.map(function(r){return r.hub;}).filter(Boolean)).size;
-  var totalMins=allData.reduce(function(s,r){return s+(r.estimated_mins||0)+PARTS_BUFFER;},0);
-  if(total>0){
-    document.getElementById('h-vehicles').textContent=total;
-    document.getElementById('h-hubs').textContent=hubs;
-    document.getElementById('h-time').textContent=fmtTime(totalMins);
-    document.getElementById('hero-meta').style.display='flex';
-  }
-}
+function setHub(val){activeHub=val;renderContent();}
 
-function setHub(val){
-  activeHub=val;
+function toggleParts(){
+  partsOnly=!partsOnly;
+  document.getElementById('partsToggle').classList.toggle('on',partsOnly);
   renderContent();
 }
 
-function renderContent(){
-  var kw=document.getElementById('workFilter').value.trim();
-  var data=activeHub==='ALL'?allData:allData.filter(function(r){return r.hub===activeHub;});
+function clearFilters(){
+  activeHub='ALL';partsOnly=false;
+  document.getElementById('hubSelect').value='ALL';
+  document.getElementById('workFilter').value='';
+  document.getElementById('regFilter').value='';
+  document.getElementById('partsToggle').classList.remove('on');
+  renderContent();
+}
 
-  if(kw){
-    data=data.filter(function(r){return r.labour_items&&r.labour_items.toLowerCase().indexOf(kw.toLowerCase())>=0;});
+// ── Render ───────────────────────────────────────────────────────────
+function renderContent(){
+  // Parse multi-term work filter (OR logic, split by comma)
+  var workRaw=document.getElementById('workFilter').value.trim();
+  var workTerms=workRaw?workRaw.split(',').map(function(s){return s.trim().toLowerCase();}).filter(Boolean):[];
+  var regRaw=document.getElementById('regFilter').value.trim().toUpperCase();
+
+  // Filter
+  var data=activeHub==='ALL'?allData.slice():allData.filter(function(r){return r.hub===activeHub;});
+  if(partsOnly)data=data.filter(function(r){return r.has_parts;});
+  if(workTerms.length){
+    data=data.filter(function(r){
+      var items=(r.labour_items||'').toLowerCase();
+      return workTerms.some(function(t){return items.indexOf(t)>=0;});
+    });
   }
+  if(regRaw){
+    data=data.filter(function(r){return (r.reg_number||'').indexOf(regRaw)>=0;});
+  }
+
+  // Update hero stats
+  var filtVehicles=data.length;
+  var filtHubs=new Set(data.map(function(r){return r.hub;}).filter(Boolean)).size;
+  var filtMins=data.reduce(function(s,r){return s+estMins(r);},0);
+  document.getElementById('h-vehicles').textContent=filtVehicles||'—';
+  document.getElementById('h-hubs').textContent=filtHubs||'—';
+  document.getElementById('h-time').textContent=filtVehicles?fmtTime(filtMins):'—';
+
+  // Update filter count
+  var total=allData.length;
+  document.getElementById('filter-count').textContent=
+    (filtVehicles<total||workTerms.length||regRaw||partsOnly)?
+    filtVehicles+' of '+total+' vehicles':'';
 
   if(!data.length){
     document.getElementById('content').innerHTML=
-      kw?'<div class="empty"><div class="ic">🔍</div><p>No vehicles with "'+kw+'" in planned work</p></div>'
-        :'<div class="empty"><div class="ic">🎉</div><p>No vehicles currently in OOS queue</p></div>';
+      '<div class="empty"><div class="ic">🔍</div><p>No vehicles match the current filters</p></div>';
     return;
   }
 
-  // Group by hub
+  // Group by hub, maintain FIFO order within hub
   var byHub={};
   data.forEach(function(r){if(!byHub[r.hub])byHub[r.hub]=[];byHub[r.hub].push(r);});
 
   var html='';
   Object.keys(byHub).sort().forEach(function(hub){
     var rows=byHub[hub];
-    var totalMins=rows.reduce(function(s,r){return s+(r.estimated_mins||0)+PARTS_BUFFER;},0);
+    var hubMins=rows.reduce(function(s,r){return s+estMins(r);},0);
     var oldest=rows.reduce(function(a,b){return(a.days_in_oos||0)>(b.days_in_oos||0)?a:b;},rows[0]);
 
     var cumul=0;
-    var rowsWithCumul=rows.map(function(r){
-      var est=(r.estimated_mins||0)+PARTS_BUFFER;
-      cumul+=est;
-      return Object.assign({},r,{_est:est,_cumul:cumul});
-    });
-
     html+='<div class="hub-section">'
       +'<div class="hub-header">'
       +'<div class="hub-name">'+hub+'</div>'
       +'<div class="hub-meta">'
       +'<span>'+rows.length+' vehicle'+(rows.length!==1?'s':'')+'</span>'
-      +'<span>Est. total: <b>'+fmtTime(totalMins)+'</b></span>'
+      +'<span>Est. total: <b>'+fmtTime(hubMins)+'</b></span>'
       +'<span>Oldest: <b>'+oldest.days_in_oos+'d</b></span>'
       +'</div></div>'
       +'<table class="qtable"><thead><tr>'
-      +'<th>#</th><th>Vehicle</th><th>OOS Since</th><th>Age</th><th>Planned Work</th><th>Est. Time</th><th>By End of Slot</th>'
+      +'<th class="col-pos">#</th>'
+      +'<th class="col-reg">Vehicle</th>'
+      +'<th class="col-since">OOS Since</th>'
+      +'<th class="col-age">Age</th>'
+      +'<th class="col-work">Planned Work</th>'
+      +'<th class="col-est">Est. Time</th>'
+      +'<th class="col-cumul">Cumul.</th>'
       +'</tr></thead><tbody>';
 
-    rowsWithCumul.forEach(function(r){
+    rows.forEach(function(r){
+      var est=estMins(r);
+      cumul+=est;
+      var hasWork=r.labour_items&&r.labour_items!=='—';
+
+      var workHtml='<div class="work-cell">';
+      if(r.has_parts) workHtml+='<div class="parts-chip">📦 Parts Required</div>';
+      if(hasWork) workHtml+='<div class="work-items">'+highlight(r.labour_items,workTerms)+'</div>';
+      else if(!r.has_parts) workHtml+='<div class="no-work-chip">No work logged</div>';
+      workHtml+='</div>';
+
       html+='<tr>'
-        +'<td><span class="qpos '+posCls(r.queue_position)+'">'+r.queue_position+'</span></td>'
-        +'<td><span class="q-reg">'+(r.reg_number||'—')+'</span></td>'
-        +'<td>'+fmtDate(r.oos_since)+'</td>'
-        +'<td><span class="age-badge '+ageCls(r.days_in_oos||0)+'">'+(r.days_in_oos||0)+'d</span></td>'
-        +'<td>'+(highlight(r.labour_items,kw)||'—')+(r.has_parts?'<span class="parts-tag">+ Parts</span>':'')+'</td>'
-        +'<td><span class="q-time">'+fmtTime(r._est)+'</span></td>'
-        +'<td><span class="q-cumul">'+fmtTime(r._cumul)+'</span></td>'
+        +'<td class="col-pos"><span class="qpos '+posCls(r.queue_position)+'">'+r.queue_position+'</span></td>'
+        +'<td class="col-reg"><span class="q-reg">'+(r.reg_number||'—')+'</span></td>'
+        +'<td class="col-since" style="font-size:.76rem;color:var(--muted)">'+fmtDate(r.oos_since)+'</td>'
+        +'<td class="col-age"><span class="age-badge '+ageCls(r.days_in_oos||0)+'">'+(r.days_in_oos||0)+'d</span></td>'
+        +'<td class="col-work">'+workHtml+'</td>'
+        +'<td class="col-est"><span class="q-time">'+(est>0?fmtTime(est):'—')+'</span></td>'
+        +'<td class="col-cumul"><span class="q-cumul">'+(cumul>0?fmtTime(cumul):'—')+'</span></td>'
         +'</tr>';
     });
 
