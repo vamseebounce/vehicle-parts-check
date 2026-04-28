@@ -8,7 +8,6 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"/>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 <style>
 #auth-screen{position:fixed;inset:0;z-index:1000;background:linear-gradient(135deg,#1A1A2E 0%,#0f2460 100%);display:flex;align-items:center;justify-content:center;font-family:'Inter',sans-serif;}
 #auth-screen.hidden{display:none!important}
@@ -334,7 +333,7 @@ body.pinned #main{margin-left:var(--sb-width)}
 
       <button class="filter-clear" onclick="clearFilters()">✕ Clear</button>
       <span class="filter-result-count" id="filter-count"></span>
-      <button class="dl-btn" onclick="downloadExcel()" style="margin-left:8px;padding:6px 12px;font-size:.76rem">⬇ Excel</button>
+      <button class="dl-btn" onclick="downloadCSV()" style="margin-left:8px;padding:6px 12px;font-size:.76rem">⬇ Download CSV</button>
     </div>
     <div class="synced-bar" id="synced"></div>
   </div>
@@ -472,9 +471,11 @@ function toggleHubDd(e){
 function toggleAllHubs(){
   var cbs=Array.from(document.querySelectorAll('#hubCbs input[type=checkbox]'));
   var anyChecked=cbs.some(function(c){return c.checked;});
-  cbs.forEach(function(c){c.checked=!anyChecked;if(!anyChecked)selectedHubs.add(c.value);else selectedHubs.delete(c.value);});
-  // if all checked → treat as "all" (same as none)
-  if(!anyChecked&&selectedHubs.size===cbs.length){selectedHubs.clear();cbs.forEach(function(c){c.checked=false;});}
+  selectedHubs.clear();
+  cbs.forEach(function(c){
+    c.checked=!anyChecked;
+    if(!anyChecked)selectedHubs.add(c.value);
+  });
   syncHubBtn();renderContent();
 }
 document.addEventListener('click',function(e){
@@ -614,12 +615,14 @@ function renderContent(){
 }
 
 // ── Excel Download ────────────────────────────────────────────────────
-function downloadExcel(){
+function downloadCSV(){
   if(!currentData.length){alert('No data to export.');return;}
   var today=new Date().toISOString().slice(0,10);
-  var rows=[['#','Hub','Vehicle','OOS Since','Age (days)','Planned Work','Has Parts','Est. Time (min)','Est. Time']];
+  function cc(v){if(v==null)return '';var s=String(v);return(s.indexOf(',')>=0||s.indexOf('"')>=0||s.indexOf('\n')>=0)?'"'+s.replace(/"/g,'""')+'"':s;}
+  function cr(arr){return arr.map(cc).join(',');}
+  var lines=[cr(['#','Hub','Vehicle','OOS Since','Age (days)','Planned Work','Has Parts','Est. Time (min)','Est. Time'])];
   currentData.forEach(function(r,i){
-    rows.push([
+    lines.push(cr([
       i+1,
       r.hub||'',
       r.reg_number||'',
@@ -629,14 +632,10 @@ function downloadExcel(){
       r.has_parts?'Yes':'No',
       estMins(r),
       fmtTime(estMins(r))
-    ]);
+    ]));
   });
-  var ws=XLSX.utils.aoa_to_sheet(rows);
-  // Column widths
-  ws['!cols']=[{wch:5},{wch:20},{wch:14},{wch:20},{wch:10},{wch:40},{wch:10},{wch:16},{wch:12}];
-  var wb=XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb,'OOS Queue',ws);
-  XLSX.writeFile(wb,'OOS_Queue_'+today+'.xlsx');
+  var blob=new Blob(['﻿'+lines.join('\n')],{type:'text/csv;charset=utf-8;'});
+  var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='OOS_Queue_'+today+'.csv';a.click();
 }
 
 // ── JC History inline ────────────────────────────────────────────────
