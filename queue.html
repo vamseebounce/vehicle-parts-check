@@ -93,8 +93,6 @@ body.pinned #main{margin-left:var(--sb-width)}
 .filter-wrap{background:#fff;border-bottom:1px solid var(--border);padding:12px 0;box-shadow:var(--shadow)}
 .filter-inner{max-width:1400px;margin:0 auto;padding:0 24px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .filter-label{font-size:.7rem;color:var(--muted);font-weight:700;letter-spacing:.3px;white-space:nowrap}
-.filter-select{padding:6px 10px;border-radius:8px;border:1.5px solid var(--border);background:#fff;color:var(--text);font-size:.8rem;font-family:inherit;outline:none;cursor:pointer;transition:border-color .15s;}
-.filter-select:focus{border-color:#94A3B8}
 .filter-input{padding:6px 10px;border-radius:8px;border:1.5px solid var(--border);background:#fff;color:var(--text);font-size:.8rem;font-family:inherit;outline:none;transition:border-color .15s;min-width:0;}
 .filter-input:focus{border-color:#94A3B8}
 .filter-input::placeholder{color:#9CA3AF}
@@ -106,15 +104,20 @@ body.pinned #main{margin-left:var(--sb-width)}
 .filter-result-count{font-size:.72rem;color:var(--muted);margin-left:auto;white-space:nowrap}
 .synced-bar{max-width:1400px;margin:0 auto;padding:5px 24px;text-align:right;font-size:.7rem;color:#94A3B8}
 
+/* ── Hub Multiselect ── */
+.ms-wrap{position:relative;flex-shrink:0}
+.ms-btn{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:8px;border:1.5px solid var(--border);background:#fff;color:var(--text);font-size:.8rem;font-family:inherit;cursor:pointer;transition:border-color .15s;white-space:nowrap;min-width:110px;justify-content:space-between}
+.ms-btn:hover,.ms-btn.open{border-color:#94A3B8}
+.ms-btn.sel{border-color:#6366F1;color:#4F46E5;background:#EEF2FF}
+.ms-dropdown{position:absolute;top:calc(100% + 4px);left:0;z-index:300;background:#fff;border:1.5px solid var(--border);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.12);min-width:210px;max-height:280px;overflow-y:auto;padding:6px 0}
+.ms-all{padding:7px 12px;font-size:.72rem;font-weight:700;color:#6366F1;cursor:pointer;border-bottom:1px solid #F1F5F9;margin-bottom:2px}
+.ms-all:hover{background:#F8FAFC}
+.ms-item{display:flex;align-items:center;gap:8px;padding:7px 12px;cursor:pointer;font-size:.8rem;color:var(--text);transition:background .1s;user-select:none}
+.ms-item:hover{background:#F8FAFC}
+.ms-item input{accent-color:#6366F1;width:14px;height:14px;cursor:pointer;flex-shrink:0}
+
 /* ── Content ── */
 .content-wrap{flex:1;max-width:1400px;margin:0 auto;padding:16px 24px 60px;width:100%}
-
-/* ── Hub Section ── */
-.hub-section{margin-bottom:28px}
-.hub-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:6px}
-.hub-name{font-size:1rem;font-weight:800;color:#0F172A}
-.hub-meta{font-size:.76rem;color:var(--muted);display:flex;gap:14px}
-.hub-meta b{color:var(--text);font-weight:700}
 
 /* ── Queue Table ── */
 .qtable{width:100%;border-collapse:collapse;background:var(--card);border-radius:14px;overflow:hidden;box-shadow:var(--shadow-md);border:1px solid var(--border)}
@@ -122,40 +125,68 @@ body.pinned #main{margin-left:var(--sb-width)}
 .qtable td{padding:10px 12px;font-size:.82rem;color:#374151;border-bottom:1px solid #F8FAFC;vertical-align:top}
 .qtable tr:last-child td{border-bottom:none}
 .qtable tr:hover td{background:#FAFAFA}
-/* Column widths */
 .qtable .col-pos{width:36px}
-.qtable .col-reg{width:130px}
+.qtable .col-hub{width:110px}
+.qtable .col-reg{width:120px}
 .qtable .col-since{width:110px}
-.qtable .col-age{width:66px}
+.qtable .col-age{width:60px}
 .qtable .col-work{min-width:200px}
-.qtable .col-est{width:76px;text-align:right}
-.qtable .col-cumul{width:80px;text-align:right}
+.qtable .col-est{width:72px;text-align:right}
+.qtable .col-cumul{width:76px;text-align:right}
+.qtable .col-hist{width:38px;text-align:center}
 
 .qpos{width:26px;height:26px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:800;background:#E2E8F0;color:#475569;flex-shrink:0}
 .qpos.q1{background:#FEE2E2;color:#DC2626}
 .qpos.q2{background:#FEF3C7;color:#D97706}
 .qpos.q3{background:#FEF9C3;color:#CA8A04}
-
 .q-reg{font-weight:800;color:#0F172A;font-size:.88rem;letter-spacing:.5px}
-
 .age-badge{display:inline-block;padding:2px 8px;border-radius:8px;font-size:.7rem;font-weight:700}
 .age-0{background:#DCFCE7;color:#16A34A}
 .age-1{background:#FEF9C3;color:#CA8A04}
 .age-2{background:#FEF3C7;color:#D97706}
 .age-3{background:#FEE2E2;color:#DC2626}
-
 .q-time{font-weight:700;color:#0F172A}
 .q-cumul{color:#94A3B8;font-size:.78rem;font-weight:600}
-.q-no-work{color:#CBD5E1;font-style:italic;font-size:.78rem}
 
-/* Work cell */
 .work-cell{display:flex;flex-direction:column;gap:4px}
 .work-items{font-size:.78rem;color:#374151;line-height:1.5}
 .parts-chip{display:inline-flex;align-items:center;gap:3px;background:#EDE9FE;color:#7C3AED;border-radius:6px;padding:2px 7px;font-size:.65rem;font-weight:700;width:fit-content}
 .no-work-chip{color:#CBD5E1;font-size:.78rem;font-style:italic}
-
-/* Highlight */
 .hi{background:#FEF9C3;border-radius:2px;padding:0 1px}
+
+/* History button */
+.hist-btn{background:none;border:none;cursor:pointer;font-size:1rem;padding:2px 4px;border-radius:6px;transition:background .15s;opacity:.5;line-height:1}
+.hist-btn:hover{background:#F3F4F6;opacity:1}
+.hist-btn.open{opacity:1;background:#EFF6FF}
+
+/* Inline JC expand row */
+.jc-expand-row td{padding:0!important;background:#FAFAFA!important;border-bottom:2px solid #E0E7FF!important}
+.jc-expand-inner{padding:16px 20px 20px}
+.qtable tr.jc-expand-row:hover td{background:#FAFAFA!important}
+
+/* JC history UI */
+.jc-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px}
+.jc-hdr-title{font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--muted)}
+.jc-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;border-radius:10px;border:1px solid var(--border);max-height:340px;overflow-y:auto}
+.jc-tbl{width:100%;border-collapse:collapse;font-size:.73rem}
+.jc-tbl th{background:#F8FAFC;padding:8px 10px;text-align:left;font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);white-space:nowrap;border-bottom:1px solid var(--border);position:sticky;top:0;z-index:1}
+.jc-tbl td{padding:7px 10px;border-bottom:1px solid #F1F5F9;color:var(--text);white-space:nowrap}
+.jc-tbl tr:last-child td{border-bottom:none}
+.jc-tbl tr:hover td{background:#FAFAFA}
+.jc-no{font-weight:700;color:#0F172A}
+.jc-amt{font-weight:600;text-align:right}
+.jc-tag{display:inline-block;border-radius:4px;padding:1px 6px;font-size:.6rem;font-weight:700}
+.jc-tag.labour{background:#EFF6FF;color:#2563EB}
+.jc-tag.parts{background:#F0FDF4;color:#16A34A}
+.jc-tag.old{background:#F1F5F9;color:#64748B}
+.jc-filters{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;align-items:center}
+.jc-filter{border:1.5px solid var(--border);border-radius:8px;padding:5px 10px;font-size:.73rem;font-family:inherit;color:var(--text);background:#fff;outline:none;cursor:pointer;transition:border-color .15s}
+.jc-filter:focus{border-color:#94A3B8}
+.jc-filter-clear{background:none;border:1.5px solid var(--border);border-radius:8px;padding:5px 10px;font-size:.72rem;font-family:inherit;color:var(--muted);cursor:pointer;transition:all .15s}
+.jc-filter-clear:hover{border-color:#E8191C;color:#E8191C}
+.jc-count{font-size:.72rem;color:var(--muted);margin-left:auto}
+.dl-btn{display:inline-flex;align-items:center;gap:6px;background:var(--text);color:#fff;border:none;border-radius:8px;padding:7px 14px;font-size:.76rem;font-weight:600;cursor:pointer;font-family:inherit;transition:background .15s}
+.dl-btn:hover{background:#374151}
 
 /* States */
 .dots{text-align:center;padding:60px}
@@ -188,7 +219,7 @@ body.pinned #main{margin-left:var(--sb-width)}
   body.pinned #main{margin-left:0}
   body.pinned #sb{transform:translateX(0)}
   .pin-btn{display:none}
-  .qtable .col-cumul,.qtable th:last-child{display:none}
+  .qtable .col-cumul,.qtable .col-hist{display:none}
   .hero-meta{display:none}
   .filter-inner{padding:0 12px}
   .content-wrap{padding:12px 12px 60px}
@@ -267,21 +298,12 @@ body.pinned #main{margin-left:var(--sb-width)}
     <div class="hero-inner">
       <div class="hero-text">
         <h1>OOS Work Queue</h1>
-        <p>FIFO repair order · Updated hourly · Parts buffer +1h only when parts required</p>
+        <p>FIFO repair order · Updated hourly · Filtered stats update live</p>
       </div>
-      <div class="hero-meta" id="hero-meta">
-        <div class="hero-stat">
-          <div class="hero-stat-val" id="h-vehicles">—</div>
-          <div class="hero-stat-lbl">Vehicles</div>
-        </div>
-        <div class="hero-stat">
-          <div class="hero-stat-val" id="h-hubs">—</div>
-          <div class="hero-stat-lbl">Hubs</div>
-        </div>
-        <div class="hero-stat">
-          <div class="hero-stat-val" id="h-time">—</div>
-          <div class="hero-stat-lbl">Est. Total</div>
-        </div>
+      <div class="hero-meta">
+        <div class="hero-stat"><div class="hero-stat-val" id="h-vehicles">—</div><div class="hero-stat-lbl">Vehicles</div></div>
+        <div class="hero-stat"><div class="hero-stat-val" id="h-hubs">—</div><div class="hero-stat-lbl">Hubs</div></div>
+        <div class="hero-stat"><div class="hero-stat-val" id="h-time">—</div><div class="hero-stat-lbl">Est. Total</div></div>
       </div>
     </div>
   </section>
@@ -290,22 +312,23 @@ body.pinned #main{margin-left:var(--sb-width)}
   <div class="filter-wrap">
     <div class="filter-inner">
       <span class="filter-label">Hub</span>
-      <select id="hubSelect" class="filter-select" onchange="setHub(this.value)">
-        <option value="ALL">All Hubs</option>
-      </select>
+      <div class="ms-wrap" id="hubWrap">
+        <button class="ms-btn" id="hubBtn" onclick="toggleHubDd(event)">All Hubs <span style="opacity:.45;font-size:.7em">▾</span></button>
+        <div class="ms-dropdown" id="hubDd" style="display:none">
+          <div class="ms-all" onclick="toggleAllHubs()">Select all / none</div>
+          <div id="hubCbs"></div>
+        </div>
+      </div>
 
       <div class="filter-divider"></div>
-
       <span class="filter-label">Work type</span>
       <input id="workFilter" type="text" class="filter-input" style="width:200px" placeholder="brake, handle, puncture…" oninput="renderContent()"/>
 
       <div class="filter-divider"></div>
-
       <span class="filter-label">Reg #</span>
       <input id="regFilter" type="text" class="filter-input" style="width:140px;text-transform:uppercase" placeholder="e.g. BLRBD" oninput="renderContent()"/>
 
       <div class="filter-divider"></div>
-
       <button id="partsToggle" class="parts-toggle" onclick="toggleParts()">📦 Parts Only</button>
 
       <button class="filter-clear" onclick="clearFilters()">✕ Clear</button>
@@ -347,9 +370,8 @@ var ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZ
 var SB=SB_URL;
 var K=ANON_KEY;
 var CURRENT_USER_EMAIL=null;
-var PARTS_BUFFER=60;
 var allData=[];
-var activeHub='ALL';
+var selectedHubs=new Set();
 var partsOnly=false;
 
 var sbClient=supabase.createClient(SB_URL,ANON_KEY,{auth:{persistSession:true,storageKey:'fleetpro_session',autoRefreshToken:true}});
@@ -390,7 +412,7 @@ async function signOut(){await sbClient.auth.signOut();document.getElementById('
   });
 })();
 
-// ── Sidebar ─────────────────────────────────────────────────────────
+// ── Sidebar ──────────────────────────────────────────────────────────
 var pinned=localStorage.getItem('sb_pinned')==='1';
 var sbOpen=false;
 function applyPin(){
@@ -403,36 +425,59 @@ function togglePin(){pinned=!pinned;localStorage.setItem('sb_pinned',pinned?'1':
 document.getElementById('ov').addEventListener('click',closeSidebar);
 applyPin();
 
-// ── Queue helpers ────────────────────────────────────────────────────
-function fmtTime(mins){
-  if(!mins||mins<=0)return '—';
-  var h=Math.floor(mins/60);var m=mins%60;
-  if(h===0)return m+'m';
-  return m===0?h+'h':h+'h '+m+'m';
-}
-function fmtDate(iso){
-  if(!iso)return '—';
-  return new Date(iso).toLocaleString('en-IN',{timeZone:'Asia/Kolkata',day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit',hour12:true});
-}
-function ageCls(days){
-  if(days<1)return 'age-0';if(days<2)return 'age-1';if(days<3)return 'age-2';return 'age-3';
-}
+// ── Helpers ───────────────────────────────────────────────────────────
+function fmtTime(mins){if(!mins||mins<=0)return '—';var h=Math.floor(mins/60);var m=mins%60;if(h===0)return m+'m';return m===0?h+'h':h+'h '+m+'m';}
+function fmtDate(iso){if(!iso)return '—';return new Date(iso).toLocaleString('en-IN',{timeZone:'Asia/Kolkata',day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit',hour12:true});}
+function fd(d){return d?new Date(d).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'2-digit'}):'--';}
+function fm(v){return v!=null?Number(v).toLocaleString('en-IN'):'--';}
+function ageCls(days){if(days<1)return 'age-0';if(days<2)return 'age-1';if(days<3)return 'age-2';return 'age-3';}
 function posCls(pos){return pos===1?'q1':pos===2?'q2':pos===3?'q3':'';}
-// Multi-term highlight (any match)
 function highlight(text,terms){
   if(!text||text==='—')return text||'—';
   var result=text;
-  terms.forEach(function(kw){
-    if(!kw)return;
-    var re=new RegExp('('+kw.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+')','gi');
-    result=result.replace(re,'<span class="hi">$1</span>');
-  });
+  terms.forEach(function(kw){if(!kw)return;var re=new RegExp('('+kw.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+')','gi');result=result.replace(re,'<span class="hi">$1</span>');});
   return result;
 }
-// Est time per vehicle: labour + 1h buffer only if has_parts
-function estMins(r){return (r.labour_mins||0)+(r.has_parts?PARTS_BUFFER:0);}
+function estMins(r){return r.labour_mins||0;}
 
-// ── Load ────────────────────────────────────────────────────────────
+// ── Hub multiselect ───────────────────────────────────────────────────
+function populateHubMultiSelect(){
+  var hubs=[...new Set(allData.map(function(r){return r.hub;}).filter(Boolean))].sort();
+  document.getElementById('hubCbs').innerHTML=hubs.map(function(h){
+    var id='hcb'+h.replace(/[^a-zA-Z0-9]/g,'');
+    return '<label class="ms-item"><input type="checkbox" id="'+id+'" value="'+h+'" onchange="onHubCb(\''+h+'\',this.checked)"> '+h+'</label>';
+  }).join('');
+}
+function onHubCb(hub,checked){if(checked)selectedHubs.add(hub);else selectedHubs.delete(hub);syncHubBtn();renderContent();}
+function syncHubBtn(){
+  var btn=document.getElementById('hubBtn');
+  if(selectedHubs.size===0){btn.innerHTML='All Hubs <span style="opacity:.45;font-size:.7em">▾</span>';btn.classList.remove('sel');return;}
+  var arr=Array.from(selectedHubs).sort();
+  var label=arr.length<=2?arr.join(', '):arr.length+' Hubs';
+  btn.innerHTML=label+' <span style="opacity:.45;font-size:.7em">▾</span>';
+  btn.classList.add('sel');
+}
+function toggleHubDd(e){
+  if(e)e.stopPropagation();
+  var dd=document.getElementById('hubDd');
+  var isOpen=dd.style.display!=='none';
+  dd.style.display=isOpen?'none':'block';
+  document.getElementById('hubBtn').classList.toggle('open',!isOpen);
+}
+function toggleAllHubs(){
+  var cbs=Array.from(document.querySelectorAll('#hubCbs input[type=checkbox]'));
+  var anyChecked=cbs.some(function(c){return c.checked;});
+  cbs.forEach(function(c){c.checked=!anyChecked;if(!anyChecked)selectedHubs.add(c.value);else selectedHubs.delete(c.value);});
+  // if all checked → treat as "all" (same as none)
+  if(!anyChecked&&selectedHubs.size===cbs.length){selectedHubs.clear();cbs.forEach(function(c){c.checked=false;});}
+  syncHubBtn();renderContent();
+}
+document.addEventListener('click',function(e){
+  var wrap=document.getElementById('hubWrap');
+  if(wrap&&!wrap.contains(e.target)){document.getElementById('hubDd').style.display='none';document.getElementById('hubBtn').classList.remove('open');}
+});
+
+// ── Load ──────────────────────────────────────────────────────────────
 async function loadQueue(){
   try{
     var res=await fetch(SB_URL+'/rest/v1/oos_work_queue?select=*&order=hub.asc,queue_position.asc',
@@ -449,133 +494,209 @@ async function loadQueue(){
     document.getElementById('content').innerHTML='<div class="empty"><div class="ic">⚠️</div><p>Could not load queue data.<br/>'+e.message+'</p></div>';
     return;
   }
-  populateHubDropdown();
+  populateHubMultiSelect();
   renderContent();
 }
 
-function populateHubDropdown(){
-  var hubs=[...new Set(allData.map(function(r){return r.hub;}).filter(Boolean))].sort();
-  var sel=document.getElementById('hubSelect');
-  // Clear except first
-  while(sel.options.length>1)sel.remove(1);
-  hubs.forEach(function(h){var opt=document.createElement('option');opt.value=h;opt.textContent=h;sel.appendChild(opt);});
-}
-
-function setHub(val){activeHub=val;renderContent();}
-
-function toggleParts(){
-  partsOnly=!partsOnly;
-  document.getElementById('partsToggle').classList.toggle('on',partsOnly);
-  renderContent();
-}
+function toggleParts(){partsOnly=!partsOnly;document.getElementById('partsToggle').classList.toggle('on',partsOnly);renderContent();}
 
 function clearFilters(){
-  activeHub='ALL';partsOnly=false;
-  document.getElementById('hubSelect').value='ALL';
+  selectedHubs.clear();partsOnly=false;
+  document.querySelectorAll('#hubCbs input[type=checkbox]').forEach(function(c){c.checked=false;});
+  syncHubBtn();
   document.getElementById('workFilter').value='';
   document.getElementById('regFilter').value='';
   document.getElementById('partsToggle').classList.remove('on');
   renderContent();
 }
 
-// ── Render ───────────────────────────────────────────────────────────
+// ── Render (flat table) ───────────────────────────────────────────────
 function renderContent(){
-  // Parse multi-term work filter (OR logic, split by comma)
   var workRaw=document.getElementById('workFilter').value.trim();
   var workTerms=workRaw?workRaw.split(',').map(function(s){return s.trim().toLowerCase();}).filter(Boolean):[];
   var regRaw=document.getElementById('regFilter').value.trim().toUpperCase();
 
-  // Filter
-  var data=activeHub==='ALL'?allData.slice():allData.filter(function(r){return r.hub===activeHub;});
+  var data=allData.slice();
+  if(selectedHubs.size>0)data=data.filter(function(r){return selectedHubs.has(r.hub);});
   if(partsOnly)data=data.filter(function(r){return r.has_parts;});
-  if(workTerms.length){
-    data=data.filter(function(r){
-      var items=(r.labour_items||'').toLowerCase();
-      return workTerms.some(function(t){return items.indexOf(t)>=0;});
-    });
-  }
-  if(regRaw){
-    data=data.filter(function(r){return (r.reg_number||'').indexOf(regRaw)>=0;});
-  }
+  if(workTerms.length)data=data.filter(function(r){var items=(r.labour_items||'').toLowerCase();return workTerms.some(function(t){return items.indexOf(t)>=0;});});
+  if(regRaw)data=data.filter(function(r){return (r.reg_number||'').indexOf(regRaw)>=0;});
 
-  // Update hero stats
-  var filtVehicles=data.length;
-  var filtHubs=new Set(data.map(function(r){return r.hub;}).filter(Boolean)).size;
-  var filtMins=data.reduce(function(s,r){return s+estMins(r);},0);
-  document.getElementById('h-vehicles').textContent=filtVehicles||'—';
-  document.getElementById('h-hubs').textContent=filtHubs||'—';
-  document.getElementById('h-time').textContent=filtVehicles?fmtTime(filtMins):'—';
+  // Hero stats
+  var fv=data.length;
+  var fh=new Set(data.map(function(r){return r.hub;}).filter(Boolean)).size;
+  var fm2=data.reduce(function(s,r){return s+estMins(r);},0);
+  document.getElementById('h-vehicles').textContent=fv||'—';
+  document.getElementById('h-hubs').textContent=fh||'—';
+  document.getElementById('h-time').textContent=fv?fmtTime(fm2):'—';
 
-  // Update filter count
   var total=allData.length;
-  document.getElementById('filter-count').textContent=
-    (filtVehicles<total||workTerms.length||regRaw||partsOnly)?
-    filtVehicles+' of '+total+' vehicles':'';
+  var hasFilter=selectedHubs.size>0||workTerms.length||regRaw||partsOnly;
+  document.getElementById('filter-count').textContent=hasFilter?fv+' of '+total+' vehicles':'';
 
   if(!data.length){
-    document.getElementById('content').innerHTML=
-      '<div class="empty"><div class="ic">🔍</div><p>No vehicles match the current filters</p></div>';
+    document.getElementById('content').innerHTML='<div class="empty"><div class="ic">🔍</div><p>No vehicles match the current filters</p></div>';
     return;
   }
 
-  // Group by hub, maintain FIFO order within hub
-  var byHub={};
-  data.forEach(function(r){if(!byHub[r.hub])byHub[r.hub]=[];byHub[r.hub].push(r);});
-
-  var html='';
-  Object.keys(byHub).sort().forEach(function(hub){
-    var rows=byHub[hub];
-    var hubMins=rows.reduce(function(s,r){return s+estMins(r);},0);
-    var oldest=rows.reduce(function(a,b){return(a.days_in_oos||0)>(b.days_in_oos||0)?a:b;},rows[0]);
-
-    var cumul=0;
-    html+='<div class="hub-section">'
-      +'<div class="hub-header">'
-      +'<div class="hub-name">'+hub+'</div>'
-      +'<div class="hub-meta">'
-      +'<span>'+rows.length+' vehicle'+(rows.length!==1?'s':'')+'</span>'
-      +'<span>Est. total: <b>'+fmtTime(hubMins)+'</b></span>'
-      +'<span>Oldest: <b>'+oldest.days_in_oos+'d</b></span>'
-      +'</div></div>'
-      +'<table class="qtable"><thead><tr>'
-      +'<th class="col-pos">#</th>'
-      +'<th class="col-reg">Vehicle</th>'
-      +'<th class="col-since">OOS Since</th>'
-      +'<th class="col-age">Age</th>'
-      +'<th class="col-work">Planned Work</th>'
-      +'<th class="col-est">Est. Time</th>'
-      +'<th class="col-cumul">Cumul.</th>'
-      +'</tr></thead><tbody>';
-
-    rows.forEach(function(r){
-      var est=estMins(r);
-      cumul+=est;
-      var hasWork=r.labour_items&&r.labour_items!=='—';
-
-      var workHtml='<div class="work-cell">';
-      if(r.has_parts) workHtml+='<div class="parts-chip">📦 Parts Required</div>';
-      if(hasWork) workHtml+='<div class="work-items">'+highlight(r.labour_items,workTerms)+'</div>';
-      else if(!r.has_parts) workHtml+='<div class="no-work-chip">No work logged</div>';
-      workHtml+='</div>';
-
-      html+='<tr>'
-        +'<td class="col-pos"><span class="qpos '+posCls(r.queue_position)+'">'+r.queue_position+'</span></td>'
-        +'<td class="col-reg"><span class="q-reg">'+(r.reg_number||'—')+'</span></td>'
-        +'<td class="col-since" style="font-size:.76rem;color:var(--muted)">'+fmtDate(r.oos_since)+'</td>'
-        +'<td class="col-age"><span class="age-badge '+ageCls(r.days_in_oos||0)+'">'+(r.days_in_oos||0)+'d</span></td>'
-        +'<td class="col-work">'+workHtml+'</td>'
-        +'<td class="col-est"><span class="q-time">'+(est>0?fmtTime(est):'—')+'</span></td>'
-        +'<td class="col-cumul"><span class="q-cumul">'+(cumul>0?fmtTime(cumul):'—')+'</span></td>'
-        +'</tr>';
-    });
-
-    html+='</tbody></table></div>';
+  // Flat table with running cumulative
+  var cumul=0;
+  var rows='';
+  data.forEach(function(r){
+    var est=estMins(r);
+    cumul+=est;
+    var hasWork=r.labour_items&&r.labour_items!=='—';
+    var workHtml='<div class="work-cell">';
+    if(r.has_parts)workHtml+='<div class="parts-chip">📦 Parts Required</div>';
+    if(hasWork)workHtml+='<div class="work-items">'+highlight(r.labour_items,workTerms)+'</div>';
+    else if(!r.has_parts)workHtml+='<div class="no-work-chip">No work logged</div>';
+    workHtml+='</div>';
+    var safeReg=(r.reg_number||'X').replace(/[^a-zA-Z0-9]/g,'_');
+    var xid='jcx'+safeReg;
+    rows+=
+      '<tr>'
+      +'<td class="col-pos"><span class="qpos '+posCls(r.queue_position)+'">'+r.queue_position+'</span></td>'
+      +'<td class="col-hub" style="font-size:.76rem;color:var(--muted);white-space:nowrap">'+(r.hub||'—')+'</td>'
+      +'<td class="col-reg"><span class="q-reg">'+(r.reg_number||'—')+'</span></td>'
+      +'<td class="col-since" style="font-size:.76rem;color:var(--muted)">'+fmtDate(r.oos_since)+'</td>'
+      +'<td class="col-age"><span class="age-badge '+ageCls(r.days_in_oos||0)+'">'+(r.days_in_oos||0)+'d</span></td>'
+      +'<td class="col-work">'+workHtml+'</td>'
+      +'<td class="col-est"><span class="q-time">'+(est>0?fmtTime(est):'—')+'</span></td>'
+      +'<td class="col-cumul"><span class="q-cumul">'+(cumul>0?fmtTime(cumul):'—')+'</span></td>'
+      +'<td class="col-hist"><button class="hist-btn" id="hb'+safeReg+'" onclick="toggleJC(\''+r.reg_number+'\',\''+safeReg+'\')" title="Service History">📋</button></td>'
+      +'</tr>'
+      +'<tr id="'+xid+'" class="jc-expand-row" style="display:none"><td colspan="9"><div class="jc-expand-inner" id="'+xid+'i"></div></td></tr>';
   });
 
-  document.getElementById('content').innerHTML=html;
+  document.getElementById('content').innerHTML=
+    '<table class="qtable"><thead><tr>'
+    +'<th class="col-pos">#</th>'
+    +'<th class="col-hub">Hub</th>'
+    +'<th class="col-reg">Vehicle</th>'
+    +'<th class="col-since">OOS Since</th>'
+    +'<th class="col-age">Age</th>'
+    +'<th class="col-work">Planned Work</th>'
+    +'<th class="col-est">Est. Time</th>'
+    +'<th class="col-cumul">Cumul.</th>'
+    +'<th class="col-hist"></th>'
+    +'</tr></thead><tbody>'+rows+'</tbody></table>';
 }
 
-// ── Feedback ─────────────────────────────────────────────────────────
+// ── JC History inline ────────────────────────────────────────────────
+var JC_CACHE={};
+
+function toggleJC(reg,safeReg){
+  var xrow=document.getElementById('jcx'+safeReg);
+  var btn=document.getElementById('hb'+safeReg);
+  if(!xrow)return;
+  if(xrow.style.display!=='none'){xrow.style.display='none';if(btn)btn.classList.remove('open');return;}
+  xrow.style.display='';
+  if(btn)btn.classList.add('open');
+  var inner=document.getElementById('jcx'+safeReg+'i');
+  if(JC_CACHE[reg]){renderJCExpand(inner,reg,JC_CACHE[reg]);return;}
+  inner.innerHTML='<div style="text-align:center;padding:20px;color:var(--muted)"><span class="dot"></span><span class="dot" style="animation-delay:.15s"></span><span class="dot" style="animation-delay:.3s"></span></div>';
+  // Step 1: get bike_id
+  fetch(SB_URL+'/rest/v1/vehicle_parts_check_flag?reg_number=eq.'+encodeURIComponent(reg)+'&select=bike_id&limit=1',
+    {headers:{apikey:ANON_KEY,Authorization:'Bearer '+K}})
+  .then(function(r){return r.json();})
+  .then(function(d){
+    if(!d||!d.length||!d[0].bike_id){
+      inner.innerHTML='<p style="padding:16px;color:var(--muted);font-size:.8rem;text-align:center">No PM record found for '+reg+'</p>';return;
+    }
+    var bikeId=d[0].bike_id;
+    // Step 2: fetch JC history
+    return fetch(SB_URL+'/rest/v1/jc_history?bike_id=eq.'+bikeId+'&select=jc_no,jc_date,hub_name,bike_odo,service_type,line_type,item_name,qty,amount,technician_name,source&order=jc_date.desc,jc_no.asc',
+      {headers:{apikey:ANON_KEY,Authorization:'Bearer '+K}})
+    .then(function(r){return r.json();})
+    .then(function(rows){
+      rows=Array.isArray(rows)?rows:[];
+      JC_CACHE[reg]={bikeId:bikeId,rows:rows};
+      renderJCExpand(inner,reg,JC_CACHE[reg]);
+    });
+  })
+  .catch(function(e){inner.innerHTML='<p style="padding:16px;color:#DC2626;font-size:.8rem;text-align:center">Error: '+e.message+'</p>';});
+}
+
+function jcTagCls(r){var lt=(r.line_type||'').toLowerCase();return r.source==='old_dms'?'old':lt.indexOf('labour')>=0?'labour':'parts';}
+
+function renderJCRows(section,rows){
+  var hub=section.querySelector('.jc-f-hub').value;
+  var type=section.querySelector('.jc-f-type').value;
+  var svc=section.querySelector('.jc-f-svc').value;
+  var item=(section.querySelector('.jc-f-item').value||'').trim().toLowerCase();
+  var filtered=rows.filter(function(r){
+    if(hub&&(r.hub_name||'')!==hub)return false;
+    if(type&&jcTagCls(r)!==type)return false;
+    if(svc&&(r.service_type||'')!==svc)return false;
+    if(item&&(r.item_name||'').toLowerCase().indexOf(item)<0)return false;
+    return true;
+  });
+  var jcSet={};filtered.forEach(function(r){if(r.jc_no)jcSet[r.jc_no]=1;});
+  section.querySelector('.jc-count').textContent=filtered.length+' entries · '+Object.keys(jcSet).length+' JCs';
+  var tbody=section.querySelector('.jc-tbl tbody');if(!tbody)return;
+  if(!filtered.length){tbody.innerHTML='<tr><td colspan="10" style="text-align:center;padding:20px;color:var(--muted)">No matching entries</td></tr>';return;}
+  tbody.innerHTML=filtered.map(function(r){
+    var tc=jcTagCls(r);
+    return '<tr><td class="jc-no">'+(r.jc_no||'--')+'</td><td>'+fd(r.jc_date)+'</td><td>'+(r.hub_name||'--')+'</td><td>'+(r.bike_odo!=null?fm(r.bike_odo):'--')+'</td><td>'+(r.service_type||'--')+'</td><td><span class="jc-tag '+tc+'">'+(r.line_type||'--')+'</span></td><td style="max-width:160px;overflow:hidden;text-overflow:ellipsis" title="'+(r.item_name||'')+'">'+(r.item_name||'--')+'</td><td>'+(r.qty!=null?r.qty:'--')+'</td><td class="jc-amt">'+(r.amount!=null?'₹'+fm(r.amount):'--')+'</td><td>'+(r.technician_name||'--')+'</td></tr>';
+  }).join('');
+}
+
+function renderJCExpand(inner,reg,cache){
+  var rows=cache.rows;var bikeId=cache.bikeId;
+  if(!rows.length){inner.innerHTML='<p style="text-align:center;padding:16px;color:var(--muted);font-size:.8rem">No JC history found for '+reg+'</p>';return;}
+  var hubs=[],types=[],svcs=[];var hs={},ts={},ss={};
+  rows.forEach(function(r){
+    if(r.hub_name&&!hs[r.hub_name]){hs[r.hub_name]=1;hubs.push(r.hub_name);}
+    var tc=jcTagCls(r);if(!ts[tc]){ts[tc]=1;types.push(tc);}
+    if(r.service_type&&!ss[r.service_type]){ss[r.service_type]=1;svcs.push(r.service_type);}
+  });
+  hubs.sort();svcs.sort();
+  var jcSet={};rows.forEach(function(r){if(r.jc_no)jcSet[r.jc_no]=1;});
+  inner.innerHTML=
+    '<div class="jc-hdr">'
+    +'<div class="jc-hdr-title">JC History — '+reg+'</div>'
+    +'<button class="dl-btn" style="margin-top:0" onclick="dlJC(\''+reg+'\','+bikeId+')">⬇ Download CSV</button>'
+    +'</div>'
+    +'<div class="jc-filters">'
+    +'<select class="jc-filter jc-f-hub"><option value="">All Hubs</option>'+hubs.map(function(h){return '<option>'+h+'</option>';}).join('')+'</select>'
+    +'<select class="jc-filter jc-f-type"><option value="">All Types</option>'+types.map(function(t){return '<option value="'+t+'">'+(t==='labour'?'Labour':t==='parts'?'Parts':'Old DMS')+'</option>';}).join('')+'</select>'
+    +'<select class="jc-filter jc-f-svc"><option value="">All Services</option>'+svcs.map(function(s){return '<option>'+s+'</option>';}).join('')+'</select>'
+    +'<input type="text" class="jc-filter jc-f-item" placeholder="Search item…" style="min-width:130px"/>'
+    +'<button class="jc-filter-clear" onclick="clearJCF(this)">✕ Clear</button>'
+    +'<span class="jc-count">'+rows.length+' entries · '+Object.keys(jcSet).length+' JCs</span>'
+    +'</div>'
+    +'<div class="jc-wrap"><table class="jc-tbl"><thead><tr><th>JC No</th><th>Date</th><th>Hub</th><th>ODO</th><th>Service</th><th>Type</th><th>Item</th><th>Qty</th><th>Amount</th><th>Technician</th></tr></thead><tbody></tbody></table></div>';
+  inner.querySelectorAll('select.jc-filter').forEach(function(el){el.addEventListener('change',function(){renderJCRows(inner,rows);});});
+  var ii;inner.querySelector('.jc-f-item').addEventListener('input',function(){clearTimeout(ii);ii=setTimeout(function(){renderJCRows(inner,rows);},200);});
+  renderJCRows(inner,rows);
+}
+
+function clearJCF(btn){
+  var sec=btn.closest('.jc-expand-inner');
+  sec.querySelectorAll('select.jc-filter').forEach(function(el){el.value='';});
+  var itemEl=sec.querySelector('.jc-f-item');if(itemEl)itemEl.value='';
+  var title=sec.querySelector('.jc-hdr-title');
+  if(title){var reg=title.textContent.replace('JC History — ','').trim();if(reg&&JC_CACHE[reg])renderJCRows(sec,JC_CACHE[reg].rows);}
+}
+
+function csvCell(v){if(v==null)return '';var s=String(v);return(s.indexOf(',')>=0||s.indexOf('"')>=0||s.indexOf('\n')>=0)?'"'+s.replace(/"/g,'""')+'"':s;}
+function csvRow(arr){return arr.map(csvCell).join(',');}
+function dlJC(reg,bikeId){
+  var today=new Date().toISOString().slice(0,10);
+  fetch(SB_URL+'/rest/v1/jc_history?bike_id=eq.'+bikeId+'&select=jc_no,jc_date,hub_name,bike_odo,service_type,line_type,item_name,qty,amount,technician_name,source&order=jc_date.desc,jc_no.asc',
+    {headers:{apikey:ANON_KEY,Authorization:'Bearer '+K}})
+  .then(function(r){return r.json();})
+  .then(function(data){
+    var rows=Array.isArray(data)?data:[];
+    var lines=['JC History - '+reg+' (downloaded '+today+')',
+      csvRow(['JC No','Date','Hub','ODO','Service Type','Item Type','Item Name','Qty','Amount (Rs)','Technician','Source'])];
+    rows.forEach(function(r){lines.push(csvRow([r.jc_no,r.jc_date,r.hub_name,r.bike_odo,r.service_type,r.line_type,r.item_name,r.qty,r.amount,r.technician_name,r.source]));});
+    var blob=new Blob(['﻿'+lines.join('\n')],{type:'text/csv;charset=utf-8;'});
+    var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='JC_'+reg+'_'+today+'.csv';a.click();
+  }).catch(function(e){alert('Download failed: '+e.message);});
+}
+
+// ── Feedback ──────────────────────────────────────────────────────────
 function toggleFeedback(){var p=document.getElementById('fb-popup');p.classList.toggle('open');if(p.classList.contains('open'))document.getElementById('fb-text').focus();}
 function submitFeedback(){
   var txt=document.getElementById('fb-text');var msg=(txt&&txt.value.trim())||'';
