@@ -373,6 +373,8 @@ var CURRENT_USER_EMAIL=null;
 var allData=[];
 var selectedHubs=new Set();
 var partsOnly=false;
+var sortCol='oos_since';
+var sortDir='asc';
 
 var sbClient=supabase.createClient(SB_URL,ANON_KEY,{auth:{persistSession:true,storageKey:'fleetpro_session',autoRefreshToken:true}});
 
@@ -438,7 +440,7 @@ function highlight(text,terms){
   terms.forEach(function(kw){if(!kw)return;var re=new RegExp('('+kw.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+')','gi');result=result.replace(re,'<span class="hi">$1</span>');});
   return result;
 }
-function estMins(r){return r.labour_mins||0;}
+function estMins(r){return (r.labour_mins||0)+30;}
 
 // ── Hub multiselect ───────────────────────────────────────────────────
 function populateHubMultiSelect(){
@@ -510,6 +512,12 @@ function clearFilters(){
   renderContent();
 }
 
+function setSort(col){
+  if(sortCol===col)sortDir=sortDir==='asc'?'desc':'asc';
+  else{sortCol=col;sortDir='asc';}
+  renderContent();
+}
+
 // ── Render (flat table) ───────────────────────────────────────────────
 function renderContent(){
   var workRaw=document.getElementById('workFilter').value.trim();
@@ -521,6 +529,17 @@ function renderContent(){
   if(partsOnly)data=data.filter(function(r){return r.has_parts;});
   if(workTerms.length)data=data.filter(function(r){var items=(r.labour_items||'').toLowerCase();return workTerms.some(function(t){return items.indexOf(t)>=0;});});
   if(regRaw)data=data.filter(function(r){return (r.reg_number||'').indexOf(regRaw)>=0;});
+
+  // Sort
+  data.sort(function(a,b){
+    var av,bv;
+    if(sortCol==='oos_since'){av=a.oos_since||'';bv=b.oos_since||'';}
+    else if(sortCol==='est'){av=estMins(a);bv=estMins(b);}
+    else{av=a.hub||'';bv=b.hub||'';}
+    if(av<bv)return sortDir==='asc'?-1:1;
+    if(av>bv)return sortDir==='asc'?1:-1;
+    return 0;
+  });
 
   // Hero stats
   var fv=data.length;
@@ -568,15 +587,21 @@ function renderContent(){
       +'<tr id="'+xid+'" class="jc-expand-row" style="display:none"><td colspan="9"><div class="jc-expand-inner" id="'+xid+'i"></div></td></tr>';
   });
 
+  function sortTh(col,label){
+    var active=sortCol===col;
+    var arrow=active?(sortDir==='asc'?' ▲':' ▼'):'';
+    var style=active?'color:#4F46E5;cursor:pointer;white-space:nowrap;user-select:none':'cursor:pointer;white-space:nowrap;user-select:none;opacity:.7';
+    return '<th class="col-'+col+'" onclick="setSort(\''+col+'\')" style="'+style+'">'+label+arrow+'</th>';
+  }
   document.getElementById('content').innerHTML=
     '<table class="qtable"><thead><tr>'
     +'<th class="col-pos">#</th>'
     +'<th class="col-hub">Hub</th>'
     +'<th class="col-reg">Vehicle</th>'
-    +'<th class="col-since">OOS Since</th>'
+    +sortTh('oos_since','OOS Since')
     +'<th class="col-age">Age</th>'
     +'<th class="col-work">Planned Work</th>'
-    +'<th class="col-est">Est. Time</th>'
+    +sortTh('est','Est. Time')
     +'<th class="col-cumul">Cumul.</th>'
     +'<th class="col-hist"></th>'
     +'</tr></thead><tbody>'+rows+'</tbody></table>';
