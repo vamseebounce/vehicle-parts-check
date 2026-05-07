@@ -364,13 +364,17 @@ async function enforce24hReauth(userId){
   } else {showAuthScreen();}
   sbClient.auth.onAuthStateChange(async function(event,session){
     if((event==='SIGNED_IN'||event==='INITIAL_SESSION')&&session){
-      await enforce24hReauth(session.user.id);
-      var{data:{session:s2}}=await sbClient.auth.getSession();
-      if(!s2)return;
-      K=s2.access_token;CURRENT_USER_EMAIL=s2.user.email;
+      if(event==='INITIAL_SESSION'){
+        await enforce24hReauth(session.user.id);
+        var{data:{session:s2}}=await sbClient.auth.getSession();
+        if(!s2)return;
+        K=s2.access_token;CURRENT_USER_EMAIL=s2.user.email;
+      } else {
+        K=session.access_token;CURRENT_USER_EMAIL=session.user.email;
+      }
       hideAuthScreen();
       document.getElementById('logout-btn').style.display='block';
-      document.getElementById('logout-btn').title='Signed in as '+s2.user.email;
+      document.getElementById('logout-btn').title='Signed in as '+CURRENT_USER_EMAIL;
       document.getElementById('fb-fab').style.display='flex';
       loadTileStats();
     } else if(event==='SIGNED_OUT'){K=ANON_KEY;document.getElementById('logout-btn').style.display='none';showAuthScreen();}
