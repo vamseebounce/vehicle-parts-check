@@ -442,6 +442,10 @@ async function enforce24hReauth(userId){
     } else if(event==='SIGNED_OUT'){K=ANON_KEY;document.getElementById('logout-btn').style.display='none';showAuthScreen();}
     else if(event==='TOKEN_REFRESHED'&&session){K=session.access_token;}
   });
+  /* Re-sync token when tab comes back into focus (background throttling fix) */
+  document.addEventListener('visibilitychange',async function(){
+    if(!document.hidden){var r=await sbClient.auth.getSession();if(r.data&&r.data.session)K=r.data.session.access_token;}
+  });
 })();
 
 /* ── Sidebar ─────────────────────────────────────────── */
@@ -471,8 +475,11 @@ var SB_REST = SB_URL + '/rest/v1/';
 
 function sbGet(table, params){
   var url = SB_REST + table + (params ? '?' + params : '');
-  return fetch(url, {
-    headers:{apikey:ANON_KEY, Authorization:'Bearer '+K, Accept:'application/json'}
+  return sbClient.auth.getSession().then(function(res){
+    var token = (res.data&&res.data.session) ? res.data.session.access_token : ANON_KEY;
+    return fetch(url, {
+      headers:{apikey:ANON_KEY, Authorization:'Bearer '+token, Accept:'application/json'}
+    });
   }).then(function(r){
     if(!r.ok) return r.text().then(function(t){throw new Error('SB '+r.status+': '+t);});
     return r.json();
@@ -826,7 +833,10 @@ function submitFeedback(){
   if(!msg){txt&&txt.focus();return;}
   var btn=document.querySelector('.fb-submit');
   btn.textContent='Submitting…';btn.disabled=true;
-  fetch(SB_URL+'/rest/v1/feedback',{method:'POST',headers:{apikey:ANON_KEY,Authorization:'Bearer '+K,'Content-Type':'application/json',Prefer:'return=minimal'},body:JSON.stringify({message:msg,submitted_by:CURRENT_USER_EMAIL})})
+  sbClient.auth.getSession().then(function(res){
+    var token=(res.data&&res.data.session)?res.data.session.access_token:ANON_KEY;
+    return fetch(SB_URL+'/rest/v1/feedback',{method:'POST',headers:{apikey:ANON_KEY,Authorization:'Bearer '+token,'Content-Type':'application/json',Prefer:'return=minimal'},body:JSON.stringify({message:msg,submitted_by:CURRENT_USER_EMAIL})});
+  })
   .then(function(r){
     btn.textContent='Submit';btn.disabled=false;
     if(r.ok||r.status===201){

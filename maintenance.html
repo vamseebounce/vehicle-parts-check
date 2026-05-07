@@ -567,6 +567,10 @@ function loadPostAuthData(){
     } else if(event==='SIGNED_OUT'){K=ANON_KEY;document.getElementById('logout-btn').style.display='none';showAuthScreen();}
     else if(event==='TOKEN_REFRESHED'&&session){K=session.access_token;}
   });
+  /* Re-sync token when tab comes back into focus (background throttling fix) */
+  document.addEventListener('visibilitychange',async function(){
+    if(!document.hidden){var r=await sbClient.auth.getSession();if(r.data&&r.data.session)K=r.data.session.access_token;}
+  });
 })();
 
 var pinned=localStorage.getItem('sb_pinned')==='1';
