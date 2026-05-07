@@ -351,9 +351,10 @@ async function enforce24hReauth(userId){
 (async function(){
   var mainLogo=document.querySelector('.sb-brand img');
   if(mainLogo)document.getElementById('auth-logo-img').src=mainLogo.src;
+  var isHashLogin=window.location.hash.includes('access_token');
   var{data:{session}}=await sbClient.auth.getSession();
   if(session){
-    await enforce24hReauth(session.user.id);
+    if(!isHashLogin){await enforce24hReauth(session.user.id);}
     var{data:{session:s2}}=await sbClient.auth.getSession();
     if(!s2){showAuthScreen();return;}
     K=s2.access_token;CURRENT_USER_EMAIL=s2.user.email;
