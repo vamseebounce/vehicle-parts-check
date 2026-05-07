@@ -497,6 +497,15 @@ async function sendMagicLink(){
 document.getElementById('auth-email').addEventListener('keydown',function(e){if(e.key==='Enter')sendMagicLink();});
 async function signOut(){await sbClient.auth.signOut();document.getElementById('logout-btn').style.display='none';showAuthScreen();}
 
+async function enforce24hReauth(userId){
+  try{
+    var{data}=await sbClient.from('user_last_login').select('last_login_at').eq('user_id',userId).single();
+    if(!data)return;
+    var hours=(Date.now()-new Date(data.last_login_at))/36e5;
+    if(hours>24){console.log('Session >24h, signing out.');await sbClient.auth.signOut();}
+  }catch(e){console.warn('24h check failed:',e);}
+}
+
 function fmtSyncTime(ts){
   if(!ts)return '—';
   var d=new Date(ts);
@@ -532,18 +541,24 @@ function loadPostAuthData(){
   if(mainLogo)document.getElementById('auth-logo-img').src=mainLogo.src;
   var{data:{session}}=await sbClient.auth.getSession();
   if(session){
-    K=session.access_token;
+    await enforce24hReauth(session.user.id);
+    var{data:{session:s2}}=await sbClient.auth.getSession();
+    if(!s2){showAuthScreen();return;}
+    K=s2.access_token;CURRENT_USER_EMAIL=s2.user.email;
     hideAuthScreen();
     document.getElementById('logout-btn').style.display='block';
     document.getElementById('fb-fab').style.display='flex';
     loadPostAuthData();
   } else {showAuthScreen();}
-  sbClient.auth.onAuthStateChange(function(event,session){
+  sbClient.auth.onAuthStateChange(async function(event,session){
     if((event==='SIGNED_IN'||event==='INITIAL_SESSION')&&session){
-      K=session.access_token;CURRENT_USER_EMAIL=session.user.email;
+      await enforce24hReauth(session.user.id);
+      var{data:{session:s2}}=await sbClient.auth.getSession();
+      if(!s2)return;
+      K=s2.access_token;CURRENT_USER_EMAIL=s2.user.email;
       hideAuthScreen();
       document.getElementById('logout-btn').style.display='block';
-      document.getElementById('logout-btn').title='Signed in as '+session.user.email;
+      document.getElementById('logout-btn').title='Signed in as '+s2.user.email;
       document.getElementById('fb-fab').style.display='flex';
       loadPostAuthData();
     } else if(event==='SIGNED_OUT'){K=ANON_KEY;document.getElementById('logout-btn').style.display='none';showAuthScreen();}
