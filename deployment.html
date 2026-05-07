@@ -370,15 +370,12 @@ body.pinned #main{margin-left:var(--sb-width)}
 
 <script>
 /* ═══════════════════════════════════════════════════════
-   CONFIG — update DEPLOY_API once Edge Function is deployed
-   Edge function endpoints needed:
-     GET  /deployment-queue?hub=<hub_name>  → Q1 SQL result
-     POST /customer-allocation              → Q2 SQL result (body: {phone})
+   Data source: Supabase tables (refreshed every 15 min by edge function)
+     deployment_queue_cache   — all RFD bikes scored by hub + model + tier
+     pending_bookings_cache   — all customers with confirmed pending bookings
    ═══════════════════════════════════════════════════════ */
 var SB_URL  = 'https://clkfvmmlgwcvntxnolsv.supabase.co';
 var ANON_KEY= 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNsa2Z2bW1sZ3djdm50eG5vbHN2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ1NDQ2NTgsImV4cCI6MjA5MDEyMDY1OH0.FA33GFQisWX_hDeGCWqL5yAZmPcuQRdxZX32I23lyoY';
-var DEPLOY_API = SB_URL + '/functions/v1'; // Supabase Edge Function base
-
 var K = ANON_KEY;
 var CURRENT_USER_EMAIL = null;
 
@@ -468,30 +465,44 @@ function switchTab(name){
 }
 
 /* ══════════════════════════════════════════════════════
+   SUPABASE HELPERS
+   ═══════════════════════════════════════════════════════ */
+var SB_REST = SB_URL + '/rest/v1/';
+
+function sbGet(table, params){
+  var url = SB_REST + table + (params ? '?' + params : '');
+  return fetch(url, {
+    headers:{apikey:ANON_KEY, Authorization:'Bearer '+K, Accept:'application/json'}
+  }).then(function(r){
+    if(!r.ok) return r.text().then(function(t){throw new Error('SB '+r.status+': '+t);});
+    return r.json();
+  });
+}
+
+/* ══════════════════════════════════════════════════════
    QUEUE TAB
    ═══════════════════════════════════════════════════════ */
-
-/* Hub list — known hubs; will be populated from API when available */
-var HUB_LIST = [
-  'JP Nagar', 'Bannerghatta Road', 'Electronic City', 'Whitefield',
-  'Hebbal', 'Marathahalli', 'HSR Layout', 'Koramangala', 'Indiranagar',
-  'BTM Layout', 'Bellandur'
-];
 
 function loadHubs(){
   var sel = document.getElementById('hub-select');
   sel.innerHTML = '<option value="">Select a hub…</option>';
-  /* Try to load hubs from API; fall back to static list */
-  fetchDeployAPI('hubs', null, 'GET')
+
+  /* Load distinct hubs from deployment_queue_cache */
+  sbGet('deployment_queue_cache', 'select=hub_name&order=hub_name')
     .then(function(data){
-      if(Array.isArray(data) && data.length){
-        data.forEach(function(h){ addHubOption(sel, h.hub_name||h); });
-      } else { HUB_LIST.forEach(function(h){ addHubOption(sel,h); }); }
+      if(!Array.isArray(data)) return;
+      var seen = {};
+      data.forEach(function(r){
+        if(r.hub_name && !seen[r.hub_name]){
+          seen[r.hub_name] = true;
+          addHubOption(sel, r.hub_name);
+        }
+      });
+      /* Restore last selected hub */
+      var last = localStorage.getItem('dq_hub');
+      if(last){ sel.value = last; if(sel.value) loadQueue(); }
     })
-    .catch(function(){ HUB_LIST.forEach(function(h){ addHubOption(sel,h); }); });
-  /* Restore last selected hub */
-  var last = localStorage.getItem('dq_hub');
-  if(last){ sel.value = last; if(sel.value) loadQueue(); }
+    .catch(function(){ console.warn('Could not load hubs from cache'); });
 }
 
 function addHubOption(sel, name){
@@ -511,14 +522,17 @@ function loadQueue(){
   content.innerHTML = '<div class="state-box"><div class="spinner"></div><p>Loading deployment queue for <b>'+hub+'</b>…</p></div>';
   meta.textContent = '';
 
-  fetchDeployAPI('deployment-queue?hub='+encodeURIComponent(hub), null, 'GET')
+  sbGet('deployment_queue_cache',
+    'hub_name=eq.'+encodeURIComponent(hub)
+    +'&order=bike_model_id,tier,sort_group,allotment_score.desc.nullslast')
     .then(function(data){
       if(!Array.isArray(data) || data.length===0){
-        content.innerHTML = '<div class="state-box"><div class="icon">✅</div><p>No bikes in the queue for <b>'+hub+'</b>.<br/>All bikes are either deployed or no RFD bikes found.</p></div>';
+        content.innerHTML = '<div class="state-box"><div class="icon">✅</div><p>No bikes in the queue for <b>'+hub+'</b>.<br/>Cache may be empty — edge function runs every 15 min.</p></div>';
         return;
       }
       queueCache = data;
-      meta.textContent = data.length + ' bikes · ' + new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
+      var ts = data[0].refreshed_at ? ' · cached '+new Date(data[0].refreshed_at).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}) : '';
+      meta.textContent = data.length + ' bikes'+ts;
       renderQueue(data, hub, content);
     })
     .catch(function(err){
@@ -590,6 +604,9 @@ function renderQueue(data, hub, container){
 
 /* ══════════════════════════════════════════════════════
    ALLOCATE TAB
+   Two-step lookup:
+   1. pending_bookings_cache  → find customer + booking by phone
+   2. deployment_queue_cache  → find best bike(s) for their hub+model+tier
    ═══════════════════════════════════════════════════════ */
 function lookupCustomer(){
   var raw = document.getElementById('phone-input').value.trim().replace(/\D/g,'');
@@ -610,44 +627,83 @@ function lookupCustomer(){
   btn.disabled = true;
   btn.querySelector('span').textContent = 'Searching…';
 
-  fetchDeployAPI('customer-allocation', {phone: raw}, 'POST')
+  /* Step 1: Look up customer in pending_bookings_cache */
+  sbGet('pending_bookings_cache', 'phone_number=eq.'+encodeURIComponent(raw)+'&limit=1')
     .then(function(data){
+      if(!Array.isArray(data) || data.length===0){
+        throw new Error('NO_BOOKING');
+      }
+      var cust = data[0];
+
+      /* Step 2: Find bikes in deployment_queue_cache */
+      var isFirst = cust.completed_count === 0;
+      var bikeParams;
+
+      if(isFirst){
+        /* First-time rider: any Standard tier bike in hub, lowest odo */
+        bikeParams = 'hub_name=eq.'+encodeURIComponent(cust.hub_name)
+          +'&tier=eq.Standard'
+          +'&order=current_odo_km.asc.nullslast'
+          +'&limit=3';
+      } else {
+        /* Returning: hub + model + tier, best score first */
+        bikeParams = 'hub_name=eq.'+encodeURIComponent(cust.hub_name)
+          +'&bike_model_id=eq.'+cust.bike_model_id
+          +'&tier=eq.'+encodeURIComponent(cust.tier)
+          +'&order=sort_group.asc,allotment_score.desc.nullslast'
+          +'&limit=3';
+      }
+
+      return sbGet('deployment_queue_cache', bikeParams)
+        .then(function(bikes){
+          return {cust: cust, bikes: bikes, isFirst: isFirst};
+        });
+    })
+    .then(function(res){
       btn.disabled=false; btn.querySelector('span').textContent='Search';
-      if(!data || (Array.isArray(data) && data.length===0)){
-        errBox.textContent = 'No pending booking found for this number. Customer must have a confirmed booking awaiting hub visit.';
+      if(!res.bikes || res.bikes.length===0){
+        errBox.textContent = 'Customer found but no RFD bikes available for their hub/model/tier. Cache refreshes every 15 min.';
         errBox.style.display='block';
         return;
       }
-      var row = Array.isArray(data)?data[0]:data;
-      renderAllocation(row);
+      renderAllocation(res.cust, res.bikes, res.isFirst);
     })
     .catch(function(err){
       btn.disabled=false; btn.querySelector('span').textContent='Search';
-      errBox.textContent = 'Error: '+(err.message||String(err));
+      if(String(err).includes('NO_BOOKING')){
+        errBox.textContent = 'No pending booking found for this number. Customer must have status: payment confirmed and waiting for hub visit.';
+      } else {
+        errBox.textContent = 'Error: '+(err.message||String(err));
+      }
       errBox.style.display='block';
     });
 }
 
-function renderAllocation(d){
+function renderAllocation(cust, bikes, isFirst){
   var result = document.getElementById('alloc-result');
+  var rec  = bikes[0];
+  var alts = bikes.slice(1, 3);
 
-  /* Parse alternatives string "REG [odo km, RFD Xd, Score Y] | REG2 [...]" */
-  var altCards = '';
-  var altRaw = d['Alternatives (same model+tier)'] || d.alternatives || '';
-  if(altRaw){
-    var alts = String(altRaw).split(' | ');
-    alts.slice(0,2).forEach(function(a){
-      var m = a.match(/^(\S+)\s*\[(.+)\]/);
-      if(!m) return;
-      altCards += '<div class="alt-card"><div class="alt-reg">'+esc(m[1])+'</div><div class="alt-meta">'+esc(m[2])+'</div></div>';
-    });
-  }
-
-  var tier    = (d['Tier']||d.tier||'standard').toLowerCase();
-  var flag    = d['Flag']||d.guardrail||'OK';
+  var tier    = (cust.tier||'standard').toLowerCase();
+  var recTier = (rec.tier||'standard').toLowerCase();
+  var flag    = rec.guardrail || 'OK';
   var flagCls = flag==='STARVATION'?'starvation':flag==='OVERUSE'?'overuse':'ok';
-  var hist    = d['History']||d.history||'—';
-  var isFirst = String(hist).includes('First');
+  var hist    = isFirst ? 'First-time rider 🎉' : cust.completed_count+' prior bookings';
+
+  var recReason = isFirst
+    ? 'FIRST RIDE — Lowest ODO (Standard tier)'
+    : (flag==='STARVATION' ? 'Guardrail — Starvation override'
+      : flag==='OVERUSE'   ? 'Best available (overuse flagged)'
+      :                      'Allotment Score');
+
+  /* Alternatives */
+  var altCards = '';
+  alts.forEach(function(b){
+    altCards += '<div class="alt-card">'
+      +'<div class="alt-reg">'+esc(b.reg_number||'—')+'</div>'
+      +'<div class="alt-meta">'+fmtOdo(b.current_odo_km)+' · RFD '+fmt(b.rfd_age_days)+'d · Score '+(b.allotment_score!=null?parseFloat(b.allotment_score).toFixed(3):'—')+'</div>'
+      +'</div>';
+  });
 
   var html = '';
 
@@ -656,35 +712,34 @@ function renderAllocation(d){
   /* Customer Card */
   html += '<div class="info-card">';
   html += '<div class="ic-title">👤 Customer</div>';
-  html += icRow('Name', d['Customer']||d.full_name||'—');
-  html += icRow('Phone', d['Phone']||d.phone_number||'—');
-  html += icRow('Loyalty Tier', d['Loyalty Tier']||d.loyalty_tier||'—');
+  html += icRow('Name', cust.full_name||'—');
+  html += icRow('Phone', cust.phone_number||'—');
+  html += icRow('Loyalty Tier', cust.loyalty_tier||'—');
   html += icRow('Booking History', hist);
   html += '</div>';
   /* Booking Card */
   html += '<div class="info-card">';
   html += '<div class="ic-title">📄 Pending Booking</div>';
-  html += icRow('Hub', d['Hub']||d.hub_name||'—');
-  html += icRow('Plan Tier', d['Plan Tier']||d.tier||'—');
-  html += icRow('Premium Fee', d['Premium Fee (₹)']!=null ? '₹'+d['Premium Fee (₹)'] : '—');
-  html += icRow('Booked Model', d['Booked Model']||d.booked_model||'—');
-  html += icRow('Current Bike', (d['Current Bike']||'—')+' '+wrap(d['Current Model'],'(',')'));
+  html += icRow('Hub', cust.hub_name||'—');
+  html += icRow('Plan Tier', cust.tier||'—');
+  html += icRow('Premium Fee', cust.paid_premium_fees!=null ? '₹'+cust.paid_premium_fees : '—');
+  html += icRow('Booked Model', cust.booked_model||'—');
+  html += icRow('Current Bike', cust.assigned_reg+wrap(cust.assigned_model,' (',' )'));
   html += '</div>';
   html += '</div>';
 
   /* Recommended Bike */
-  var recReg   = d['→ Allocate']||d.reg_number||'—';
-  var recModel = d['Model']||d.model_name||'—';
-  var recOdo   = d['Odometer']||d.current_odo_km;
-  var recRfd   = d['RFD Age (days)']||d.rfd_age_days;
-  var recKm    = d['Avg km/day']||d.avg_km_day;
-  var recScore = d['Score']||d.allotment_score;
-  var recReason= d['Reason']||d.allocation_reason||'Allotment Score';
+  var recReg   = rec.reg_number||'—';
+  var recModel = rec.model_name||'—';
+  var recOdo   = rec.current_odo_km;
+  var recRfd   = rec.rfd_age_days;
+  var recKm    = rec.avg_km_day;
+  var recScore = rec.allotment_score;
 
   html += '<div class="rec-card">';
   html += '<div class="rec-header">';
   html += '<div><div class="rec-reg">'+esc(recReg)+'</div><div class="rec-model">'+esc(recModel)+'</div></div>';
-  html += '<div style="text-align:right"><span class="rec-tier-badge '+tier+'">'+esc((d['Tier']||'Standard').toUpperCase())+'</span>';
+  html += '<div style="text-align:right"><span class="rec-tier-badge '+recTier+'">'+esc((rec.tier||'Standard').toUpperCase())+'</span>';
   html += '<span class="rec-flag '+flagCls+'" style="display:inline-flex;margin-top:6px">'+esc(flag)+'</span></div>';
   html += '</div>';
   html += '<div class="rec-metrics">';
@@ -713,27 +768,7 @@ function recMetric(val, label){
 }
 function wrap(s, pre, suf){ return s&&s!=='—'?' '+pre+s+suf:''; }
 
-/* ══════════════════════════════════════════════════════
-   API HELPER
-   Calls Supabase Edge Function with auth token.
-   Replace DEPLOY_API with your backend URL if needed.
-   ═══════════════════════════════════════════════════════ */
-function fetchDeployAPI(path, body, method){
-  var url = DEPLOY_API + '/' + path;
-  var opts = {
-    method: method||'GET',
-    headers:{
-      'Authorization':'Bearer '+K,
-      'apikey': ANON_KEY,
-      'Content-Type':'application/json'
-    }
-  };
-  if(body) opts.body = JSON.stringify(body);
-  return fetch(url, opts).then(function(r){
-    if(!r.ok) return r.text().then(function(t){throw new Error('API '+r.status+': '+t);});
-    return r.json();
-  });
-}
+/* fetchDeployAPI removed — now using Supabase REST directly via sbGet() */
 
 /* ── Formatting Helpers ──────────────────────────────── */
 function esc(s){ var d=document.createElement('div');d.textContent=String(s||'');return d.innerHTML; }
