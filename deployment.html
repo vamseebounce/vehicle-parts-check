@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>FleetPro — Deployment Queue</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<style>
+
+/* ── Auth Screen ── */
+#auth-screen{position:fixed;inset:0;z-index:1000;background:linear-gradient(135deg,#1A1A2E 0%,#0f2460 100%);display:flex;align-items:center;justify-content:center;font-family:'Inter',sans-serif;}
+#auth-screen.hidden{display:none!important}
+.auth-card{background:#fff;border-radius:24px;padding:40px 36px;width:100%;max-width:380px;box-shadow:0 24px 80px rgba(0,0,0,.3);text-align:center;}
+.auth-logo{display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:24px}
+.auth-logo-name{font-size:1.1rem;font-weight:800;color:#0F172A}
+.auth-logo-sub{font-size:.7rem;color:#6B7280;font-weight:500;letter-spacing:.5px;text-transform:uppercase;margin-top:2px}
+.auth-title{font-size:1.3rem;font-weight:800;color:#0F172A;margin-bottom:6px}
+.auth-sub{font-size:.82rem;color:#6B7280;margin-bottom:28px;line-height:1.6}
+.auth-input{width:100%;padding:13px 16px;border:1.5px solid #E5E7EB;border-radius:12px;font-size:.9rem;font-family:'Inter',sans-serif;color:#111827;outline:none;transition:border-color .15s;margin-bottom:12px;}
+.auth-input:focus{border-color:#E8191C}
+.auth-btn{width:100%;padding:13px;background:#E8191C;color:#fff;border:none;border-radius:12px;font-size:.9rem;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;transition:background .15s;}
+.auth-btn:hover{background:#B01010}
+.auth-btn:disabled{background:#CBD5E1;cursor:not-allowed}
+.auth-domain{display:inline-block;background:#F0FDF4;color:#16A34A;border:1px solid #BBF7D0;border-radius:8px;padding:4px 12px;font-size:.75rem;font-weight:600;margin-bottom:20px}
+.auth-msg{font-size:.78rem;margin-top:12px;min-height:18px;line-height:1.5;color:#DC2626}
+.auth-sent{display:none;text-align:center}
+.auth-sent .big-icon{font-size:3rem;margin-bottom:12px}
+.auth-sent h3{font-size:1.1rem;font-weight:800;color:#0F172A;margin-bottom:8px}
+.auth-sent p{font-size:.82rem;color:#6B7280;line-height:1.6}
+.auth-sent .resend{background:none;border:none;color:#E8191C;font-size:.8rem;font-weight:600;cursor:pointer;margin-top:16px;font-family:'Inter',sans-serif}
+
+:root{
+  --brand:#E8191C;--brand-dark:#B01010;--brand-bg:#FEF2F2;
+  --sb-bg:#1A1A2E;--sb-text:rgba(255,255,255,.7);--sb-active:#fff;
+  --sb-hover:rgba(255,255,255,.08);--sb-width:260px;--topbar-h:56px;
+  --bg:#F5F6FA;--card:#fff;--border:#E5E7EB;--text:#111827;--muted:#6B7280;
+  --shadow:0 1px 3px rgba(0,0,0,.08),0 1px 2px rgba(0,0,0,.04);
+  --shadow-md:0 4px 16px rgba(0,0,0,.1);
+  --elite:#7C3AED;--elite-bg:#F5F3FF;--elite-border:#DDD6FE;
+  --prime:#0369A1;--prime-bg:#EFF6FF;--prime-border:#BFDBFE;
+  --std:#059669;--std-bg:#F0FDF4;--std-border:#BBF7D0;
+  --star:#DC2626;--star-bg:#FEF2F2;
+  --over:#D97706;--over-bg:#FFFBEB;
+  --ok:#16A34A;--ok-bg:#F0FDF4;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+
+#ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:150;backdrop-filter:blur(2px)}
+#ov.show{display:block}
+
+/* ── Sidebar ── */
+#sb{position:fixed;top:0;left:0;bottom:0;width:var(--sb-width);background:var(--sb-bg);z-index:200;transform:translateX(-100%);transition:transform .25s ease;display:flex;flex-direction:column;overflow:hidden;}
+#sb.open{transform:translateX(0)}
+body.pinned #sb{transform:translateX(0)}
+body.pinned #main{margin-left:var(--sb-width)}
+.sb-header{padding:20px 16px 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,.06)}
+.sb-brand{display:flex;align-items:center;gap:10px;text-decoration:none}
+@keyframes morph{0%,100%{border-radius:60% 40% 55% 45%/50% 60% 40% 50%}33%{border-radius:40% 60% 45% 55%/60% 40% 60% 40%}66%{border-radius:55% 45% 60% 40%/40% 55% 45% 60%}}
+.sb-brand-text .t1{font-size:.6rem;font-weight:700;color:rgba(255,255,255,.5);letter-spacing:.5px;text-transform:uppercase}
+.sb-brand-text .t2{font-size:.78rem;font-weight:800;color:#fff;letter-spacing:-.01em}
+.pin-btn{background:none;border:none;cursor:pointer;color:rgba(255,255,255,.35);font-size:.8rem;padding:4px 6px;border-radius:6px;transition:all .15s;display:flex;align-items:center;gap:3px;font-family:inherit}
+.pin-btn:hover{color:#fff;background:rgba(255,255,255,.08)}
+.pin-btn.pinned{color:var(--brand)}
+.sb-section{padding:12px 8px 4px}
+.sb-label{font-size:.6rem;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:rgba(255,255,255,.25);padding:0 8px 8px}
+.sb-item{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:10px;text-decoration:none;color:var(--sb-text);font-size:.82rem;font-weight:500;transition:all .15s;margin-bottom:2px}
+.sb-item:hover{background:var(--sb-hover);color:var(--sb-active)}
+.sb-item.active{background:rgba(232,25,28,.18);color:#fff;font-weight:600}
+.sb-item.active .si{color:var(--brand)}
+.si{font-size:1rem;width:20px;text-align:center;flex-shrink:0}
+.sb-spacer{flex:1}
+.sb-footer{padding:12px 16px;border-top:1px solid rgba(255,255,255,.06)}
+.sb-ver{font-size:.65rem;color:rgba(255,255,255,.25);font-weight:500}
+
+/* ── Top Bar ── */
+#main{transition:margin-left .25s ease;min-height:100vh;display:flex;flex-direction:column}
+#topbar{position:sticky;top:0;z-index:100;height:var(--topbar-h);background:#fff;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;padding:0 16px;box-shadow:var(--shadow);}
+#hbg{width:36px;height:36px;background:none;border:none;cursor:pointer;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:5px;border-radius:8px;transition:background .15s;flex-shrink:0;}
+#hbg:hover{background:#F3F4F6}
+#hbg span{display:block;width:18px;height:2px;background:var(--text);border-radius:2px;transition:all .2s}
+.tb-brand{display:flex;align-items:center;gap:6px;flex:1;min-width:0}
+.tb-logo{display:flex;align-items:center;gap:7px;font-size:.85rem;font-weight:800;color:var(--brand);letter-spacing:-.01em;white-space:nowrap;text-decoration:none}
+.tb-sep{color:var(--border);font-size:.9rem}
+.tb-page{font-size:.82rem;font-weight:600;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tb-right{display:flex;align-items:center;gap:8px;margin-left:auto;flex-shrink:0}
+.tb-dot{width:26px;height:26px;background:var(--brand);border-radius:60% 40% 55% 45%/50% 60% 40% 50%;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:.55rem;color:#fff;flex-shrink:0;animation:morph 6s ease-in-out infinite}
+
+/* ── Page Header ── */
+.page-header{background:linear-gradient(135deg,#1A1A2E 0%,#0f2460 100%);padding:28px 24px 20px;color:#fff}
+.page-header-inner{max-width:1200px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px}
+.page-header-title{font-size:1.4rem;font-weight:900;letter-spacing:-.02em}
+.page-header-sub{font-size:.78rem;color:rgba(255,255,255,.5);margin-top:3px}
+
+/* ── Tabs ── */
+.tabs-bar{background:#fff;border-bottom:2px solid var(--border);padding:0 24px;display:flex;gap:0;max-width:1200px;margin:0 auto;width:100%}
+.tabs-bar-wrap{background:#fff;border-bottom:1px solid var(--border)}
+.tab-btn{padding:14px 20px;font-size:.85rem;font-weight:600;color:var(--muted);border:none;background:none;cursor:pointer;font-family:inherit;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .15s;display:flex;align-items:center;gap:7px}
+.tab-btn:hover{color:var(--text)}
+.tab-btn.active{color:var(--brand);border-bottom-color:var(--brand)}
+.tab-panel{display:none}
+.tab-panel.active{display:block}
+
+/* ── Controls Bar ── */
+.controls{max-width:1200px;margin:20px auto 0;padding:0 24px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.ctl-select{padding:9px 14px;border:1.5px solid var(--border);border-radius:10px;font-size:.82rem;font-family:inherit;color:var(--text);background:#fff;outline:none;cursor:pointer;transition:border-color .15s;min-width:200px}
+.ctl-select:focus{border-color:var(--brand)}
+.ctl-btn{padding:9px 18px;background:var(--brand);color:#fff;border:none;border-radius:10px;font-size:.82rem;font-weight:700;cursor:pointer;font-family:inherit;transition:background .15s;display:flex;align-items:center;gap:6px}
+.ctl-btn:hover{background:var(--brand-dark)}
+.ctl-btn:disabled{background:#CBD5E1;cursor:not-allowed}
+.ctl-btn.secondary{background:#fff;color:var(--text);border:1.5px solid var(--border)}
+.ctl-btn.secondary:hover{border-color:var(--brand);color:var(--brand);background:#fff}
+.ctl-meta{font-size:.75rem;color:var(--muted);margin-left:auto}
+
+/* ── Queue Table ── */
+.queue-wrap{max-width:1200px;margin:16px auto 48px;padding:0 24px}
+.model-section{margin-bottom:28px}
+.model-header{display:flex;align-items:center;gap:10px;padding:12px 0 10px}
+.model-name{font-size:.95rem;font-weight:800;color:var(--text)}
+.model-count{font-size:.72rem;font-weight:600;color:var(--muted);background:var(--bg);border:1px solid var(--border);border-radius:20px;padding:2px 10px}
+.tier-section{margin-bottom:16px}
+.tier-header{display:flex;align-items:center;gap:8px;padding:8px 0 6px}
+.tier-badge{display:inline-flex;align-items:center;padding:3px 10px;border-radius:20px;font-size:.7rem;font-weight:700;letter-spacing:.3px}
+.tier-badge.elite{background:var(--elite-bg);color:var(--elite);border:1px solid var(--elite-border)}
+.tier-badge.prime{background:var(--prime-bg);color:var(--prime);border:1px solid var(--prime-border)}
+.tier-badge.standard{background:var(--std-bg);color:var(--std);border:1px solid var(--std-border)}
+.tier-count{font-size:.7rem;color:var(--muted)}
+.bike-table{width:100%;border-collapse:separate;border-spacing:0;background:#fff;border-radius:14px;box-shadow:var(--shadow-md);border:1px solid var(--border);overflow:hidden}
+.bike-table th{padding:10px 14px;font-size:.68rem;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);background:#FAFAFA;border-bottom:1px solid var(--border);text-align:left;white-space:nowrap}
+.bike-table td{padding:11px 14px;font-size:.8rem;border-bottom:1px solid #F3F4F6;vertical-align:middle}
+.bike-table tr:last-child td{border-bottom:none}
+.bike-table tr:hover td{background:#FAFBFF}
+.rank-badge{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;background:var(--bg);border:1px solid var(--border);border-radius:8px;font-size:.7rem;font-weight:800;color:var(--muted)}
+.rank-badge.r1{background:#FEF3C7;border-color:#FCD34D;color:#92400E}
+.rank-badge.r2{background:#F0FDF4;border-color:#86EFAC;color:#166534}
+.rank-badge.r3{background:#EFF6FF;border-color:#93C5FD;color:#1E40AF}
+.flag-chip{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:6px;font-size:.67rem;font-weight:700}
+.flag-chip.starvation{background:var(--star-bg);color:var(--star)}
+.flag-chip.overuse{background:var(--over-bg);color:var(--over)}
+.flag-chip.ok{background:var(--ok-bg);color:var(--ok)}
+.reg-num{font-weight:700;font-size:.82rem;color:var(--text);font-variant-numeric:tabular-nums}
+.score-bar-wrap{display:flex;align-items:center;gap:8px;min-width:100px}
+.score-bar{flex:1;height:5px;background:#F3F4F6;border-radius:3px;overflow:hidden}
+.score-fill{height:100%;border-radius:3px;transition:width .3s}
+.score-val{font-size:.72rem;font-weight:700;color:var(--text);min-width:30px}
+.odo-val{font-size:.78rem;font-weight:600;font-variant-numeric:tabular-nums}
+.dim{color:var(--muted)}
+
+/* ── Empty / Loading / Error ── */
+.state-box{padding:64px 24px;text-align:center;color:var(--muted)}
+.state-box .icon{font-size:2.5rem;margin-bottom:12px}
+.state-box p{font-size:.85rem;line-height:1.6}
+@keyframes spin{to{transform:rotate(360deg)}}
+.spinner{display:inline-block;width:24px;height:24px;border:2px solid var(--border);border-top-color:var(--brand);border-radius:50%;animation:spin .7s linear infinite;margin-bottom:12px}
+.err-box{background:var(--star-bg);border:1px solid #FECACA;border-radius:12px;padding:14px 18px;margin:20px 0;font-size:.8rem;color:var(--star)}
+
+/* ── Allocate Tab ── */
+.alloc-wrap{max-width:900px;margin:28px auto 48px;padding:0 24px}
+.phone-card{background:#fff;border-radius:16px;border:1px solid var(--border);box-shadow:var(--shadow-md);padding:28px 28px 24px}
+.phone-card-title{font-size:1rem;font-weight:800;color:var(--text);margin-bottom:6px}
+.phone-card-sub{font-size:.78rem;color:var(--muted);margin-bottom:20px}
+.phone-row{display:flex;gap:10px;align-items:flex-start}
+.phone-input{flex:1;padding:12px 16px;border:2px solid var(--border);border-radius:12px;font-size:.95rem;font-family:inherit;color:var(--text);outline:none;transition:border-color .15s;letter-spacing:.5px}
+.phone-input:focus{border-color:var(--brand)}
+.phone-input.err{border-color:var(--star)}
+.phone-hint{font-size:.72rem;color:var(--muted);margin-top:6px}
+
+/* ── Result Cards ── */
+.result-section{margin-top:28px;display:none}
+.result-section.show{display:block}
+.result-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px}
+@media(max-width:680px){.result-grid{grid-template-columns:1fr}}
+.info-card{background:#fff;border-radius:14px;border:1px solid var(--border);box-shadow:var(--shadow);padding:18px 20px}
+.ic-title{font-size:.65rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:12px}
+.ic-row{display:flex;justify-content:space-between;align-items:baseline;padding:5px 0;border-bottom:1px solid #F9FAFB}
+.ic-row:last-child{border-bottom:none}
+.ic-label{font-size:.75rem;color:var(--muted)}
+.ic-val{font-size:.8rem;font-weight:600;color:var(--text);text-align:right;max-width:55%}
+
+/* ── Recommended Bike Card ── */
+.rec-card{background:linear-gradient(135deg,#1A1A2E 0%,#0f2460 100%);border-radius:16px;padding:22px 24px;color:#fff;margin-bottom:16px;position:relative;overflow:hidden}
+.rec-card::before{content:'→ ALLOCATE';position:absolute;top:14px;right:18px;font-size:.55rem;font-weight:800;letter-spacing:2px;color:rgba(255,255,255,.3)}
+.rec-header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:16px}
+.rec-reg{font-size:2rem;font-weight:900;letter-spacing:-.02em;color:#fff;line-height:1}
+.rec-model{font-size:.78rem;color:rgba(255,255,255,.55);margin-top:4px}
+.rec-tier-badge{display:inline-flex;padding:4px 12px;border-radius:20px;font-size:.7rem;font-weight:700}
+.rec-tier-badge.elite{background:rgba(124,58,237,.25);color:#C4B5FD;border:1px solid rgba(124,58,237,.3)}
+.rec-tier-badge.prime{background:rgba(3,105,161,.25);color:#7DD3FC;border:1px solid rgba(3,105,161,.3)}
+.rec-tier-badge.standard{background:rgba(5,150,105,.25);color:#6EE7B7;border:1px solid rgba(5,150,105,.3)}
+.rec-metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:14px}
+.rec-metric{text-align:center}
+.rec-metric-val{font-size:1.2rem;font-weight:800;color:#fff;line-height:1}
+.rec-metric-label{font-size:.62rem;color:rgba(255,255,255,.4);margin-top:3px}
+.rec-reason{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);border-radius:8px;padding:5px 12px;font-size:.72rem;color:rgba(255,255,255,.7)}
+.rec-flag{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:6px;font-size:.68rem;font-weight:700;margin-left:8px}
+.rec-flag.ok{background:rgba(34,197,94,.2);color:#86EFAC}
+.rec-flag.starvation{background:rgba(220,38,38,.2);color:#FCA5A5}
+.rec-flag.overuse{background:rgba(217,119,6,.2);color:#FCD34D}
+
+/* ── Alternatives ── */
+.alt-section{margin-bottom:24px}
+.alt-title{font-size:.72rem;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);margin-bottom:10px}
+.alt-cards{display:flex;gap:10px;flex-wrap:wrap}
+.alt-card{background:#fff;border:1.5px solid var(--border);border-radius:12px;padding:12px 16px;flex:1;min-width:200px;cursor:default}
+.alt-reg{font-size:1rem;font-weight:800;color:var(--text)}
+.alt-meta{font-size:.72rem;color:var(--muted);margin-top:3px}
+.alt-score{font-size:.7rem;font-weight:700;color:var(--brand);margin-top:5px}
+
+/* ── Feedback ── */
+.fb-fab{position:fixed;bottom:24px;right:24px;z-index:1000;background:var(--text);color:#fff;border:none;border-radius:50px;padding:10px 18px;font-size:.78rem;font-weight:700;font-family:inherit;cursor:pointer;box-shadow:0 4px 16px rgba(0,0,0,.18);display:flex;align-items:center;gap:7px;transition:background .15s}
+.fb-fab:hover{background:#374151}
+.fb-popup{position:fixed;bottom:70px;right:24px;z-index:1001;background:#fff;border:1.5px solid var(--border);border-radius:14px;box-shadow:0 8px 32px rgba(0,0,0,.13);padding:16px;width:300px;display:none;flex-direction:column;gap:10px}
+.fb-popup.open{display:flex}
+.fb-title{font-size:.8rem;font-weight:700}
+.fb-area{width:100%;border:1.5px solid var(--border);border-radius:8px;padding:8px 10px;font-size:.78rem;font-family:inherit;color:var(--text);resize:none;outline:none;transition:border-color .15s}
+.fb-area:focus{border-color:#94A3B8}
+.fb-submit{background:var(--text);color:#fff;border:none;border-radius:8px;padding:7px 14px;font-size:.75rem;font-weight:700;font-family:inherit;cursor:pointer;align-self:flex-end}
+
+@media(max-width:767px){body.pinned #main{margin-left:0}body.pinned #sb{transform:translateX(0)}.pin-btn{display:none}}
+@media(max-width:600px){.rec-metrics{grid-template-columns:repeat(2,1fr)}.controls{gap:8px}.ctl-select{min-width:160px}}
+</style>
+</head>
+<body>
+
+<!-- Auth Screen -->
+<div id="auth-screen">
+  <div class="auth-card">
+    <div class="auth-logo">
+      <img id="auth-logo-img" src="../logo.jpg" width="44" height="44" style="border-radius:10px;object-fit:cover;flex-shrink:0" onerror="this.style.display='none'"/>
+      <div>
+        <div class="auth-logo-name">Bounce Daily</div>
+        <div class="auth-logo-sub">FleetPro</div>
+      </div>
+    </div>
+    <div class="auth-title">Welcome to FleetPro</div>
+    <div class="auth-sub">Enter your work email and we'll send you a one-click sign-in link.</div>
+    <div class="auth-domain">@bounceshare.com only</div>
+    <div id="auth-form">
+      <input id="auth-email" class="auth-input" type="email" placeholder="you@bounceshare.com" autocomplete="email"/>
+      <button id="auth-submit" class="auth-btn" onclick="sendMagicLink()">Send Magic Link</button>
+      <div id="auth-msg" class="auth-msg"></div>
+    </div>
+    <div id="auth-sent" class="auth-sent">
+      <div class="big-icon">📬</div>
+      <h3>Check your inbox</h3>
+      <p>Magic link sent to<br/><b id="auth-sent-email"></b><br/>Click it to sign in — expires in 15 min.</p>
+      <button class="resend" onclick="showForm()">← Use a different email</button>
+    </div>
+  </div>
+</div>
+
+<div id="ov"></div>
+
+<!-- Sidebar -->
+<nav id="sb">
+  <div class="sb-header">
+    <a href="./index.html" class="sb-brand">
+      <img src="../logo.jpg" width="44" height="44" style="border-radius:10px;object-fit:cover;flex-shrink:0" onerror="this.style.display='none'"/>
+      <div class="sb-brand-text">
+        <div class="t1">Bounce Daily</div>
+        <div class="t2">FleetPro</div>
+      </div>
+    </a>
+    <button class="pin-btn" id="pinBtn" onclick="togglePin()" title="Pin sidebar">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2v10M8 6l4-4 4 4M8 18l4 4 4-4M12 12v10"/></svg>
+      Pin
+    </button>
+  </div>
+  <div class="sb-section">
+    <div class="sb-label">Fleet Tools</div>
+    <a href="./index.html" class="sb-item"><span class="si">🏠</span><span>Home</span></a>
+    <a href="./maintenance.html" class="sb-item"><span class="si">🔧</span><span>Preventive Maintenance</span></a>
+    <a href="./queue.html" class="sb-item"><span class="si">📋</span><span>Pending JobCards</span></a>
+    <a href="./deployment.html" class="sb-item active"><span class="si">🚲</span><span>Deployment Queue</span></a>
+  </div>
+  <div class="sb-section" style="margin-top:8px">
+    <div class="sb-label">Coming Soon</div>
+    <div class="sb-item" style="opacity:.4;cursor:default"><span class="si">📊</span><span>Fleet Analytics</span></div>
+    <div class="sb-item" style="opacity:.4;cursor:default"><span class="si">🔔</span><span>Alert Centre</span></div>
+  </div>
+  <div class="sb-spacer"></div>
+  <div class="sb-footer"><div class="sb-ver">FleetPro v5 · Deployment Queue</div></div>
+</nav>
+
+<!-- Main -->
+<div id="main">
+  <header id="topbar">
+    <button id="hbg" onclick="toggleSidebar()" aria-label="Menu">
+      <span></span><span></span><span></span>
+    </button>
+    <div class="tb-brand">
+      <a href="./index.html" class="tb-logo">
+        <img src="../logo.jpg" width="30" height="30" style="border-radius:7px;object-fit:cover;flex-shrink:0" onerror="this.style.display='none'"/>
+        FleetPro
+      </a>
+      <span class="tb-sep">›</span>
+      <span class="tb-page">Deployment Queue</span>
+    </div>
+    <div class="tb-right">
+      <button id="logout-btn" onclick="signOut()" style="display:none;background:none;border:1px solid #E5E7EB;border-radius:8px;padding:5px 12px;font-size:.72rem;font-weight:600;color:#6B7280;cursor:pointer;font-family:'Inter',sans-serif;transition:all .15s" onmouseover="this.style.borderColor='#E8191C';this.style.color='#E8191C'" onmouseout="this.style.borderColor='#E5E7EB';this.style.color='#6B7280'">Sign out</button>
+    </div>
+  </header>
+
+  <div class="page-header">
+    <div class="page-header-inner">
+      <div>
+        <div class="page-header-title">🚲 Deployment Queue</div>
+        <div class="page-header-sub">Allotment scores · Hub pipeline · Customer allocation</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs-bar-wrap">
+    <div class="tabs-bar">
+      <button class="tab-btn active" onclick="switchTab('queue')">📊 Queue by Hub</button>
+      <button class="tab-btn" onclick="switchTab('allocate')">🔍 Allocate by Phone</button>
+    </div>
+  </div>
+
+  <!-- ══════════════════ TAB: QUEUE ══════════════════ -->
+  <div id="tab-queue" class="tab-panel active">
+    <div class="controls">
+      <select id="hub-select" class="ctl-select" onchange="loadQueue()">
+        <option value="">Select a hub…</option>
+      </select>
+      <button class="ctl-btn secondary" onclick="loadQueue()" id="refresh-btn">↻ Refresh</button>
+      <span class="ctl-meta" id="queue-meta"></span>
+    </div>
+
+    <div class="queue-wrap" id="queue-content">
+      <div class="state-box">
+        <div class="icon">🏭</div>
+        <p>Select a hub above to view the deployment queue.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════ TAB: ALLOCATE ══════════════════ -->
+  <div id="tab-allocate" class="tab-panel">
+    <div class="alloc-wrap">
+      <div class="phone-card">
+        <div class="phone-card-title">Customer Lookup</div>
+        <div class="phone-card-sub">Enter the customer's phone number to find their pending booking and get a bike allocation recommendation.</div>
+        <div class="phone-row">
+          <input id="phone-input" class="phone-input" type="tel" placeholder="e.g. 9876543210" maxlength="13" onkeydown="if(event.key==='Enter')lookupCustomer()"/>
+          <button class="ctl-btn" onclick="lookupCustomer()" id="lookup-btn">
+            <span>Search</span>
+          </button>
+        </div>
+        <div class="phone-hint">Enter 10-digit mobile number. Customer must have an active confirmed booking.</div>
+        <div id="alloc-err" class="err-box" style="display:none"></div>
+      </div>
+
+      <div id="alloc-result" class="result-section"></div>
+    </div>
+  </div>
+
+  <!-- Feedback -->
+  <div class="fb-popup" id="fb-popup">
+    <div class="fb-title">Send Feedback</div>
+    <textarea class="fb-area" id="fb-text" rows="4" placeholder="Suggestions or issues…"></textarea>
+    <button class="fb-submit" onclick="submitFeedback()">Submit</button>
+  </div>
+  <button class="fb-fab" id="fb-fab" onclick="toggleFeedback()" style="display:none">✉ Feedback</button>
+</div>
+
+<script>
+/* ═══════════════════════════════════════════════════════
+   CONFIG — update DEPLOY_API once Edge Function is deployed
+   Edge function endpoints needed:
+     GET  /deployment-queue?hub=<hub_name>  → Q1 SQL result
+     POST /customer-allocation              → Q2 SQL result (body: {phone})
+   ═══════════════════════════════════════════════════════ */
+var SB_URL  = 'https://clkfvmmlgwcvntxnolsv.supabase.co';
+var ANON_KEY= 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNsa2Z2bW1sZ3djdm50eG5vbHN2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ1NDQ2NTgsImV4cCI6MjA5MDEyMDY1OH0.FA33GFQisWX_hDeGCWqL5yAZmPcuQRdxZX32I23lyoY';
+var DEPLOY_API = SB_URL + '/functions/v1'; // Supabase Edge Function base
+
+var K = ANON_KEY;
+var CURRENT_USER_EMAIL = null;
+
+var sbClient = supabase.createClient(SB_URL, ANON_KEY, {
+  auth:{persistSession:true, storageKey:'fleetpro_session', autoRefreshToken:true}
+});
+
+/* ── Auth ───────────────────────────────────────────── */
+function showAuthScreen(){document.getElementById('auth-screen').classList.remove('hidden');showForm();}
+function hideAuthScreen(){document.getElementById('auth-screen').classList.add('hidden');}
+function showForm(){
+  document.getElementById('auth-form').style.display='block';
+  document.getElementById('auth-sent').style.display='none';
+  document.getElementById('auth-msg').textContent='';
+  document.getElementById('auth-email').value='';
+}
+async function sendMagicLink(){
+  var email=document.getElementById('auth-email').value.trim().toLowerCase();
+  var msg=document.getElementById('auth-msg');
+  var btn=document.getElementById('auth-submit');
+  if(!email){msg.textContent='Please enter your email.';return;}
+  if(!email.endsWith('@bounceshare.com')){msg.textContent='Only @bounceshare.com emails are allowed.';return;}
+  btn.disabled=true;btn.textContent='Sending…';msg.textContent='';
+  var res=await sbClient.auth.signInWithOtp({email:email,options:{emailRedirectTo:window.location.origin+window.location.pathname}});
+  btn.disabled=false;btn.textContent='Send Magic Link';
+  if(res.error){msg.textContent=res.error.message;}
+  else{document.getElementById('auth-form').style.display='none';document.getElementById('auth-sent').style.display='block';document.getElementById('auth-sent-email').textContent=email;}
+}
+document.getElementById('auth-email').addEventListener('keydown',function(e){if(e.key==='Enter')sendMagicLink();});
+async function signOut(){await sbClient.auth.signOut();document.getElementById('logout-btn').style.display='none';showAuthScreen();}
+
+async function enforce24hReauth(userId){
+  try{
+    var{data}=await sbClient.from('user_last_login').select('last_login_at').eq('user_id',userId).single();
+    if(!data)return;
+    var hours=(Date.now()-new Date(data.last_login_at))/36e5;
+    if(hours>24){console.log('Session >24h, signing out.');await sbClient.auth.signOut();}
+  }catch(e){console.warn('24h check:',e);}
+}
+
+(async function(){
+  var{data:{session}}=await sbClient.auth.getSession();
+  if(session){
+    await enforce24hReauth(session.user.id);
+    var{data:{session:s2}}=await sbClient.auth.getSession();
+    if(!s2){showAuthScreen();return;}
+    K=s2.access_token;CURRENT_USER_EMAIL=s2.user.email;
+    hideAuthScreen();
+    document.getElementById('logout-btn').style.display='block';
+    document.getElementById('fb-fab').style.display='flex';
+    loadHubs();
+  } else {showAuthScreen();}
+  sbClient.auth.onAuthStateChange(async function(event,session){
+    if((event==='SIGNED_IN'||event==='INITIAL_SESSION')&&session){
+      await enforce24hReauth(session.user.id);
+      var{data:{session:s2}}=await sbClient.auth.getSession();
+      if(!s2)return;
+      K=s2.access_token;CURRENT_USER_EMAIL=s2.user.email;
+      hideAuthScreen();
+      document.getElementById('logout-btn').style.display='block';
+      document.getElementById('logout-btn').title='Signed in as '+s2.user.email;
+      document.getElementById('fb-fab').style.display='flex';
+      loadHubs();
+    } else if(event==='SIGNED_OUT'){K=ANON_KEY;document.getElementById('logout-btn').style.display='none';showAuthScreen();}
+    else if(event==='TOKEN_REFRESHED'&&session){K=session.access_token;}
+  });
+})();
+
+/* ── Sidebar ─────────────────────────────────────────── */
+var pinned=localStorage.getItem('sb_pinned')==='1';
+var sbOpen=false;
+function applyPin(){
+  if(pinned){document.body.classList.add('pinned');document.getElementById('pinBtn').classList.add('pinned');document.getElementById('pinBtn').title='Unpin sidebar';document.getElementById('ov').classList.remove('show');document.getElementById('sb').classList.add('open');sbOpen=true;}
+  else{document.body.classList.remove('pinned');document.getElementById('pinBtn').classList.remove('pinned');document.getElementById('pinBtn').title='Pin sidebar';}
+}
+function toggleSidebar(){if(pinned){togglePin();return;}sbOpen=!sbOpen;document.getElementById('sb').classList.toggle('open',sbOpen);document.getElementById('ov').classList.toggle('show',sbOpen);}
+function closeSidebar(){if(pinned)return;sbOpen=false;document.getElementById('sb').classList.remove('open');document.getElementById('ov').classList.remove('show');}
+function togglePin(){pinned=!pinned;localStorage.setItem('sb_pinned',pinned?'1':'0');applyPin();if(!pinned){sbOpen=false;document.getElementById('sb').classList.remove('open');}}
+document.getElementById('ov').addEventListener('click',closeSidebar);
+applyPin();
+
+/* ── Tab Switch ──────────────────────────────────────── */
+function switchTab(name){
+  document.querySelectorAll('.tab-btn').forEach(function(b,i){b.classList.toggle('active',['queue','allocate'][i]===name)});
+  document.querySelectorAll('.tab-panel').forEach(function(p){p.classList.remove('active')});
+  document.getElementById('tab-'+name).classList.add('active');
+}
+
+/* ══════════════════════════════════════════════════════
+   QUEUE TAB
+   ═══════════════════════════════════════════════════════ */
+
+/* Hub list — known hubs; will be populated from API when available */
+var HUB_LIST = [
+  'JP Nagar', 'Bannerghatta Road', 'Electronic City', 'Whitefield',
+  'Hebbal', 'Marathahalli', 'HSR Layout', 'Koramangala', 'Indiranagar',
+  'BTM Layout', 'Bellandur'
+];
+
+function loadHubs(){
+  var sel = document.getElementById('hub-select');
+  sel.innerHTML = '<option value="">Select a hub…</option>';
+  /* Try to load hubs from API; fall back to static list */
+  fetchDeployAPI('hubs', null, 'GET')
+    .then(function(data){
+      if(Array.isArray(data) && data.length){
+        data.forEach(function(h){ addHubOption(sel, h.hub_name||h); });
+      } else { HUB_LIST.forEach(function(h){ addHubOption(sel,h); }); }
+    })
+    .catch(function(){ HUB_LIST.forEach(function(h){ addHubOption(sel,h); }); });
+  /* Restore last selected hub */
+  var last = localStorage.getItem('dq_hub');
+  if(last){ sel.value = last; if(sel.value) loadQueue(); }
+}
+
+function addHubOption(sel, name){
+  var o = document.createElement('option');
+  o.value = name; o.textContent = name;
+  sel.appendChild(o);
+}
+
+var queueCache = null;
+
+function loadQueue(){
+  var hub = document.getElementById('hub-select').value;
+  if(!hub) return;
+  localStorage.setItem('dq_hub', hub);
+  var content = document.getElementById('queue-content');
+  var meta    = document.getElementById('queue-meta');
+  content.innerHTML = '<div class="state-box"><div class="spinner"></div><p>Loading deployment queue for <b>'+hub+'</b>…</p></div>';
+  meta.textContent = '';
+
+  fetchDeployAPI('deployment-queue?hub='+encodeURIComponent(hub), null, 'GET')
+    .then(function(data){
+      if(!Array.isArray(data) || data.length===0){
+        content.innerHTML = '<div class="state-box"><div class="icon">✅</div><p>No bikes in the queue for <b>'+hub+'</b>.<br/>All bikes are either deployed or no RFD bikes found.</p></div>';
+        return;
+      }
+      queueCache = data;
+      meta.textContent = data.length + ' bikes · ' + new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
+      renderQueue(data, hub, content);
+    })
+    .catch(function(err){
+      content.innerHTML = '<div class="state-box"><div class="icon">⚠️</div><p>Could not load queue.<br/><small style="color:var(--star)">'+esc(err.message||String(err))+'</small></p></div>';
+    });
+}
+
+function renderQueue(data, hub, container){
+  /* Group by Model → Tier */
+  var models = {};
+  data.forEach(function(row){
+    var m = row['Model'] || row.model_name || '—';
+    var t = row['Tier'] || row.tier || '—';
+    if(!models[m]) models[m]={};
+    if(!models[m][t]) models[m][t]=[];
+    models[m][t].push(row);
+  });
+
+  var TIER_ORDER = ['Elite','Prime','Standard'];
+  var html = '';
+
+  Object.keys(models).sort().forEach(function(model){
+    var tierData = models[model];
+    var totalModel = Object.values(tierData).reduce(function(s,a){return s+a.length;},0);
+    html += '<div class="model-section">';
+    html += '<div class="model-header"><span class="model-name">'+esc(model)+'</span><span class="model-count">'+totalModel+' bike'+(totalModel!==1?'s':'')+'</span></div>';
+
+    TIER_ORDER.forEach(function(tier){
+      if(!tierData[tier]||!tierData[tier].length) return;
+      var bikes = tierData[tier];
+      html += '<div class="tier-section">';
+      html += '<div class="tier-header"><span class="tier-badge '+tier.toLowerCase()+'">'+tier+'</span><span class="tier-count" style="margin-left:6px">'+bikes.length+' bike'+(bikes.length!==1?'s':'')+'</span></div>';
+      html += '<table class="bike-table">';
+      html += '<thead><tr><th>#</th><th>Reg Number</th><th>Flag</th><th>Score</th><th>RFD Age</th><th>Avg km/day</th><th>Odometer</th></tr></thead><tbody>';
+
+      bikes.forEach(function(b){
+        var rank  = b['#'] || b['deploy_rank'] || b['Deploy #'] || '—';
+        var reg   = b['Reg Number'] || b.reg_number || '—';
+        var flag  = b['Flag'] || b.guardrail || 'OK';
+        var score = b['Score'] || b.allotment_score;
+        var rfd   = b['RFD Age (days)'] || b.rfd_age_days;
+        var kmday = b['Avg km/day']  || b.avg_km_day;
+        var odo   = b['Odometer']    || b.current_odo_km;
+
+        var rankClass = rank===1||rank==='1'?'r1':rank===2||rank==='2'?'r2':rank===3||rank==='3'?'r3':'';
+        var flagClass = flag==='STARVATION'?'starvation':flag==='OVERUSE'?'overuse':'ok';
+        var flagIcon  = flag==='STARVATION'?'🔴':flag==='OVERUSE'?'🟡':'🟢';
+        var scoreNum  = score!=null?parseFloat(score):null;
+        var scorePct  = scoreNum!=null?Math.round(scoreNum*100):0;
+        var scoreColor= flag==='STARVATION'?'#DC2626':flag==='OVERUSE'?'#D97706':'#16A34A';
+
+        html += '<tr>';
+        html += '<td><span class="rank-badge '+rankClass+'">'+rank+'</span></td>';
+        html += '<td><span class="reg-num">'+esc(reg)+'</span></td>';
+        html += '<td><span class="flag-chip '+flagClass+'">'+flagIcon+' '+esc(flag)+'</span></td>';
+        html += '<td><div class="score-bar-wrap"><div class="score-bar"><div class="score-fill" style="width:'+scorePct+'%;background:'+scoreColor+'"></div></div><span class="score-val">'+(scoreNum!=null?scoreNum.toFixed(3):'—')+'</span></div></td>';
+        html += '<td><span class="'+(rfd>15?'':'dim')+'">'+fmt(rfd)+'d</span></td>';
+        html += '<td><span class="'+(kmday>120?'':'dim')+'">'+fmt(kmday)+'</span></td>';
+        html += '<td class="dim">'+fmtOdo(odo)+'</td>';
+        html += '</tr>';
+      });
+      html += '</tbody></table></div>';
+    });
+    html += '</div>';
+  });
+
+  container.innerHTML = html;
+}
+
+/* ══════════════════════════════════════════════════════
+   ALLOCATE TAB
+   ═══════════════════════════════════════════════════════ */
+function lookupCustomer(){
+  var raw = document.getElementById('phone-input').value.trim().replace(/\D/g,'');
+  var errBox = document.getElementById('alloc-err');
+  var result = document.getElementById('alloc-result');
+  var btn    = document.getElementById('lookup-btn');
+
+  errBox.style.display = 'none';
+  result.classList.remove('show');
+
+  if(!raw || raw.length<10){
+    errBox.textContent = 'Please enter a valid 10-digit phone number.';
+    errBox.style.display = 'block';
+    document.getElementById('phone-input').classList.add('err');
+    return;
+  }
+  document.getElementById('phone-input').classList.remove('err');
+  btn.disabled = true;
+  btn.querySelector('span').textContent = 'Searching…';
+
+  fetchDeployAPI('customer-allocation', {phone: raw}, 'POST')
+    .then(function(data){
+      btn.disabled=false; btn.querySelector('span').textContent='Search';
+      if(!data || (Array.isArray(data) && data.length===0)){
+        errBox.textContent = 'No pending booking found for this number. Customer must have a confirmed booking awaiting hub visit.';
+        errBox.style.display='block';
+        return;
+      }
+      var row = Array.isArray(data)?data[0]:data;
+      renderAllocation(row);
+    })
+    .catch(function(err){
+      btn.disabled=false; btn.querySelector('span').textContent='Search';
+      errBox.textContent = 'Error: '+(err.message||String(err));
+      errBox.style.display='block';
+    });
+}
+
+function renderAllocation(d){
+  var result = document.getElementById('alloc-result');
+
+  /* Parse alternatives string "REG [odo km, RFD Xd, Score Y] | REG2 [...]" */
+  var altCards = '';
+  var altRaw = d['Alternatives (same model+tier)'] || d.alternatives || '';
+  if(altRaw){
+    var alts = String(altRaw).split(' | ');
+    alts.slice(0,2).forEach(function(a){
+      var m = a.match(/^(\S+)\s*\[(.+)\]/);
+      if(!m) return;
+      altCards += '<div class="alt-card"><div class="alt-reg">'+esc(m[1])+'</div><div class="alt-meta">'+esc(m[2])+'</div></div>';
+    });
+  }
+
+  var tier    = (d['Tier']||d.tier||'standard').toLowerCase();
+  var flag    = d['Flag']||d.guardrail||'OK';
+  var flagCls = flag==='STARVATION'?'starvation':flag==='OVERUSE'?'overuse':'ok';
+  var hist    = d['History']||d.history||'—';
+  var isFirst = String(hist).includes('First');
+
+  var html = '';
+
+  /* Customer + Booking info row */
+  html += '<div class="result-grid">';
+  /* Customer Card */
+  html += '<div class="info-card">';
+  html += '<div class="ic-title">👤 Customer</div>';
+  html += icRow('Name', d['Customer']||d.full_name||'—');
+  html += icRow('Phone', d['Phone']||d.phone_number||'—');
+  html += icRow('Loyalty Tier', d['Loyalty Tier']||d.loyalty_tier||'—');
+  html += icRow('Booking History', hist);
+  html += '</div>';
+  /* Booking Card */
+  html += '<div class="info-card">';
+  html += '<div class="ic-title">📄 Pending Booking</div>';
+  html += icRow('Hub', d['Hub']||d.hub_name||'—');
+  html += icRow('Plan Tier', d['Plan Tier']||d.tier||'—');
+  html += icRow('Premium Fee', d['Premium Fee (₹)']!=null ? '₹'+d['Premium Fee (₹)'] : '—');
+  html += icRow('Booked Model', d['Booked Model']||d.booked_model||'—');
+  html += icRow('Current Bike', (d['Current Bike']||'—')+' '+wrap(d['Current Model'],'(',')'));
+  html += '</div>';
+  html += '</div>';
+
+  /* Recommended Bike */
+  var recReg   = d['→ Allocate']||d.reg_number||'—';
+  var recModel = d['Model']||d.model_name||'—';
+  var recOdo   = d['Odometer']||d.current_odo_km;
+  var recRfd   = d['RFD Age (days)']||d.rfd_age_days;
+  var recKm    = d['Avg km/day']||d.avg_km_day;
+  var recScore = d['Score']||d.allotment_score;
+  var recReason= d['Reason']||d.allocation_reason||'Allotment Score';
+
+  html += '<div class="rec-card">';
+  html += '<div class="rec-header">';
+  html += '<div><div class="rec-reg">'+esc(recReg)+'</div><div class="rec-model">'+esc(recModel)+'</div></div>';
+  html += '<div style="text-align:right"><span class="rec-tier-badge '+tier+'">'+esc((d['Tier']||'Standard').toUpperCase())+'</span>';
+  html += '<span class="rec-flag '+flagCls+'" style="display:inline-flex;margin-top:6px">'+esc(flag)+'</span></div>';
+  html += '</div>';
+  html += '<div class="rec-metrics">';
+  html += recMetric(recOdo!=null?fmtOdo(recOdo):'—','Odometer');
+  html += recMetric(recRfd!=null?recRfd+'d':'—','RFD Age');
+  html += recMetric(recKm!=null?parseFloat(recKm).toFixed(1):'—','Avg km/day');
+  html += recMetric(recScore!=null?parseFloat(recScore).toFixed(3):'—','Score');
+  html += '</div>';
+  html += '<div class="rec-reason">'+esc(recReason)+(isFirst?' 🎉':'')+'</div>';
+  html += '</div>';
+
+  /* Alternatives */
+  if(altCards){
+    html += '<div class="alt-section"><div class="alt-title">Same model · same tier · next options</div><div class="alt-cards">'+altCards+'</div></div>';
+  }
+
+  result.innerHTML = html;
+  result.classList.add('show');
+}
+
+function icRow(label, val){
+  return '<div class="ic-row"><span class="ic-label">'+esc(label)+'</span><span class="ic-val">'+esc(String(val||'—'))+'</span></div>';
+}
+function recMetric(val, label){
+  return '<div class="rec-metric"><div class="rec-metric-val">'+val+'</div><div class="rec-metric-label">'+label+'</div></div>';
+}
+function wrap(s, pre, suf){ return s&&s!=='—'?' '+pre+s+suf:''; }
+
+/* ══════════════════════════════════════════════════════
+   API HELPER
+   Calls Supabase Edge Function with auth token.
+   Replace DEPLOY_API with your backend URL if needed.
+   ═══════════════════════════════════════════════════════ */
+function fetchDeployAPI(path, body, method){
+  var url = DEPLOY_API + '/' + path;
+  var opts = {
+    method: method||'GET',
+    headers:{
+      'Authorization':'Bearer '+K,
+      'apikey': ANON_KEY,
+      'Content-Type':'application/json'
+    }
+  };
+  if(body) opts.body = JSON.stringify(body);
+  return fetch(url, opts).then(function(r){
+    if(!r.ok) return r.text().then(function(t){throw new Error('API '+r.status+': '+t);});
+    return r.json();
+  });
+}
+
+/* ── Formatting Helpers ──────────────────────────────── */
+function esc(s){ var d=document.createElement('div');d.textContent=String(s||'');return d.innerHTML; }
+function fmt(v){ return v!=null&&v!==''?String(v):'—'; }
+function fmtOdo(v){
+  if(v==null||v==='') return '—';
+  var n=parseInt(v);
+  return n>=1000?(n/1000).toFixed(1)+'k km':n+' km';
+}
+
+/* ── Feedback ─────────────────────────────────────────── */
+function toggleFeedback(){var p=document.getElementById('fb-popup');p.classList.toggle('open');}
+function submitFeedback(){
+  var txt=document.getElementById('fb-text');
+  var msg=(txt&&txt.value.trim())||'';
+  if(!msg){txt&&txt.focus();return;}
+  var btn=document.querySelector('.fb-submit');
+  btn.textContent='Submitting…';btn.disabled=true;
+  fetch(SB_URL+'/rest/v1/feedback',{method:'POST',headers:{apikey:ANON_KEY,Authorization:'Bearer '+K,'Content-Type':'application/json',Prefer:'return=minimal'},body:JSON.stringify({message:msg,submitted_by:CURRENT_USER_EMAIL})})
+  .then(function(r){
+    btn.textContent='Submit';btn.disabled=false;
+    if(r.ok||r.status===201){
+      txt.value='';document.getElementById('fb-popup').classList.remove('open');
+      var t=document.createElement('div');
+      t.style.cssText='position:fixed;bottom:80px;right:24px;background:#22C55E;color:#fff;padding:8px 16px;border-radius:8px;font-size:.78rem;font-weight:600;z-index:2000';
+      t.textContent='Feedback submitted!';document.body.appendChild(t);setTimeout(function(){t.remove();},3000);
+    }
+  }).catch(function(){btn.textContent='Submit';btn.disabled=false;});
+}
+</script>
+</body>
+</html>

@@ -190,6 +190,9 @@ body.pinned #main{margin-left:var(--sb-width)}
     <a href="./queue.html" class="sb-item">
       <span class="si">📋</span><span>Pending JobCards</span>
     </a>
+    <a href="./deployment.html" class="sb-item">
+      <span class="si">🚲</span><span>Deployment Queue</span>
+    </a>
   </div>
   <div class="sb-section" style="margin-top:8px">
     <div class="sb-label">Coming Soon</div>
@@ -197,7 +200,7 @@ body.pinned #main{margin-left:var(--sb-width)}
     <div class="sb-item" style="opacity:.4;cursor:default"><span class="si">🔔</span><span>Alert Centre</span></div>
   </div>
   <div class="sb-spacer"></div>
-  <div class="sb-footer"><div class="sb-ver">FleetPro v3 · Data synced hourly</div></div>
+  <div class="sb-footer"><div class="sb-ver">FleetPro v5 · Data synced hourly</div></div>
 </nav>
 
 <!-- Main -->
@@ -253,6 +256,33 @@ body.pinned #main{margin-left:var(--sb-width)}
         </div>
       </a>
 
+      <!-- Deployment Queue Tile — spans full width -->
+      <a class="tile" href="./deployment.html" style="grid-column:1/-1">
+        <div class="tile-accent" style="background:linear-gradient(90deg,#7C3AED,#0369A1,#059669)"></div>
+        <div class="tile-body" style="flex-direction:row;align-items:center;gap:20px;flex-wrap:wrap">
+          <div style="flex:1;min-width:180px">
+            <div class="tile-icon">🚲</div>
+            <div class="tile-title">Deployment Queue</div>
+            <div class="tile-desc">Allotment scoring · bike pipeline by hub · allocate by phone</div>
+          </div>
+          <div style="display:flex;gap:24px;flex-wrap:wrap">
+            <div style="text-align:center">
+              <div style="font-size:.6rem;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);margin-bottom:3px">Elite</div>
+              <div style="font-size:.65rem;font-weight:700;color:#7C3AED;background:#F5F3FF;border:1px solid #DDD6FE;border-radius:6px;padding:2px 8px">0–200 km</div>
+            </div>
+            <div style="text-align:center">
+              <div style="font-size:.6rem;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);margin-bottom:3px">Prime</div>
+              <div style="font-size:.65rem;font-weight:700;color:#0369A1;background:#EFF6FF;border:1px solid #BFDBFE;border-radius:6px;padding:2px 8px">200–3k km</div>
+            </div>
+            <div style="text-align:center">
+              <div style="font-size:.6rem;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);margin-bottom:3px">Standard</div>
+              <div style="font-size:.65rem;font-weight:700;color:#059669;background:#F0FDF4;border:1px solid #BBF7D0;border-radius:6px;padding:2px 8px">&gt;3k km</div>
+            </div>
+          </div>
+          <button class="tile-cta" style="background:#F5F3FF;color:#7C3AED;margin-left:auto">Open →</button>
+        </div>
+      </a>
+
     </div>
   </section>
 
@@ -265,7 +295,7 @@ body.pinned #main{margin-left:var(--sb-width)}
       <p><strong>Keep Every Bike Road-Ready.</strong></p>
       <p>Real-time fleet health · Zero surprises · Always on</p>
     </div>
-    <div class="footer-meta">FleetPro v3 · Fleet Operations Dashboard · Bounce Fleet Operations<br/>Data synced every hour · Internal use only</div>
+    <div class="footer-meta">FleetPro v5 · Fleet Operations Dashboard · Bounce Fleet Operations<br/>Data synced every hour · Internal use only</div>
   </footer>
 
   <div class="fb-popup" id="fb-popup">
