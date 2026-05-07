@@ -403,8 +403,8 @@ async function loadTileStats(){
   var h={headers:{apikey:ANON_KEY,Authorization:'Bearer '+K}};
   var base=SB+'/rest/v1/';
 
-  // PM stats
-  fetch(base+'vehicle_parts_check_flag?select=overall_urgency,check_required',h)
+  // PM stats — filter server-side, fetch up to 10k to avoid default 1000-row cap
+  fetch(base+'vehicle_parts_check_flag?select=overall_urgency&check_required=eq.true&limit=10000',h)
   .then(function(r){return r.json();})
   .then(function(data){
     if(!Array.isArray(data)){
@@ -413,7 +413,7 @@ async function loadTileStats(){
       document.getElementById('pm-stat').className='tile-stat tile-err';
       return;
     }
-    var attention=data.filter(function(r){return r.check_required;}).length;
+    var attention=data.length;
     var overdue=data.filter(function(r){return r.overall_urgency===1;}).length;
     var dueSoon=data.filter(function(r){return r.overall_urgency===2;}).length;
     var el=document.getElementById('pm-stat');
@@ -433,7 +433,7 @@ async function loadTileStats(){
   });
 
   // OOS stats
-  fetch(base+'oos_work_queue?select=hub,estimated_mins',h)
+  fetch(base+'oos_work_queue?select=hub,estimated_mins&limit=10000',h)
   .then(function(r){return r.json();})
   .then(function(data){
     if(!Array.isArray(data)){
