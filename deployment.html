@@ -558,8 +558,8 @@ function renderQueue(data, hub, container){
   /* Group by Model → Tier */
   var models = {};
   data.forEach(function(row){
-    var m = row['Model'] || row.model_name || '—';
-    var t = row['Tier'] || row.tier || '—';
+    var m = row.model || row.model_name || row['Model'] || '—';
+    var t = row.tier  || row['Tier']   || '—';
     if(!models[m]) models[m]={};
     if(!models[m][t]) models[m][t]=[];
     models[m][t].push(row);
@@ -782,7 +782,7 @@ function renderAllocation(cust, bikes, isFirst, note){
 
   /* Recommended Bike */
   var recReg   = rec.reg_number||'—';
-  var recModel = rec.model_name||'—';
+  var recModel = rec.model || rec.model_name || '—';
   var recOdo   = rec.current_odo_km;
   var recRfd   = rec.rfd_age_days;
   var recKm    = rec.avg_km_day;
