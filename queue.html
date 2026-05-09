@@ -560,7 +560,7 @@ function renderContent(){
   var data=allData.slice();
   if(selectedHubs.size>0)data=data.filter(function(r){return selectedHubs.has(r.hub);});
   if(partsOnly)data=data.filter(function(r){return r.has_parts;});
-  if(labourOnly)data=data.filter(function(r){return r.labour_items&&r.labour_items!=='—';});
+  if(labourOnly)data=data.filter(function(r){return !r.has_parts;});
   if(workTerms.length)data=data.filter(function(r){var items=(r.labour_items||'').toLowerCase();return workTerms.some(function(t){return items.indexOf(t)>=0;});});
   if(regRaw)data=data.filter(function(r){return (r.reg_number||'').indexOf(regRaw)>=0;});
 
