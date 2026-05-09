@@ -412,15 +412,32 @@ async function enforce24hReauth(userId){
     var{data}=await sbClient.from('user_last_login').select('last_login_at').eq('user_id',userId).single();
     if(!data)return;
     var hours=(Date.now()-new Date(data.last_login_at))/36e5;
-    if(hours>24){console.log('Session >24h, signing out.');await sbClient.auth.signOut();}
-  }catch(e){console.warn('24h check:',e);}
+    if(hours>12){console.log('Session >12h, signing out.');await sbClient.auth.signOut();}
+  }catch(e){console.warn('12h check:',e);}
+}
+
+async function checkGlobalLogout(userId){
+  try{
+    var[r1,r2]=await Promise.all([
+      sbClient.from('user_last_login').select('last_login_at').eq('user_id',userId).single(),
+      sbClient.from('app_settings').select('value').eq('key','global_logout_at').single()
+    ]);
+    if(!r1.data||!r2.data)return;
+    if(new Date(r1.data.last_login_at)<new Date(r2.data.value)){
+      console.log('Global logout triggered.');
+      await sbClient.auth.signOut();
+    }
+  }catch(e){console.warn('Global logout check failed:',e);}
 }
 
 (async function(){
   var isHashLogin=window.location.hash.includes('access_token');
   var{data:{session}}=await sbClient.auth.getSession();
   if(session){
-    if(!isHashLogin){await enforce24hReauth(session.user.id);}
+    if(!isHashLogin){
+      await enforce24hReauth(session.user.id);
+      await checkGlobalLogout(session.user.id);
+    }
     var{data:{session:s2}}=await sbClient.auth.getSession();
     if(!s2){showAuthScreen();return;}
     K=s2.access_token;CURRENT_USER_EMAIL=s2.user.email;
@@ -432,13 +449,12 @@ async function enforce24hReauth(userId){
   sbClient.auth.onAuthStateChange(async function(event,session){
     if((event==='SIGNED_IN'||event==='INITIAL_SESSION')&&session){
       if(event==='INITIAL_SESSION'){
-        /* Resuming stored session — enforce 24h gate */
         await enforce24hReauth(session.user.id);
+        await checkGlobalLogout(session.user.id);
         var{data:{session:s2}}=await sbClient.auth.getSession();
         if(!s2)return;
         K=s2.access_token;CURRENT_USER_EMAIL=s2.user.email;
       } else {
-        /* Fresh magic-link login — skip 24h check */
         K=session.access_token;CURRENT_USER_EMAIL=session.user.email;
       }
       hideAuthScreen();
@@ -449,10 +465,15 @@ async function enforce24hReauth(userId){
     } else if(event==='SIGNED_OUT'){K=ANON_KEY;document.getElementById('logout-btn').style.display='none';showAuthScreen();}
     else if(event==='TOKEN_REFRESHED'&&session){K=session.access_token;}
   });
-  /* Re-sync token when tab comes back into focus (background throttling fix) */
+  /* Re-sync token when tab comes back into focus */
   document.addEventListener('visibilitychange',async function(){
     if(!document.hidden){var r=await sbClient.auth.getSession();if(r.data&&r.data.session)K=r.data.session.access_token;}
   });
+  /* Periodic global logout check every 5 min */
+  setInterval(async function(){
+    var{data:{session:s}}=await sbClient.auth.getSession();
+    if(s)await checkGlobalLogout(s.user.id);
+  },5*60*1000);
 })();
 
 /* ── Sidebar ─────────────────────────────────────────── */

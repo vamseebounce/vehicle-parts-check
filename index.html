@@ -71,6 +71,28 @@ body.pinned #main{margin-left:var(--sb-width)}
 .sb-footer{padding:12px 16px;border-top:1px solid rgba(255,255,255,.06)}
 .sb-ver{font-size:.65rem;color:rgba(255,255,255,.25);font-weight:500}
 
+/* ── Settings Modal ── */
+#settings-modal{display:none;position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.45);backdrop-filter:blur(3px);align-items:center;justify-content:center;font-family:'Inter',sans-serif}
+#settings-modal.show{display:flex}
+.settings-card{background:#fff;border-radius:20px;width:100%;max-width:420px;box-shadow:0 24px 80px rgba(0,0,0,.25);overflow:hidden}
+.settings-header{padding:20px 24px 16px;border-bottom:1px solid #F3F4F6;display:flex;align-items:center;justify-content:space-between}
+.settings-header h2{font-size:1rem;font-weight:800;color:#0F172A}
+.settings-close{background:none;border:none;cursor:pointer;font-size:1.2rem;color:#9CA3AF;line-height:1;padding:2px 6px;border-radius:6px;transition:background .15s}
+.settings-close:hover{background:#F3F4F6;color:#374151}
+.settings-body{padding:20px 24px}
+.settings-row{margin-bottom:20px}
+.settings-row:last-child{margin-bottom:0}
+.settings-label{font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:#9CA3AF;margin-bottom:6px}
+.settings-value{font-size:.88rem;color:#374151;font-weight:500}
+.settings-divider{border:none;border-top:1px solid #F3F4F6;margin:20px 0}
+.settings-danger-zone{background:#FFF5F5;border:1px solid #FECACA;border-radius:12px;padding:16px}
+.settings-danger-title{font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:#DC2626;margin-bottom:8px}
+.settings-danger-desc{font-size:.8rem;color:#6B7280;margin-bottom:12px;line-height:1.5}
+.settings-danger-btn{width:100%;padding:10px;background:#DC2626;color:#fff;border:none;border-radius:10px;font-size:.82rem;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;transition:background .15s}
+.settings-danger-btn:hover{background:#B91C1C}
+.settings-danger-btn:disabled{background:#FCA5A5;cursor:not-allowed}
+#settings-last-logout{font-size:.78rem;color:#6B7280;margin-top:4px}
+
 /* ── Top Bar ── */
 #main{transition:margin-left .25s ease;min-height:100vh;display:flex;flex-direction:column}
 #topbar{position:sticky;top:0;z-index:100;height:var(--topbar-h);background:#fff;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;padding:0 16px;box-shadow:var(--shadow);}
@@ -200,8 +222,40 @@ body.pinned #main{margin-left:var(--sb-width)}
     <div class="sb-item" style="opacity:.4;cursor:default"><span class="si">🔔</span><span>Alert Centre</span></div>
   </div>
   <div class="sb-spacer"></div>
+  <div class="sb-section" style="margin-top:0;padding-top:4px">
+    <button class="sb-item" onclick="openSettings()" style="width:100%;background:none;border:none;cursor:pointer;text-align:left">
+      <span class="si">⚙️</span><span>Settings</span>
+    </button>
+  </div>
   <div class="sb-footer"><div class="sb-ver">FleetPro v5 · Data synced hourly</div></div>
 </nav>
+
+<!-- Settings Modal -->
+<div id="settings-modal">
+  <div class="settings-card">
+    <div class="settings-header">
+      <h2>⚙️ Fleet Pro Settings</h2>
+      <button class="settings-close" onclick="closeSettings()">✕</button>
+    </div>
+    <div class="settings-body">
+      <div class="settings-row">
+        <div class="settings-label">Session Expiry</div>
+        <div class="settings-value">12 hours after login</div>
+      </div>
+      <div class="settings-row">
+        <div class="settings-label">Signed in as</div>
+        <div class="settings-value" id="settings-user-email">—</div>
+      </div>
+      <hr class="settings-divider" id="settings-danger-divider"/>
+      <div id="settings-danger-section"><div class="settings-danger-zone">
+        <div class="settings-danger-title">⚠️ Danger Zone</div>
+        <div class="settings-danger-desc">Force-signs out all active Fleet Pro sessions across all users and devices. Everyone will need to re-authenticate.</div>
+        <button class="settings-danger-btn" id="force-logout-btn" onclick="forceLogoutAll()">Force Logout All Sessions</button>
+        <div id="settings-last-logout"></div>
+      </div></div>
+    </div>
+  </div>
+</div>
 
 <!-- Main -->
 <div id="main">
@@ -344,8 +398,51 @@ async function enforce24hReauth(userId){
     var{data}=await sbClient.from('user_last_login').select('last_login_at').eq('user_id',userId).single();
     if(!data)return;
     var hours=(Date.now()-new Date(data.last_login_at))/36e5;
-    if(hours>24){console.log('Session >24h, signing out.');await sbClient.auth.signOut();}
-  }catch(e){console.warn('24h check failed:',e);}
+    if(hours>12){console.log('Session >12h, signing out.');await sbClient.auth.signOut();}
+  }catch(e){console.warn('12h check failed:',e);}
+}
+
+async function checkGlobalLogout(userId){
+  try{
+    var[r1,r2]=await Promise.all([
+      sbClient.from('user_last_login').select('last_login_at').eq('user_id',userId).single(),
+      sbClient.from('app_settings').select('value').eq('key','global_logout_at').single()
+    ]);
+    if(!r1.data||!r2.data)return;
+    if(new Date(r1.data.last_login_at)<new Date(r2.data.value)){
+      console.log('Global logout triggered.');
+      await sbClient.auth.signOut();
+    }
+  }catch(e){console.warn('Global logout check failed:',e);}
+}
+
+// Settings modal
+var ADMIN_EMAILS=['vamsee@bounceshare.com'];
+function openSettings(){
+  document.getElementById('settings-user-email').textContent=CURRENT_USER_EMAIL||'—';
+  document.getElementById('settings-modal').classList.add('show');
+  var isAdmin=ADMIN_EMAILS.includes(CURRENT_USER_EMAIL);
+  document.getElementById('settings-danger-section').style.display=isAdmin?'block':'none';
+  document.getElementById('settings-danger-divider').style.display=isAdmin?'block':'none';
+  sbClient.from('app_settings').select('value,updated_at').eq('key','global_logout_at').single().then(function(r){
+    var el=document.getElementById('settings-last-logout');
+    if(r.data&&r.data.updated_at){
+      var d=new Date(r.data.updated_at);
+      el.textContent='Last forced logout: '+d.toLocaleString('en-IN',{timeZone:'Asia/Kolkata',day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});
+    }else{el.textContent='';}
+  });
+}
+function closeSettings(){document.getElementById('settings-modal').classList.remove('show');}
+document.getElementById('settings-modal').addEventListener('click',function(e){if(e.target===this)closeSettings();});
+
+async function forceLogoutAll(){
+  if(!confirm('This will immediately sign out ALL active Fleet Pro sessions.\n\nYou will also be signed out. Continue?'))return;
+  var btn=document.getElementById('force-logout-btn');
+  btn.disabled=true;btn.textContent='Signing out all sessions…';
+  var now=new Date().toISOString();
+  var{error}=await sbClient.from('app_settings').update({value:now,updated_at:now}).eq('key','global_logout_at');
+  if(error){btn.disabled=false;btn.textContent='Force Logout All Sessions';alert('Error: '+error.message);return;}
+  await signOut();
 }
 
 (async function(){
@@ -354,7 +451,10 @@ async function enforce24hReauth(userId){
   var isHashLogin=window.location.hash.includes('access_token');
   var{data:{session}}=await sbClient.auth.getSession();
   if(session){
-    if(!isHashLogin){await enforce24hReauth(session.user.id);}
+    if(!isHashLogin){
+      await enforce24hReauth(session.user.id);
+      await checkGlobalLogout(session.user.id);
+    }
     var{data:{session:s2}}=await sbClient.auth.getSession();
     if(!s2){showAuthScreen();return;}
     K=s2.access_token;CURRENT_USER_EMAIL=s2.user.email;
@@ -367,6 +467,7 @@ async function enforce24hReauth(userId){
     if((event==='SIGNED_IN'||event==='INITIAL_SESSION')&&session){
       if(event==='INITIAL_SESSION'){
         await enforce24hReauth(session.user.id);
+        await checkGlobalLogout(session.user.id);
         var{data:{session:s2}}=await sbClient.auth.getSession();
         if(!s2)return;
         K=s2.access_token;CURRENT_USER_EMAIL=s2.user.email;
@@ -381,6 +482,11 @@ async function enforce24hReauth(userId){
     } else if(event==='SIGNED_OUT'){K=ANON_KEY;document.getElementById('logout-btn').style.display='none';showAuthScreen();}
     else if(event==='TOKEN_REFRESHED'&&session){K=session.access_token;}
   });
+  // Periodic global logout check every 5 min
+  setInterval(async function(){
+    var{data:{session:s}}=await sbClient.auth.getSession();
+    if(s)await checkGlobalLogout(s.user.id);
+  },5*60*1000);
 })();
 
 // ── Sidebar ──────────────────────────────────────────────────────────
