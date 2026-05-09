@@ -190,8 +190,8 @@ body.pinned #main{margin-left:var(--sb-width)}
 
 
 /* ── Pipeline stats strip ────────────────────────────────────────── */
-.pipeline-stats{display:flex;gap:10px;padding:14px 20px 0;flex-wrap:wrap;margin-bottom:2px}
-.ps-chip{background:#fff;border:1px solid var(--border);border-radius:10px;padding:10px 20px;display:flex;flex-direction:column;align-items:center;min-width:100px;box-shadow:var(--shadow)}
+.pipeline-stats{display:flex;gap:10px;padding:14px 20px 0;margin-bottom:2px}
+.ps-chip{background:#fff;border:1px solid var(--border);border-radius:10px;padding:10px 20px;display:flex;flex-direction:column;align-items:center;flex:1;box-shadow:var(--shadow)}
 .ps-val{font-size:1.4rem;font-weight:900;line-height:1}
 .ps-label{font-size:.58rem;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);margin-top:3px}
 
@@ -947,9 +947,8 @@ function renderAllocResult(cust,bikes,note,approxScore){
     }
   }
 
-  // ── 3. Recommended bike card — only show when comparison strip is NOT already showing
-  var hasComparison=!!(cust.assigned_bike_id&&approxScore&&rec);
-  if(!hasComparison&&rec){
+  // ── 3. Recommended bike card — only show when customer has NO allocated bike
+  if(!cust.assigned_bike_id&&rec){
     var scoreColor=flag==='STARVATION'?'#FCA5A5':flag==='OVERUSE'?'#FCD34D':'#86EFAC';
     html+='<div class="rec-card">';
     html+='<div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px">';
