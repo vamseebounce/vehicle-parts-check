@@ -155,6 +155,10 @@ body.pinned #main{margin-left:var(--sb-width)}
 .bc-tag.ls{background:var(--ls-bg);color:var(--ls)}
 .bc-tag.hs{background:var(--hs-bg);color:var(--hs)}
 .bc-tag.hsp{background:var(--hsp-bg);color:var(--hsp)}
+/* tier badge for LS column */
+.bc-tier{display:inline-flex;padding:2px 6px;border-radius:5px;font-size:.6rem;font-weight:700}
+.bc-tier.prime{background:var(--prime-bg);color:var(--prime)}
+.bc-tier.standard{background:#F3F4F6;color:#6B7280}
 .bc-rfd{font-size:.62rem;color:var(--muted);margin-left:auto}
 
 /* ── Detail Modal ────────────────────────────────────────────────── */
@@ -184,6 +188,26 @@ body.pinned #main{margin-left:var(--sb-width)}
 @keyframes spin{to{transform:rotate(360deg)}}
 .spinner{display:inline-block;width:24px;height:24px;border:2px solid var(--border);border-top-color:var(--brand);border-radius:50%;animation:spin .7s linear infinite;margin-bottom:12px}
 
+/* ── Summary Tab ─────────────────────────────────────────────────── */
+.summary-wrap{max-width:960px;margin:28px auto 48px;padding:0 24px;width:100%}
+.summary-hub-label{font-size:.75rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:16px}
+.summary-hero{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px}
+@media(max-width:700px){.summary-hero{grid-template-columns:repeat(2,1fr)}}
+.hero-card{background:#fff;border-radius:14px;border:1px solid var(--border);box-shadow:var(--shadow);padding:18px 20px;text-align:center}
+.hero-val{font-size:2.2rem;font-weight:900;color:var(--text);line-height:1}
+.hero-label{font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);margin-top:6px}
+.summary-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:700px){.summary-grid{grid-template-columns:1fr}}
+.summary-card{background:#fff;border-radius:14px;border:1px solid var(--border);box-shadow:var(--shadow);padding:18px 20px}
+.summary-card-title{font-size:.65rem;font-weight:800;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);margin-bottom:14px}
+.sum-row{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid #F9FAFB}
+.sum-row:last-child{border-bottom:none}
+.sum-label{display:flex;align-items:center;gap:8px;font-size:.8rem;color:var(--text);font-weight:500;min-width:90px}
+.sum-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+.sum-bar-wrap{flex:1;height:6px;background:#F3F4F6;border-radius:3px;overflow:hidden}
+.sum-bar{height:100%;border-radius:3px;transition:width .4s ease}
+.sum-count{font-size:.88rem;font-weight:800;color:var(--text);min-width:24px;text-align:right}
+
 /* ── Allocate Tab ────────────────────────────────────────────────── */
 .alloc-wrap{max-width:860px;margin:28px auto 48px;padding:0 24px;width:100%}
 .phone-card{background:#fff;border-radius:16px;border:1px solid var(--border);box-shadow:var(--shadow-md);padding:28px}
@@ -205,6 +229,11 @@ body.pinned #main{margin-left:var(--sb-width)}
 .ic-row:last-child{border-bottom:none}
 .ic-label{font-size:.75rem;color:var(--muted)}
 .ic-val{font-size:.8rem;font-weight:600;color:var(--text);text-align:right;max-width:55%}
+/* better-option warning banner */
+.better-banner{background:#FFFBEB;border:1.5px solid #FCD34D;border-radius:12px;padding:14px 18px;margin-bottom:16px}
+.better-banner-title{font-size:.68rem;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:#92400E;margin-bottom:6px}
+.better-banner-row{font-size:.8rem;color:#78350F;margin-top:4px;line-height:1.5}
+.better-banner-row b{color:#451A03}
 .rec-card{background:linear-gradient(135deg,#1A1A2E 0%,#0f2460 100%);border-radius:16px;padding:22px 24px;color:#fff;margin-bottom:16px}
 .rec-reg{font-size:2rem;font-weight:900;letter-spacing:-.02em;color:#fff;line-height:1}
 .rec-model{font-size:.78rem;color:rgba(255,255,255,.55);margin-top:4px}
@@ -321,6 +350,7 @@ body.pinned #main{margin-left:var(--sb-width)}
     <div class="tabs-bar">
       <button class="tab-btn active" onclick="switchTab('queue')">📊 Pipeline</button>
       <button class="tab-btn" onclick="switchTab('allocate')">🔍 Allocate by Phone</button>
+      <button class="tab-btn" onclick="switchTab('summary')">📈 Summary</button>
     </div>
   </div>
 
@@ -355,6 +385,13 @@ body.pinned #main{margin-left:var(--sb-width)}
     </div>
   </div>
 
+  <!-- TAB: SUMMARY -->
+  <div id="tab-summary" class="tab-panel">
+    <div class="summary-wrap" id="summary-content">
+      <div class="state-box"><div class="icon">📈</div><p>Select a hub in the Pipeline tab to view hub summary.</p></div>
+    </div>
+  </div>
+
   <!-- Detail Modal -->
   <div id="detail-modal" onclick="if(event.target===this)closeDetail()">
     <div class="detail-sheet" id="detail-sheet">
@@ -381,6 +418,10 @@ var ANON_KEY= 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJl
 var K = ANON_KEY;
 var CURRENT_USER_EMAIL = null;
 var sbClient = supabase.createClient(SB_URL, ANON_KEY, {auth:{persistSession:true,storageKey:'fleetpro_session',autoRefreshToken:true}});
+
+// Global queue data (used by Summary tab)
+var LAST_QUEUE_DATA = null;
+var LAST_QUEUE_HUB  = '';
 
 /* ── Auth ─────────────────────────────────────────────────────────── */
 function showAuthScreen(){document.getElementById('auth-screen').classList.remove('hidden');showForm();}
@@ -470,10 +511,12 @@ document.getElementById('ov').addEventListener('click',closeSidebar);
 applyPin();
 
 /* ── Tabs ────────────────────────────────────────────────────────── */
+var TAB_IDS=['queue','allocate','summary'];
 function switchTab(name){
-  document.querySelectorAll('.tab-btn').forEach(function(b,i){b.classList.toggle('active',['queue','allocate'][i]===name);});
+  document.querySelectorAll('.tab-btn').forEach(function(b,i){b.classList.toggle('active',TAB_IDS[i]===name);});
   document.querySelectorAll('.tab-panel').forEach(function(p){p.classList.remove('active');});
-  document.getElementById('tab-'+(name==='queue'?'queue':'allocate')).classList.add('active');
+  document.getElementById('tab-'+name).classList.add('active');
+  if(name==='summary')renderSummaryIfReady();
 }
 
 /* ── Data helpers ────────────────────────────────────────────────── */
@@ -514,6 +557,37 @@ function loadHubs(){
     }).catch(function(){});
 }
 
+/* ── Kanban column definitions ───────────────────────────────────── */
+// Order: LS → HS (Standard) → HSP (Standard) → Prime (HS+HSP) → Elite (HS+HSP)
+// LS: all tiers merged; for LS bikes the "Elite" band is treated as Prime (no Elite tier for LS)
+var COLUMNS=[
+  {
+    id:'ls', label:'Low Speed', sub:'All tiers · LS', cls:'ls',
+    filter:function(b){return modelType(b.model_name)==='ls';},
+    showModelTag:false, showTierBadge:true   // show Prime/Standard badge per card
+  },
+  {
+    id:'hs', label:'High Speed', sub:'Standard · e1+x', cls:'hs',
+    filter:function(b){return b.tier==='Standard'&&modelType(b.model_name)==='hs';},
+    showModelTag:false, showTierBadge:false
+  },
+  {
+    id:'hsp', label:'HS Pro', sub:'Standard · e1+xPRO', cls:'hsp',
+    filter:function(b){return b.tier==='Standard'&&modelType(b.model_name)==='hsp';},
+    showModelTag:false, showTierBadge:false
+  },
+  {
+    id:'prime', label:'Prime', sub:'200–3,000 km · HS+HSP', cls:'prime',
+    filter:function(b){return b.tier==='Prime'&&modelType(b.model_name)!=='ls';},
+    showModelTag:true, showTierBadge:false   // show HS/HSP model tag
+  },
+  {
+    id:'elite', label:'Elite', sub:'0–200 km · HS+HSP', cls:'elite',
+    filter:function(b){return b.tier==='Elite'&&modelType(b.model_name)!=='ls';},
+    showModelTag:true, showTierBadge:false
+  },
+];
+
 /* ── Load & render queue ─────────────────────────────────────────── */
 function loadQueue(){
   var hub=document.getElementById('hub-select').value;
@@ -531,11 +605,17 @@ function loadQueue(){
     document.getElementById('refresh-btn').disabled=false;
     if(!data||!data.length){
       board.innerHTML='<div class="state-box"><div class="icon">✅</div><p>No bikes in queue for <b>'+esc(hub)+'</b>.<br/>Cache may be empty — edge function runs every 15 min.</p></div>';
+      LAST_QUEUE_DATA=[];LAST_QUEUE_HUB=hub;
       return;
     }
     var ts=data[0]&&data[0].refreshed_at?new Date(data[0].refreshed_at).toLocaleString('en-IN',{timeZone:'Asia/Kolkata',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):'';
     document.getElementById('queue-meta').textContent=ts?'Synced '+ts:'';
+    // Store for Summary tab
+    LAST_QUEUE_DATA=data;LAST_QUEUE_HUB=hub;
     renderKanban(data,board);
+    // Refresh summary if it's active
+    var sumPanel=document.getElementById('tab-summary');
+    if(sumPanel&&sumPanel.classList.contains('active'))renderSummaryIfReady();
   }).catch(function(err){
     document.getElementById('refresh-btn').disabled=false;
     board.innerHTML='<div class="state-box"><div class="icon">⚠️</div><p>Error: '+esc(err.message)+'</p></div>';
@@ -543,19 +623,10 @@ function loadQueue(){
 }
 
 /* ── Kanban render ───────────────────────────────────────────────── */
-var COLUMNS=[
-  {id:'elite', label:'Elite',     sub:'0 – 200 km',         cls:'elite', filter:function(b){return b.tier==='Elite';}},
-  {id:'prime', label:'Prime',     sub:'200 – 3,000 km',     cls:'prime', filter:function(b){return b.tier==='Prime';}},
-  {id:'ls',    label:'Low Speed', sub:'Standard · LS',      cls:'ls',    filter:function(b){return b.tier==='Standard'&&modelType(b.model_name)==='ls';}},
-  {id:'hs',    label:'High Speed',sub:'Standard · e1+x',    cls:'hs',    filter:function(b){return b.tier==='Standard'&&modelType(b.model_name)==='hs';}},
-  {id:'hsp',   label:'HS Pro',    sub:'Standard · e1+xPRO', cls:'hsp',   filter:function(b){return b.tier==='Standard'&&modelType(b.model_name)==='hsp';}},
-];
-
 function renderKanban(data,board){
   var html='';
   COLUMNS.forEach(function(col){
     var bikes=data.filter(col.filter);
-    var showTag=col.id==='elite'||col.id==='prime';
     html+='<div class="kb-col">';
     html+='<div class="kb-col-header '+col.cls+'">';
     html+='<div><div class="kb-col-title">'+col.label+'</div><div class="kb-col-sub">'+col.sub+'</div></div>';
@@ -565,9 +636,8 @@ function renderKanban(data,board){
     if(!bikes.length){
       html+='<div style="padding:16px 8px;text-align:center;font-size:.72rem;color:#9CA3AF">No bikes</div>';
     }else{
-      bikes.forEach(function(b,i){
+      bikes.forEach(function(b){
         var rank=b.deploy_rank||'—';
-        var reg=b.reg_number||'—';
         var flag=b.guardrail||'OK';
         var rfd=b.rfd_age_days;
         var mt=modelType(b.model_name);
@@ -578,11 +648,18 @@ function renderKanban(data,board){
         html+='<div class="bike-card flag-'+fCls+'" onclick="openDetail(this)" data-bike="'+esc(cardData)+'">';
         html+='<div class="bc-top">';
         html+='<span class="bc-rank '+rClass+'">'+rank+'</span>';
-        html+='<span class="bc-reg">'+esc(reg)+'</span>';
+        html+='<span class="bc-reg">'+esc(b.reg_number||'—')+'</span>';
         html+='</div>';
         html+='<div class="bc-bottom">';
         html+='<span class="bc-flag '+fCls+'">'+fIcon+' '+esc(flag)+'</span>';
-        if(showTag)html+=modelTag(mt);
+        // LS column: show tier badge (Elite shown as Prime since LS has no Elite)
+        if(col.showTierBadge){
+          var dispTier=(b.tier==='Elite')?'Prime':(b.tier||'Standard');
+          var tierCls=dispTier.toLowerCase();
+          html+='<span class="bc-tier '+tierCls+'">'+esc(dispTier)+'</span>';
+        }
+        // Prime/Elite columns: show model type (HS / HS Pro)
+        if(col.showModelTag)html+=modelTag(mt);
         if(rfd!=null)html+='<span class="bc-rfd">'+rfd+'d</span>';
         html+='</div>';
         html+='</div>';
@@ -603,7 +680,6 @@ function openDetail(el){
   var fIcon=flag==='STARVATION'?'🔴':flag==='OVERUSE'?'🟡':'🟢';
   var scoreColor=flag==='STARVATION'?'#DC2626':flag==='OVERUSE'?'#D97706':'#16A34A';
   var scorePct=b.allotment_score!=null?Math.round(parseFloat(b.allotment_score)*100):0;
-
   var tierCls=(b.tier||'').toLowerCase();
   var tierColors={elite:'#7C3AED',prime:'#0369A1',standard:'#059669'};
   var tc=tierColors[tierCls]||'#6B7280';
@@ -644,7 +720,151 @@ function dsCell(label,val,big){
 function closeDetail(){document.getElementById('detail-modal').classList.remove('show');}
 document.addEventListener('keydown',function(e){if(e.key==='Escape')closeDetail();});
 
-/* ── Allocate tab (unchanged from v5) ───────────────────────────── */
+/* ── Summary Tab ─────────────────────────────────────────────────── */
+function renderSummaryIfReady(){
+  var el=document.getElementById('summary-content');
+  if(!LAST_QUEUE_DATA||!LAST_QUEUE_DATA.length){
+    el.innerHTML='<div class="state-box"><div class="icon">📈</div><p>Select a hub in the Pipeline tab to view hub summary.</p></div>';
+    return;
+  }
+  renderSummary(LAST_QUEUE_DATA,LAST_QUEUE_HUB,el);
+}
+
+function renderSummary(data,hub,el){
+  var total=data.length;
+  var starv=data.filter(function(b){return b.guardrail==='STARVATION';}).length;
+  var over=data.filter(function(b){return b.guardrail==='OVERUSE';}).length;
+  var ok=total-starv-over;
+  var rfdSum=data.reduce(function(s,b){return s+(b.rfd_age_days||0);},0);
+  var avgRfd=total?Math.round(rfdSum/total):0;
+
+  // Tier breakdown (LS Elite → Prime for LS)
+  var eliteCount=data.filter(function(b){return b.tier==='Elite'&&modelType(b.model_name)!=='ls';}).length;
+  var primeCount=data.filter(function(b){
+    return b.tier==='Prime'||(b.tier==='Elite'&&modelType(b.model_name)==='ls');
+  }).length;
+  var stdCount=data.filter(function(b){return b.tier==='Standard';}).length;
+
+  // Model type breakdown
+  var lsCount=data.filter(function(b){return modelType(b.model_name)==='ls';}).length;
+  var hsCount=data.filter(function(b){return modelType(b.model_name)==='hs';}).length;
+  var hspCount=data.filter(function(b){return modelType(b.model_name)==='hsp';}).length;
+
+  // Top 5 by allotment score
+  var top5=data.slice().sort(function(a,b){return(parseFloat(b.allotment_score)||0)-(parseFloat(a.allotment_score)||0);}).slice(0,5);
+
+  var html='<div class="summary-hub-label">'+esc(hub)+'</div>';
+
+  // Hero row
+  html+='<div class="summary-hero">';
+  html+=heroCard(total,'Total RFD','var(--text)');
+  html+=heroCard(starv,'Starvation','#DC2626');
+  html+=heroCard(over,'Overuse','#D97706');
+  html+=heroCard(avgRfd+'d','Avg RFD Age','var(--text)');
+  html+='</div>';
+
+  // 2×2 grid
+  html+='<div class="summary-grid">';
+
+  // Tier breakdown
+  html+='<div class="summary-card"><div class="summary-card-title">By Tier</div>';
+  html+=sumRow('Elite',eliteCount,total,'#7C3AED');
+  html+=sumRow('Prime',primeCount,total,'#0369A1');
+  html+=sumRow('Standard',stdCount,total,'#059669');
+  html+='</div>';
+
+  // Model breakdown
+  html+='<div class="summary-card"><div class="summary-card-title">By Model Type</div>';
+  html+=sumRow('Low Speed',lsCount,total,'#059669');
+  html+=sumRow('High Speed',hsCount,total,'#D97706');
+  html+=sumRow('HS Pro',hspCount,total,'#DC2626');
+  html+='</div>';
+
+  // Flag breakdown
+  html+='<div class="summary-card"><div class="summary-card-title">Deployment Flags</div>';
+  html+=sumRow('OK',ok,total,'#16A34A');
+  html+=sumRow('Overuse',over,total,'#D97706');
+  html+=sumRow('Starvation',starv,total,'#DC2626');
+  html+='</div>';
+
+  // Top 5 by score
+  html+='<div class="summary-card"><div class="summary-card-title">Top 5 by Allotment Score</div>';
+  if(!top5.length){
+    html+='<div style="font-size:.78rem;color:var(--muted);padding:8px 0">No data</div>';
+  }else{
+    var mtColors={ls:'var(--ls)',hs:'var(--hs)',hsp:'var(--hsp)'};
+    top5.forEach(function(b){
+      var mt=modelType(b.model_name);
+      html+='<div class="sum-row">'
+        +'<span class="sum-label"><span class="sum-dot" style="background:'+mtColors[mt]+'"></span>'+esc(b.reg_number||'—')+'</span>'
+        +'<div class="sum-bar-wrap"><div class="sum-bar" style="width:'+(b.allotment_score?Math.round(parseFloat(b.allotment_score)*100):0)+'%;background:var(--brand)"></div></div>'
+        +'<span class="sum-count">'+(b.allotment_score!=null?parseFloat(b.allotment_score).toFixed(3):'—')+'</span>'
+        +'</div>';
+    });
+  }
+  html+='</div>';
+
+  html+='</div>'; // summary-grid
+  el.innerHTML=html;
+}
+
+function heroCard(val,label,color){
+  return'<div class="hero-card">'
+    +'<div class="hero-val" style="color:'+color+'">'+val+'</div>'
+    +'<div class="hero-label">'+label+'</div>'
+    +'</div>';
+}
+function sumRow(label,count,total,color){
+  var pct=total?Math.round(count/total*100):0;
+  return'<div class="sum-row">'
+    +'<span class="sum-label"><span class="sum-dot" style="background:'+color+'"></span>'+label+'</span>'
+    +'<div class="sum-bar-wrap"><div class="sum-bar" style="width:'+pct+'%;background:'+color+'"></div></div>'
+    +'<span class="sum-count">'+count+'</span>'
+    +'</div>';
+}
+
+/* ── Tier computation (model-aware, mirrors SQL logic) ───────────── */
+function computeBikeTier(modelName,odo){
+  var m=(modelName||'').toLowerCase();
+  var isLS=!m.includes('pro')&&!m.includes('e1+x')&&!m.includes('e1 x')&&!m.includes('high speed');
+  if(isLS)return(odo||0)<=3000?'Prime':'Standard';
+  return(odo||0)<=200?'Elite':(odo||0)<=3000?'Prime':'Standard';
+}
+
+/* ── Approximate allotment score for assigned (blocked) bike ─────── */
+// Uses rfd_age_days + avg_km_day from pending_bookings_cache (pre-fetched
+// via LATERAL subqueries in SQL) and group stats from LAST_QUEUE_DATA.
+function computeApproxScore(cust,groupBikes){
+  var rfdAge=cust.assigned_rfd_age_days;
+  var avgKm=cust.assigned_avg_km_day||0;
+  if(rfdAge==null)return null;
+
+  // Reconstruct group including this bike to get max_rfd_age and total_bikes
+  var groupRfd=groupBikes.map(function(b){return b.rfd_age_days||0;});
+  groupRfd.push(rfdAge);
+  var maxRfdAge=Math.max.apply(null,groupRfd);
+
+  var groupKm=groupBikes.map(function(b){return b.avg_km_day||0;});
+  var totalBikes=groupBikes.length+1;
+  var bikesHigherKm=groupKm.filter(function(km){return km>avgKm;}).length;
+
+  var fifo=maxRfdAge>0?rfdAge/maxRfdAge:0;
+  var util=totalBikes>0?bikesHigherKm/totalBikes:0;
+  var score=0.6*fifo+0.4*util;
+  var guardrail=rfdAge>15?'STARVATION':avgKm>120?'OVERUSE':'OK';
+
+  return{
+    rfd_age_days:rfdAge,
+    avg_km_day:avgKm,
+    odo_km:cust.assigned_odo_km,
+    fifo_score:Math.round(fifo*1000)/1000,
+    util_score:Math.round(util*1000)/1000,
+    allotment_score:Math.round(score*1000)/1000,
+    guardrail:guardrail
+  };
+}
+
+/* ── Allocate tab ────────────────────────────────────────────────── */
 function lookupCustomer(){
   var raw=document.getElementById('phone-input').value.trim().replace(/\D/g,'');
   var errBox=document.getElementById('alloc-err');
@@ -654,6 +874,7 @@ function lookupCustomer(){
   if(!raw||raw.length<10){errBox.textContent='Please enter a valid 10-digit phone number.';errBox.style.display='block';document.getElementById('phone-input').classList.add('err');return;}
   document.getElementById('phone-input').classList.remove('err');
   btn.disabled=true;btn.querySelector('span').textContent='Searching…';
+
   sbGet('pending_bookings_cache','phone_number=eq.'+encodeURIComponent(raw)+'&limit=1')
     .then(function(data){
       if(!Array.isArray(data)||data.length===0)throw new Error('NO_BOOKING');
@@ -673,11 +894,25 @@ function lookupCustomer(){
         .then(function(){return tryBikes(bikeParams,'Exact match');})
         .then(function(r){if(r)return r;return tryBikes('hub_name=eq.'+hub+'&bike_model_id=eq.'+model+'&order=sort_group.asc,allotment_score.desc.nullslast&limit=3','Any tier match');})
         .then(function(r){if(r)return r;return tryBikes('hub_name=eq.'+hub+'&order=sort_group.asc,allotment_score.desc.nullslast&limit=3','Any available bike');})
-        .then(function(r){return{cust:cust,bikes:r?r.bikes:[],note:r?r.note:'No bikes found'};});
+        .then(function(r){
+          var bikes=r?r.bikes:[];
+          var note=r?r.note:'No bikes found';
+          // Compute approx score for assigned bike using pre-fetched metrics
+          var approxScore=null;
+          if(cust.assigned_bike_id&&cust.assigned_rfd_age_days!=null){
+            var assignedTier=computeBikeTier(cust.assigned_model,cust.assigned_odo_km);
+            var assignedModelId=cust.assigned_bike_model_id;
+            var groupBikes=(LAST_QUEUE_DATA||[]).filter(function(b){
+              return b.bike_model_id==assignedModelId&&b.tier===assignedTier;
+            });
+            approxScore=computeApproxScore(cust,groupBikes);
+          }
+          return{cust:cust,bikes:bikes,note:note,approxScore:approxScore};
+        });
     })
     .then(function(res){
       btn.disabled=false;btn.querySelector('span').textContent='Search';
-      renderAllocResult(res.cust,res.bikes,res.note);
+      renderAllocResult(res.cust,res.bikes,res.note,res.approxScore);
     })
     .catch(function(err){
       btn.disabled=false;btn.querySelector('span').textContent='Search';
@@ -687,7 +922,8 @@ function lookupCustomer(){
       errBox.style.display='block';
     });
 }
-function renderAllocResult(cust,bikes,note){
+
+function renderAllocResult(cust,bikes,note,approxScore){
   var result=document.getElementById('alloc-result');
   var rec=bikes[0]||null;
   var alts=bikes.slice(1);
@@ -695,13 +931,54 @@ function renderAllocResult(cust,bikes,note){
   var fCls=flag==='STARVATION'?'starvation':flag==='OVERUSE'?'overuse':'ok';
   var mt=rec?modelType(rec.model_name):'ls';
   var mtL={ls:'Low Speed',hs:'High Speed',hsp:'HS Pro'};
-  var html='<div class="result-grid">';
+  var html='';
+
+  // ── Better-bike warning: compare approx score of assigned bike vs top pipeline
+  if(cust.assigned_bike_id&&approxScore&&rec){
+    var assignedReg=cust.assigned_reg||('Bike '+cust.assigned_bike_id);
+    var recScore=rec.allotment_score!=null?parseFloat(rec.allotment_score):0;
+    var aScore=approxScore.allotment_score;
+    var aGuard=approxScore.guardrail;
+    var aGIcon=aGuard==='STARVATION'?'🔴':aGuard==='OVERUSE'?'🟡':'🟢';
+    if(recScore>aScore){
+      // Pipeline has a better option than the currently assigned bike
+      html+='<div class="better-banner">'
+        +'<div class="better-banner-title">⚠️ Better Option in Pipeline</div>'
+        +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px">'
+        // Assigned bike column
+        +'<div style="background:rgba(0,0,0,.04);border-radius:8px;padding:10px 12px">'
+        +'<div style="font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#92400E;margin-bottom:6px">Allocated</div>'
+        +'<div style="font-size:.88rem;font-weight:800;color:#451A03">'+esc(assignedReg)+'</div>'
+        +'<div style="font-size:.72rem;color:#78350F;margin-top:4px">Score <b>'+aScore.toFixed(3)+'</b> (approx) '+aGIcon+' '+esc(aGuard)+'</div>'
+        +'<div style="font-size:.7rem;color:#92400E;margin-top:2px">RFD '+esc(approxScore.rfd_age_days)+'d · '+esc(approxScore.avg_km_day)+' km/d</div>'
+        +'</div>'
+        // Best pipeline option column
+        +'<div style="background:rgba(22,163,74,.08);border:1px solid rgba(22,163,74,.2);border-radius:8px;padding:10px 12px">'
+        +'<div style="font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#166534;margin-bottom:6px">Better Available</div>'
+        +'<div style="font-size:.88rem;font-weight:800;color:#14532D">'+esc(rec.reg_number||'—')+'</div>'
+        +'<div style="font-size:.72rem;color:#166534;margin-top:4px">Score <b>'+recScore.toFixed(3)+'</b> · Rank #'+esc(rec.deploy_rank||'—')+'</div>'
+        +'<div style="font-size:.7rem;color:#166534;margin-top:2px">RFD '+esc(rec.rfd_age_days)+'d · '+esc(rec.avg_km_day)+' km/d</div>'
+        +'</div>'
+        +'</div>'
+        +'</div>';
+    }else if(cust.assigned_bike_id&&approxScore){
+      // Assigned bike is already the best (or comparable) — show confirmation
+      html+='<div style="background:#F0FDF4;border:1.5px solid #BBF7D0;border-radius:12px;padding:12px 16px;margin-bottom:16px;font-size:.8rem;color:#166534">'
+        +'✅ <b>'+esc(assignedReg)+'</b> is the best available option (Score '+aScore.toFixed(3)+' approx).'
+        +'</div>';
+    }
+  }
+
+  // Customer + booking info
+  html+='<div class="result-grid">';
   html+='<div class="info-card"><div class="ic-title">Customer</div>';
   html+=icRow('Name',cust.full_name||'—')+icRow('Bookings',cust.completed_count===0?'🆕 First time':(cust.completed_count||'0')+' completed')+icRow('Loyalty',cust.loyalty_tier||'—');
   html+='</div>';
   html+='<div class="info-card"><div class="ic-title">Booking</div>';
   html+=icRow('Hub',cust.hub_name||'—')+icRow('Model',cust.booked_model||'—')+icRow('Tier',cust.tier||'—')+icRow('Premium Fee','₹'+(cust.paid_premium_fees||0));
   html+='</div></div>';
+
+  // Recommended bike
   if(rec){
     var scoreColor=flag==='STARVATION'?'#FCA5A5':flag==='OVERUSE'?'#FCD34D':'#86EFAC';
     html+='<div class="rec-card">';
@@ -717,6 +994,8 @@ function renderAllocResult(cust,bikes,note){
   }else{
     html+='<div style="background:#FEF2F2;border:1px solid #FECACA;border-radius:12px;padding:18px;font-size:.82rem;color:#DC2626">No bikes available in the queue for this hub.</div>';
   }
+
+  // Alternatives
   if(alts.length){
     html+='<div class="alt-section"><div class="alt-title">Alternatives</div><div class="alt-cards">';
     alts.forEach(function(b){
@@ -726,6 +1005,7 @@ function renderAllocResult(cust,bikes,note){
     });
     html+='</div></div>';
   }
+
   result.innerHTML=html;result.classList.add('show');
 }
 function icRow(l,v){return'<div class="ic-row"><span class="ic-label">'+l+'</span><span class="ic-val">'+esc(v)+'</span></div>';}
