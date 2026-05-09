@@ -857,8 +857,6 @@ function lookupAndRenderCustomer(cust){
   }
   Promise.resolve()
     .then(function(){return tryBikes(bikeParams,'Exact match');})
-    .then(function(r){if(r)return r;return tryBikes('hub_name=eq.'+hub+'&bike_model_id=eq.'+model+'&order=sort_group.asc,allotment_score.desc.nullslast&limit=4','Any tier – same model');})
-    .then(function(r){if(r)return r;return tryBikes('hub_name=eq.'+hub+'&order=sort_group.asc,allotment_score.desc.nullslast&limit=4','Any available');})
     .then(function(r){
       var bikes=r?r.bikes:[];
       var note=r?r.note:'No bikes found';
@@ -901,37 +899,52 @@ function renderAllocResult(cust,bikes,note,approxScore){
   html+=icRow('Hub',cust.hub_name||'—')+icRow('Model',mtShortLabel[custMT]||cust.booked_model||'—')+icRow('Tier',cust.tier||'—')+icRow('Premium Fee','₹'+(cust.paid_premium_fees||0));
   html+='</div></div>';
 
-  // ── 2. Allocation comparison (if assigned bike + approx score computed)
-  if(cust.assigned_bike_id&&approxScore&&rec){
+  // ── 2. Allocated bike info — always show if customer has an assigned bike
+  if(cust.assigned_bike_id){
     var assignedReg=cust.assigned_reg||('Bike '+cust.assigned_bike_id);
-    var recScore=rec.allotment_score!=null?parseFloat(rec.allotment_score):0;
-    var aScore=approxScore.allotment_score;
-    var aGuard=approxScore.guardrail;
-    var aGIcon=aGuard==='STARVATION'?'🔴':aGuard==='OVERUSE'?'🟡':'🟢';
-    var recGuardIcon=flag==='STARVATION'?'🔴':flag==='OVERUSE'?'🟡':'🟢';
-    var hasBetter=recScore>aScore;
-    html+='<div class="'+(hasBetter?'better-banner':'confirm-banner')+'">';
-    if(hasBetter){
-      html+='<div class="better-banner-title">⚠️ Better Option in Pipeline</div>';
-    }else{
-      html+='<div style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#166534;margin-bottom:8px">✅ Allocation Confirmed</div>';
+    var aRfd=cust.assigned_rfd_age_days;
+    var aKm=cust.assigned_avg_km_day;
+    var aOdo=cust.assigned_odo_km;
+
+    if(approxScore&&rec){
+      // Full comparison: allocated vs best pipeline bike
+      var recScore=rec.allotment_score!=null?parseFloat(rec.allotment_score):0;
+      var aScore=approxScore.allotment_score;
+      var aGuard=approxScore.guardrail;
+      var aGIcon=aGuard==='STARVATION'?'🔴':aGuard==='OVERUSE'?'🟡':'🟢';
+      var recGuardIcon=flag==='STARVATION'?'🔴':flag==='OVERUSE'?'🟡':'🟢';
+      var hasBetter=recScore>aScore;
+      html+='<div class="'+(hasBetter?'better-banner':'confirm-banner')+'">';
+      html+='<div style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:'+(hasBetter?'#92400E':'#166534')+';margin-bottom:8px">'+(hasBetter?'⚠️ Better Option in Pipeline':'✅ Allocation Confirmed')+'</div>';
+      html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">';
+      html+='<div style="background:'+(hasBetter?'rgba(0,0,0,.05)':'rgba(22,163,74,.06)')+';border-radius:8px;padding:10px 12px">'
+        +'<div style="font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:'+(hasBetter?'#92400E':'#166534')+';margin-bottom:5px">Allocated</div>'
+        +'<div style="font-size:.92rem;font-weight:800;color:'+(hasBetter?'#451A03':'#14532D')+'">'+esc(assignedReg)+'</div>'
+        +'<div style="font-size:.72rem;color:'+(hasBetter?'#78350F':'#166534')+';margin-top:3px">'+aGIcon+' '+esc(aGuard)+' · Score <b>'+aScore.toFixed(3)+'</b></div>'
+        +'<div style="font-size:.68rem;color:#6B7280;margin-top:2px">RFD '+(aRfd!=null?aRfd+'d':'—')+' · '+(aKm!=null?aKm+' km/d':'—')+'</div>'
+        +'</div>';
+      html+='<div style="background:'+(hasBetter?'rgba(22,163,74,.08)':'rgba(0,0,0,.04)')+';border:'+(hasBetter?'1px solid rgba(22,163,74,.22)':'none')+';border-radius:8px;padding:10px 12px">'
+        +'<div style="font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:'+(hasBetter?'#166534':'#6B7280')+';margin-bottom:5px">'+(hasBetter?'Better Available':'Pipeline Best')+'</div>'
+        +'<div style="font-size:.92rem;font-weight:800;color:'+(hasBetter?'#14532D':'#374151')+'">'+esc(rec.reg_number||'—')+'</div>'
+        +'<div style="font-size:.72rem;color:'+(hasBetter?'#166534':'#6B7280')+';margin-top:3px">'+recGuardIcon+' '+esc(flag)+' · Score <b>'+recScore.toFixed(3)+'</b> · Rank #'+esc(rec.deploy_rank||'—')+'</div>'
+        +'<div style="font-size:.68rem;color:#6B7280;margin-top:2px">RFD '+esc(rec.rfd_age_days)+'d · '+esc(rec.avg_km_day)+' km/d</div>'
+        +'</div>';
+      html+='</div></div>';
+
+    } else {
+      // No score data — just show the allocated bike card
+      html+='<div style="background:#EFF6FF;border:1.5px solid #BFDBFE;border-radius:12px;padding:14px 18px;margin-bottom:16px">'
+        +'<div style="font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#1D4ED8;margin-bottom:6px">🔗 Allocated Bike</div>'
+        +'<div style="font-size:1rem;font-weight:800;color:#1E3A8A">'+esc(assignedReg)+'</div>'
+        +'<div style="font-size:.75rem;color:#3B82F6;margin-top:4px">'
+          +(aRfd!=null?'RFD '+aRfd+'d':'')
+          +((aRfd!=null&&aKm!=null)?' · ':'')
+          +(aKm!=null?aKm+' km/d':'')
+          +(aOdo!=null?' · ODO '+parseInt(aOdo).toLocaleString('en-IN')+' km':'')
+        +'</div>'
+        +(rec?'<div style="font-size:.68rem;color:#93C5FD;margin-top:4px">Load Pipeline tab for score comparison</div>':'')
+        +'</div>';
     }
-    html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:4px">';
-    // Allocated bike
-    html+='<div style="background:'+(hasBetter?'rgba(0,0,0,.04)':'rgba(22,163,74,.06)')+';border-radius:8px;padding:10px 12px">'
-      +'<div style="font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:'+(hasBetter?'#92400E':'#166534')+';margin-bottom:5px">Allocated</div>'
-      +'<div style="font-size:.9rem;font-weight:800;color:'+(hasBetter?'#451A03':'#14532D')+'">'+esc(assignedReg)+'</div>'
-      +'<div style="font-size:.72rem;color:'+(hasBetter?'#78350F':'#166534')+';margin-top:3px">'+aGIcon+' '+esc(aGuard)+' · Score <b>'+aScore.toFixed(3)+'</b></div>'
-      +'<div style="font-size:.68rem;color:#6B7280;margin-top:2px">RFD '+esc(approxScore.rfd_age_days)+'d · '+esc(approxScore.avg_km_day)+' km/d</div>'
-      +'</div>';
-    // Pipeline best
-    html+='<div style="background:'+(hasBetter?'rgba(22,163,74,.08)':'rgba(0,0,0,.04)')+';border:'+(hasBetter?'1px solid rgba(22,163,74,.2)':'none')+';border-radius:8px;padding:10px 12px">'
-      +'<div style="font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:'+(hasBetter?'#166534':'#6B7280')+';margin-bottom:5px">'+(hasBetter?'Better Available':'Pipeline Best')+'</div>'
-      +'<div style="font-size:.9rem;font-weight:800;color:'+(hasBetter?'#14532D':'#374151')+'">'+esc(rec.reg_number||'—')+'</div>'
-      +'<div style="font-size:.72rem;color:'+(hasBetter?'#166534':'#6B7280')+';margin-top:3px">'+recGuardIcon+' '+esc(flag)+' · Score <b>'+recScore.toFixed(3)+'</b> · Rank #'+esc(rec.deploy_rank||'—')+'</div>'
-      +'<div style="font-size:.68rem;color:#6B7280;margin-top:2px">RFD '+esc(rec.rfd_age_days)+'d · '+esc(rec.avg_km_day)+' km/d</div>'
-      +'</div>';
-    html+='</div></div>';
   }
 
   // ── 3. Recommended bike card
