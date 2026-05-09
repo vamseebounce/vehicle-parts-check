@@ -150,7 +150,7 @@ body.pinned #main{margin-left:var(--sb-width)}
 
 .work-cell{display:flex;flex-direction:column;gap:4px}
 .work-items{font-size:.78rem;color:#374151;line-height:1.5}
-.parts-chip{display:inline-flex;align-items:center;gap:3px;background:#EDE9FE;color:#7C3AED;border-radius:6px;padding:2px 7px;font-size:.65rem;font-weight:700;width:fit-content}
+.parts-chip{display:inline-flex;align-items:center;gap:3px;background:#EDE9FE;color:#7C3AED;border-radius:6px;padding:2px 7px;font-size:.65rem;font-weight:700;max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:default}
 .no-work-chip{color:#CBD5E1;font-size:.78rem;font-style:italic}
 .hi{background:#FEF9C3;border-radius:2px;padding:0 1px}
 
@@ -331,6 +331,7 @@ body.pinned #main{margin-left:var(--sb-width)}
 
       <div class="filter-divider"></div>
       <button id="partsToggle" class="parts-toggle" onclick="toggleParts()">📦 Parts Only</button>
+      <button id="labourToggle" class="parts-toggle" onclick="toggleLabour()">🔧 Labour Only</button>
 
       <button class="filter-clear" onclick="clearFilters()">✕ Clear</button>
       <span class="filter-result-count" id="filter-count"></span>
@@ -376,6 +377,7 @@ var allData=[];
 var currentData=[];
 var selectedHubs=new Set();
 var partsOnly=false;
+var labourOnly=false;
 var sortCol='oos_since';
 var sortDir='asc';
 
@@ -530,14 +532,16 @@ async function loadQueue(){
 }
 
 function toggleParts(){partsOnly=!partsOnly;document.getElementById('partsToggle').classList.toggle('on',partsOnly);renderContent();}
+function toggleLabour(){labourOnly=!labourOnly;document.getElementById('labourToggle').classList.toggle('on',labourOnly);renderContent();}
 
 function clearFilters(){
-  selectedHubs.clear();partsOnly=false;
+  selectedHubs.clear();partsOnly=false;labourOnly=false;
   document.querySelectorAll('#hubCbs input[type=checkbox]').forEach(function(c){c.checked=false;});
   syncHubBtn();
   document.getElementById('workFilter').value='';
   document.getElementById('regFilter').value='';
   document.getElementById('partsToggle').classList.remove('on');
+  document.getElementById('labourToggle').classList.remove('on');
   renderContent();
 }
 
@@ -556,6 +560,7 @@ function renderContent(){
   var data=allData.slice();
   if(selectedHubs.size>0)data=data.filter(function(r){return selectedHubs.has(r.hub);});
   if(partsOnly)data=data.filter(function(r){return r.has_parts;});
+  if(labourOnly)data=data.filter(function(r){return r.labour_items&&r.labour_items!=='—';});
   if(workTerms.length)data=data.filter(function(r){var items=(r.labour_items||'').toLowerCase();return workTerms.some(function(t){return items.indexOf(t)>=0;});});
   if(regRaw)data=data.filter(function(r){return (r.reg_number||'').indexOf(regRaw)>=0;});
 
@@ -579,7 +584,7 @@ function renderContent(){
   document.getElementById('h-time').textContent=fv?fmtTime(fm2):'—';
 
   var total=allData.length;
-  var hasFilter=selectedHubs.size>0||workTerms.length||regRaw||partsOnly;
+  var hasFilter=selectedHubs.size>0||workTerms.length||regRaw||partsOnly||labourOnly;
   document.getElementById('filter-count').textContent=hasFilter?fv+' of '+total+' vehicles':'';
 
   currentData=data;
@@ -598,7 +603,13 @@ function renderContent(){
     cumul+=est;
     var hasWork=r.labour_items&&r.labour_items!=='—';
     var workHtml='<div class="work-cell">';
-    if(r.has_parts)workHtml+='<div class="parts-chip">📦 Parts Required</div>';
+    if(r.has_parts){
+      if(r.parts_items){
+        workHtml+='<div class="parts-chip" title="'+r.parts_items.replace(/"/g,'&quot;')+'">📦 '+r.parts_items+'</div>';
+      } else {
+        workHtml+='<div class="parts-chip">📦 Parts Required</div>';
+      }
+    }
     if(hasWork)workHtml+='<div class="work-items">'+highlight(r.labour_items,workTerms)+'</div>';
     else if(!r.has_parts)workHtml+='<div class="no-work-chip">No work logged</div>';
     workHtml+='</div>';
@@ -645,7 +656,7 @@ function downloadCSV(){
   var today=new Date().toISOString().slice(0,10);
   function cc(v){if(v==null)return '';var s=String(v);return(s.indexOf(',')>=0||s.indexOf('"')>=0||s.indexOf('\n')>=0)?'"'+s.replace(/"/g,'""')+'"':s;}
   function cr(arr){return arr.map(cc).join(',');}
-  var lines=[cr(['#','Hub','Vehicle','OOS Since','Age (days)','Planned Work','Has Parts','Est. Time (min)','Est. Time'])];
+  var lines=[cr(['#','Hub','Vehicle','OOS Since','Age (days)','Planned Work','Has Parts','Parts','Est. Time (min)','Est. Time'])];
   currentData.forEach(function(r,i){
     lines.push(cr([
       i+1,
@@ -655,6 +666,7 @@ function downloadCSV(){
       r.days_in_oos||0,
       r.labour_items||'',
       r.has_parts?'Yes':'No',
+      r.parts_items||'',
       estMins(r),
       fmtTime(estMins(r))
     ]));
