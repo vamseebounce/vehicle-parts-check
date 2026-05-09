@@ -208,16 +208,31 @@ body.pinned #main{margin-left:var(--sb-width)}
 .sum-bar{height:100%;border-radius:3px;transition:width .4s ease}
 .sum-count{font-size:.88rem;font-weight:800;color:var(--text);min-width:24px;text-align:right}
 
+/* ── Pipeline stats strip ────────────────────────────────────────── */
+.pipeline-stats{display:flex;gap:10px;padding:12px 16px 0;flex-wrap:wrap}
+.ps-chip{background:#fff;border:1px solid var(--border);border-radius:10px;padding:8px 16px;display:flex;flex-direction:column;align-items:center;min-width:90px;box-shadow:var(--shadow)}
+.ps-val{font-size:1.3rem;font-weight:900;line-height:1}
+.ps-label{font-size:.58rem;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);margin-top:2px}
+
 /* ── Allocate Tab ────────────────────────────────────────────────── */
-.alloc-wrap{max-width:860px;margin:28px auto 48px;padding:0 24px;width:100%}
-.phone-card{background:#fff;border-radius:16px;border:1px solid var(--border);box-shadow:var(--shadow-md);padding:28px}
-.phone-card-title{font-size:1rem;font-weight:800;margin-bottom:6px}
-.phone-card-sub{font-size:.78rem;color:var(--muted);margin-bottom:20px;line-height:1.6}
-.phone-row{display:flex;gap:10px;align-items:flex-start}
-.phone-input{flex:1;padding:12px 16px;border:2px solid var(--border);border-radius:12px;font-size:.95rem;font-family:inherit;color:var(--text);outline:none;transition:border-color .15s;letter-spacing:.5px}
-.phone-input:focus{border-color:var(--brand)}
-.phone-input.err{border-color:var(--star)}
-.phone-hint{font-size:.72rem;color:var(--muted);margin-top:6px}
+.alloc-controls{display:flex;gap:10px;padding:16px 16px 12px;align-items:center;flex-wrap:wrap}
+.alloc-search-input{flex:1;min-width:180px;padding:9px 14px;border:1.5px solid var(--border);border-radius:10px;font-size:.82rem;font-family:inherit;color:var(--text);outline:none;transition:border-color .15s}
+.alloc-search-input:focus{border-color:#94A3B8}
+.alloc-list-wrap{max-width:1200px;margin:0 16px 8px;overflow-x:auto}
+.alloc-table{width:100%;border-collapse:collapse;background:#fff;border-radius:12px;overflow:hidden;box-shadow:var(--shadow-md);border:1px solid var(--border)}
+.alloc-table th{background:#F8FAFC;padding:9px 12px;text-align:left;font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:#94A3B8;border-bottom:1px solid #F1F5F9;white-space:nowrap}
+.alloc-table td{padding:10px 12px;font-size:.8rem;color:var(--text);border-bottom:1px solid #F8FAFC;vertical-align:middle}
+.alloc-table tr:last-child td{border-bottom:none}
+.alloc-table tr:hover td{background:#F8FAFC;cursor:pointer}
+.alloc-table tr.active-row td{background:#EFF6FF}
+.ac-name{font-weight:700;color:#0F172A}
+.ac-phone{font-size:.72rem;color:var(--muted)}
+.ac-badge{display:inline-block;padding:2px 7px;border-radius:6px;font-size:.63rem;font-weight:700}
+.ac-badge.elite{background:#F5F3FF;color:#7C3AED}
+.ac-badge.prime{background:#EFF6FF;color:#0369A1}
+.ac-badge.standard{background:#F0FDF4;color:#059669}
+.ac-bike{font-family:monospace;font-size:.78rem;font-weight:600;color:#0F172A}
+.ac-nobike{color:#CBD5E1;font-size:.75rem;font-style:italic}
 .err-box{background:var(--star-bg);border:1px solid #FECACA;border-radius:12px;padding:14px 18px;margin:20px 0;font-size:.8rem;color:var(--star)}
 .result-section{margin-top:28px;display:none}
 .result-section.show{display:block}
@@ -262,6 +277,7 @@ body.pinned #main{margin-left:var(--sb-width)}
 .fb-area{width:100%;border:1.5px solid var(--border);border-radius:8px;padding:8px 10px;font-size:.78rem;font-family:inherit;color:var(--text);resize:none;outline:none}
 .fb-submit{background:var(--text);color:#fff;border:none;border-radius:8px;padding:7px 14px;font-size:.75rem;font-weight:700;font-family:inherit;cursor:pointer;align-self:flex-end}
 
+body.pinned #hbg{display:none}
 @media(max-width:767px){body.pinned #main{margin-left:0}body.pinned #sb{transform:translateX(0)}.pin-btn{display:none}}
 @media(max-width:600px){.rec-metrics{grid-template-columns:repeat(2,1fr)}.kb-col{min-width:200px;width:200px}}
 </style>
@@ -350,7 +366,6 @@ body.pinned #main{margin-left:var(--sb-width)}
     <div class="tabs-bar">
       <button class="tab-btn active" onclick="switchTab('queue')">📊 Pipeline</button>
       <button class="tab-btn" onclick="switchTab('allocate')">🔍 Allocate by Phone</button>
-      <button class="tab-btn" onclick="switchTab('summary')">📈 Summary</button>
     </div>
   </div>
 
@@ -363,6 +378,7 @@ body.pinned #main{margin-left:var(--sb-width)}
       <button class="ctl-btn secondary" onclick="loadQueue()" id="refresh-btn">↻ Refresh</button>
       <span class="ctl-meta" id="queue-meta"></span>
     </div>
+    <div class="pipeline-stats" id="pipeline-stats" style="display:none"></div>
     <div class="kanban-board" id="kanban-board">
       <div class="state-box"><div class="icon">🏭</div><p>Select a hub above to view the pipeline.</p></div>
     </div>
@@ -370,26 +386,16 @@ body.pinned #main{margin-left:var(--sb-width)}
 
   <!-- TAB: ALLOCATE -->
   <div id="tab-allocate" class="tab-panel">
-    <div class="alloc-wrap">
-      <div class="phone-card">
-        <div class="phone-card-title">Customer Lookup</div>
-        <div class="phone-card-sub">Enter the customer's phone number to find their pending booking and get a bike allocation recommendation.</div>
-        <div class="phone-row">
-          <input id="phone-input" class="phone-input" type="tel" placeholder="e.g. 9876543210" maxlength="13" onkeydown="if(event.key==='Enter')lookupCustomer()"/>
-          <button class="ctl-btn" onclick="lookupCustomer()" id="lookup-btn"><span>Search</span></button>
-        </div>
-        <div class="phone-hint">Enter 10-digit mobile number. Customer must have an active confirmed booking.</div>
-        <div id="alloc-err" class="err-box" style="display:none"></div>
-      </div>
-      <div id="alloc-result" class="result-section"></div>
+    <div class="alloc-controls">
+      <select id="alloc-hub-select" class="ctl-select" onchange="loadAllocList()">
+        <option value="">Select a hub…</option>
+      </select>
+      <input id="alloc-search" class="alloc-search-input" type="text" placeholder="Search name or phone…" oninput="filterAllocList()"/>
     </div>
-  </div>
-
-  <!-- TAB: SUMMARY -->
-  <div id="tab-summary" class="tab-panel">
-    <div class="summary-wrap" id="summary-content">
-      <div class="state-box"><div class="icon">📈</div><p>Select a hub in the Pipeline tab to view hub summary.</p></div>
+    <div id="alloc-list-wrap">
+      <div class="state-box"><div class="icon">🔍</div><p>Select a hub to view pending customers.</p></div>
     </div>
+    <div id="alloc-result" class="result-section"></div>
   </div>
 
   <!-- Detail Modal -->
@@ -422,6 +428,7 @@ var sbClient = supabase.createClient(SB_URL, ANON_KEY, {auth:{persistSession:tru
 // Global queue data (used by Summary tab)
 var LAST_QUEUE_DATA = null;
 var LAST_QUEUE_HUB  = '';
+var ALLOC_DATA      = [];
 
 /* ── Auth ─────────────────────────────────────────────────────────── */
 function showAuthScreen(){document.getElementById('auth-screen').classList.remove('hidden');showForm();}
@@ -511,12 +518,11 @@ document.getElementById('ov').addEventListener('click',closeSidebar);
 applyPin();
 
 /* ── Tabs ────────────────────────────────────────────────────────── */
-var TAB_IDS=['queue','allocate','summary'];
+var TAB_IDS=['queue','allocate'];
 function switchTab(name){
   document.querySelectorAll('.tab-btn').forEach(function(b,i){b.classList.toggle('active',TAB_IDS[i]===name);});
   document.querySelectorAll('.tab-panel').forEach(function(p){p.classList.remove('active');});
   document.getElementById('tab-'+name).classList.add('active');
-  if(name==='summary')renderSummaryIfReady();
 }
 
 /* ── Data helpers ────────────────────────────────────────────────── */
@@ -546,11 +552,16 @@ function modelTag(type){
 /* ── Load hubs ───────────────────────────────────────────────────── */
 function loadHubs(){
   var sel=document.getElementById('hub-select');
+  var sel2=document.getElementById('alloc-hub-select');
   sbGet('deployment_queue_cache','select=hub_name&order=hub_name')
     .then(function(data){
       var seen={};
       data.forEach(function(r){
-        if(r.hub_name&&!seen[r.hub_name]){seen[r.hub_name]=true;var o=document.createElement('option');o.value=r.hub_name;o.textContent=r.hub_name;sel.appendChild(o);}
+        if(r.hub_name&&!seen[r.hub_name]){
+          seen[r.hub_name]=true;
+          var o=document.createElement('option');o.value=r.hub_name;o.textContent=r.hub_name;sel.appendChild(o);
+          var o2=document.createElement('option');o2.value=r.hub_name;o2.textContent=r.hub_name;sel2.appendChild(o2);
+        }
       });
       var last=localStorage.getItem('last_hub');
       if(last){sel.value=last;if(sel.value)loadQueue();}
@@ -562,9 +573,9 @@ function loadHubs(){
 // LS: all tiers merged; for LS bikes the "Elite" band is treated as Prime (no Elite tier for LS)
 var COLUMNS=[
   {
-    id:'ls', label:'Low Speed', sub:'All tiers · LS', cls:'ls',
-    filter:function(b){return modelType(b.model_name)==='ls';},
-    showModelTag:false, showTierBadge:true   // show Prime/Standard badge per card
+    id:'ls', label:'Low Speed', sub:'Standard · >3k km · LS', cls:'ls',
+    filter:function(b){return b.tier==='Standard'&&modelType(b.model_name)==='ls';},
+    showModelTag:false, showTierBadge:false
   },
   {
     id:'hs', label:'High Speed', sub:'Standard · e1+x', cls:'hs',
@@ -577,13 +588,13 @@ var COLUMNS=[
     showModelTag:false, showTierBadge:false
   },
   {
-    id:'prime', label:'Prime', sub:'200–3,000 km · HS+HSP', cls:'prime',
-    filter:function(b){return b.tier==='Prime'&&modelType(b.model_name)!=='ls';},
-    showModelTag:true, showTierBadge:false   // show HS/HSP model tag
+    id:'prime', label:'Prime', sub:'0–3k km LS · 200–3k km HS+HSP', cls:'prime',
+    filter:function(b){return b.tier==='Prime';},
+    showModelTag:true, showTierBadge:false   // show model tag since mixed LS+HS+HSP
   },
   {
     id:'elite', label:'Elite', sub:'0–200 km · HS+HSP', cls:'elite',
-    filter:function(b){return b.tier==='Elite'&&modelType(b.model_name)!=='ls';},
+    filter:function(b){return b.tier==='Elite';},
     showModelTag:true, showTierBadge:false
   },
 ];
@@ -610,12 +621,9 @@ function loadQueue(){
     }
     var ts=data[0]&&data[0].refreshed_at?new Date(data[0].refreshed_at).toLocaleString('en-IN',{timeZone:'Asia/Kolkata',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):'';
     document.getElementById('queue-meta').textContent=ts?'Synced '+ts:'';
-    // Store for Summary tab
+    // Store for Summary / stats
     LAST_QUEUE_DATA=data;LAST_QUEUE_HUB=hub;
     renderKanban(data,board);
-    // Refresh summary if it's active
-    var sumPanel=document.getElementById('tab-summary');
-    if(sumPanel&&sumPanel.classList.contains('active'))renderSummaryIfReady();
   }).catch(function(err){
     document.getElementById('refresh-btn').disabled=false;
     board.innerHTML='<div class="state-box"><div class="icon">⚠️</div><p>Error: '+esc(err.message)+'</p></div>';
@@ -668,6 +676,23 @@ function renderKanban(data,board){
     html+='</div></div>';
   });
   board.innerHTML=html;
+
+  // Pipeline stats strip
+  var total=data.length;
+  var starv=data.filter(function(b){return b.guardrail==='STARVATION';}).length;
+  var over=data.filter(function(b){return b.guardrail==='OVERUSE';}).length;
+  var rfdSum=data.reduce(function(s,b){return s+(b.rfd_age_days||0);},0);
+  var avgRfd=total?Math.round(rfdSum/total):0;
+  var statsEl=document.getElementById('pipeline-stats');
+  statsEl.innerHTML=
+    psChip(total,'Total RFD','var(--text)')+
+    psChip(starv,'Starvation','#DC2626')+
+    psChip(over,'Overuse','#D97706')+
+    psChip(avgRfd+'d','Avg RFD Age','var(--text)');
+  statsEl.style.display='flex';
+}
+function psChip(val,label,color){
+  return'<div class="ps-chip"><div class="ps-val" style="color:'+color+'">'+val+'</div><div class="ps-label">'+label+'</div></div>';
 }
 
 /* ── Detail modal ────────────────────────────────────────────────── */
@@ -720,108 +745,6 @@ function dsCell(label,val,big){
 function closeDetail(){document.getElementById('detail-modal').classList.remove('show');}
 document.addEventListener('keydown',function(e){if(e.key==='Escape')closeDetail();});
 
-/* ── Summary Tab ─────────────────────────────────────────────────── */
-function renderSummaryIfReady(){
-  var el=document.getElementById('summary-content');
-  if(!LAST_QUEUE_DATA||!LAST_QUEUE_DATA.length){
-    el.innerHTML='<div class="state-box"><div class="icon">📈</div><p>Select a hub in the Pipeline tab to view hub summary.</p></div>';
-    return;
-  }
-  renderSummary(LAST_QUEUE_DATA,LAST_QUEUE_HUB,el);
-}
-
-function renderSummary(data,hub,el){
-  var total=data.length;
-  var starv=data.filter(function(b){return b.guardrail==='STARVATION';}).length;
-  var over=data.filter(function(b){return b.guardrail==='OVERUSE';}).length;
-  var ok=total-starv-over;
-  var rfdSum=data.reduce(function(s,b){return s+(b.rfd_age_days||0);},0);
-  var avgRfd=total?Math.round(rfdSum/total):0;
-
-  // Tier breakdown (LS Elite → Prime for LS)
-  var eliteCount=data.filter(function(b){return b.tier==='Elite'&&modelType(b.model_name)!=='ls';}).length;
-  var primeCount=data.filter(function(b){
-    return b.tier==='Prime'||(b.tier==='Elite'&&modelType(b.model_name)==='ls');
-  }).length;
-  var stdCount=data.filter(function(b){return b.tier==='Standard';}).length;
-
-  // Model type breakdown
-  var lsCount=data.filter(function(b){return modelType(b.model_name)==='ls';}).length;
-  var hsCount=data.filter(function(b){return modelType(b.model_name)==='hs';}).length;
-  var hspCount=data.filter(function(b){return modelType(b.model_name)==='hsp';}).length;
-
-  // Top 5 by allotment score
-  var top5=data.slice().sort(function(a,b){return(parseFloat(b.allotment_score)||0)-(parseFloat(a.allotment_score)||0);}).slice(0,5);
-
-  var html='<div class="summary-hub-label">'+esc(hub)+'</div>';
-
-  // Hero row
-  html+='<div class="summary-hero">';
-  html+=heroCard(total,'Total RFD','var(--text)');
-  html+=heroCard(starv,'Starvation','#DC2626');
-  html+=heroCard(over,'Overuse','#D97706');
-  html+=heroCard(avgRfd+'d','Avg RFD Age','var(--text)');
-  html+='</div>';
-
-  // 2×2 grid
-  html+='<div class="summary-grid">';
-
-  // Tier breakdown
-  html+='<div class="summary-card"><div class="summary-card-title">By Tier</div>';
-  html+=sumRow('Elite',eliteCount,total,'#7C3AED');
-  html+=sumRow('Prime',primeCount,total,'#0369A1');
-  html+=sumRow('Standard',stdCount,total,'#059669');
-  html+='</div>';
-
-  // Model breakdown
-  html+='<div class="summary-card"><div class="summary-card-title">By Model Type</div>';
-  html+=sumRow('Low Speed',lsCount,total,'#059669');
-  html+=sumRow('High Speed',hsCount,total,'#D97706');
-  html+=sumRow('HS Pro',hspCount,total,'#DC2626');
-  html+='</div>';
-
-  // Flag breakdown
-  html+='<div class="summary-card"><div class="summary-card-title">Deployment Flags</div>';
-  html+=sumRow('OK',ok,total,'#16A34A');
-  html+=sumRow('Overuse',over,total,'#D97706');
-  html+=sumRow('Starvation',starv,total,'#DC2626');
-  html+='</div>';
-
-  // Top 5 by score
-  html+='<div class="summary-card"><div class="summary-card-title">Top 5 by Allotment Score</div>';
-  if(!top5.length){
-    html+='<div style="font-size:.78rem;color:var(--muted);padding:8px 0">No data</div>';
-  }else{
-    var mtColors={ls:'var(--ls)',hs:'var(--hs)',hsp:'var(--hsp)'};
-    top5.forEach(function(b){
-      var mt=modelType(b.model_name);
-      html+='<div class="sum-row">'
-        +'<span class="sum-label"><span class="sum-dot" style="background:'+mtColors[mt]+'"></span>'+esc(b.reg_number||'—')+'</span>'
-        +'<div class="sum-bar-wrap"><div class="sum-bar" style="width:'+(b.allotment_score?Math.round(parseFloat(b.allotment_score)*100):0)+'%;background:var(--brand)"></div></div>'
-        +'<span class="sum-count">'+(b.allotment_score!=null?parseFloat(b.allotment_score).toFixed(3):'—')+'</span>'
-        +'</div>';
-    });
-  }
-  html+='</div>';
-
-  html+='</div>'; // summary-grid
-  el.innerHTML=html;
-}
-
-function heroCard(val,label,color){
-  return'<div class="hero-card">'
-    +'<div class="hero-val" style="color:'+color+'">'+val+'</div>'
-    +'<div class="hero-label">'+label+'</div>'
-    +'</div>';
-}
-function sumRow(label,count,total,color){
-  var pct=total?Math.round(count/total*100):0;
-  return'<div class="sum-row">'
-    +'<span class="sum-label"><span class="sum-dot" style="background:'+color+'"></span>'+label+'</span>'
-    +'<div class="sum-bar-wrap"><div class="sum-bar" style="width:'+pct+'%;background:'+color+'"></div></div>'
-    +'<span class="sum-count">'+count+'</span>'
-    +'</div>';
-}
 
 /* ── Tier computation (model-aware, mirrors SQL logic) ───────────── */
 function computeBikeTier(modelName,odo){
@@ -865,61 +788,101 @@ function computeApproxScore(cust,groupBikes){
 }
 
 /* ── Allocate tab ────────────────────────────────────────────────── */
-function lookupCustomer(){
-  var raw=document.getElementById('phone-input').value.trim().replace(/\D/g,'');
-  var errBox=document.getElementById('alloc-err');
+function loadAllocList(){
+  var hub=document.getElementById('alloc-hub-select').value;
+  var wrap=document.getElementById('alloc-list-wrap');
   var result=document.getElementById('alloc-result');
-  var btn=document.getElementById('lookup-btn');
-  errBox.style.display='none';result.classList.remove('show');
-  if(!raw||raw.length<10){errBox.textContent='Please enter a valid 10-digit phone number.';errBox.style.display='block';document.getElementById('phone-input').classList.add('err');return;}
-  document.getElementById('phone-input').classList.remove('err');
-  btn.disabled=true;btn.querySelector('span').textContent='Searching…';
+  result.classList.remove('show');ALLOC_DATA=[];
+  if(!hub){wrap.innerHTML='<div class="state-box"><div class="icon">🔍</div><p>Select a hub to view pending customers.</p></div>';return;}
+  wrap.innerHTML='<div class="state-box"><div class="spinner"></div><p>Loading customers…</p></div>';
+  sbGet('pending_bookings_cache','hub_name=eq.'+encodeURIComponent(hub)+'&order=full_name.asc&limit=500')
+    .then(function(data){ALLOC_DATA=data||[];renderAllocList(ALLOC_DATA);})
+    .catch(function(err){wrap.innerHTML='<div class="state-box"><div class="icon">⚠️</div><p>Error: '+esc(err.message)+'</p></div>';});
+}
 
-  sbGet('pending_bookings_cache','phone_number=eq.'+encodeURIComponent(raw)+'&limit=1')
-    .then(function(data){
-      if(!Array.isArray(data)||data.length===0)throw new Error('NO_BOOKING');
-      var cust=data[0];
-      var isFirst=cust.completed_count===0;
-      var bikeParams=isFirst
-        ?'hub_name=eq.'+encodeURIComponent(cust.hub_name)+'&tier=eq.Standard&order=current_odo_km.asc.nullslast&limit=3'
-        :'hub_name=eq.'+encodeURIComponent(cust.hub_name)+'&bike_model_id=eq.'+cust.bike_model_id+'&tier=eq.'+encodeURIComponent(cust.tier)+'&order=sort_group.asc,allotment_score.desc.nullslast&limit=3';
-      var hub=encodeURIComponent(cust.hub_name),model=cust.bike_model_id,tier=encodeURIComponent(cust.tier);
-      function tryBikes(params,note){
-        return sbGet('deployment_queue_cache',params).then(function(bikes){
-          if(!bikes||!bikes.length)return null;
-          return{bikes:bikes,note:note};
+function filterAllocList(){
+  var q=document.getElementById('alloc-search').value.trim().toLowerCase();
+  if(!q){renderAllocList(ALLOC_DATA);return;}
+  renderAllocList(ALLOC_DATA.filter(function(c){
+    return(c.full_name||'').toLowerCase().includes(q)||(c.phone_number||'').includes(q);
+  }));
+}
+
+function renderAllocList(data){
+  var wrap=document.getElementById('alloc-list-wrap');
+  if(!data||!data.length){
+    wrap.innerHTML='<div class="state-box"><div class="icon">👤</div><p>No pending customers found.</p></div>';
+    return;
+  }
+  var html='<div class="alloc-list-wrap"><table class="alloc-table"><thead><tr>'
+    +'<th>#</th><th>Name</th><th>Phone</th><th>Model</th><th>Tier</th><th>Blocked Bike</th><th></th>'
+    +'</tr></thead><tbody>';
+  data.forEach(function(c,i){
+    var tier=c.tier||'—';
+    var tierCls=tier.toLowerCase();
+    var bikeCell=c.assigned_bike_id
+      ?'<span class="ac-bike">'+esc(c.assigned_reg||('ID '+c.assigned_bike_id))+'</span>'
+      :'<span class="ac-nobike">None assigned</span>';
+    html+='<tr onclick="selectAllocRow(this,'+i+')" data-idx="'+i+'">'
+      +'<td style="color:var(--muted);font-size:.72rem">'+(i+1)+'</td>'
+      +'<td><div class="ac-name">'+esc(c.full_name||'—')+'</div></td>'
+      +'<td><div class="ac-phone">'+esc(c.phone_number||'—')+'</div></td>'
+      +'<td style="font-size:.78rem">'+esc(c.booked_model||'—')+'</td>'
+      +'<td><span class="ac-badge '+tierCls+'">'+esc(tier)+'</span></td>'
+      +'<td>'+bikeCell+'</td>'
+      +'<td style="text-align:right;color:var(--muted);font-size:.8rem">→</td>'
+      +'</tr>';
+  });
+  html+='</tbody></table></div>';
+  wrap.innerHTML=html;
+}
+
+function selectAllocRow(row,idx){
+  document.querySelectorAll('#alloc-list-wrap tr').forEach(function(r){r.classList.remove('active-row');});
+  row.classList.add('active-row');
+  // Resolve against current filtered set
+  var q=document.getElementById('alloc-search').value.trim().toLowerCase();
+  var data=q?ALLOC_DATA.filter(function(c){return(c.full_name||'').toLowerCase().includes(q)||(c.phone_number||'').includes(q);}):ALLOC_DATA;
+  var cust=data[idx];
+  if(cust)lookupAndRenderCustomer(cust);
+}
+
+function lookupAndRenderCustomer(cust){
+  var result=document.getElementById('alloc-result');
+  result.innerHTML='<div style="padding:28px;text-align:center"><div class="spinner"></div></div>';
+  result.classList.add('show');
+  var hub=encodeURIComponent(cust.hub_name);
+  var model=cust.bike_model_id;
+  var tier=encodeURIComponent(cust.tier);
+  var isFirst=cust.completed_count===0;
+  var bikeParams=isFirst
+    ?'hub_name=eq.'+hub+'&tier=eq.Standard&order=current_odo_km.asc.nullslast&limit=3'
+    :'hub_name=eq.'+hub+'&bike_model_id=eq.'+model+'&tier=eq.'+tier+'&order=sort_group.asc,allotment_score.desc.nullslast&limit=3';
+  function tryBikes(params,note){
+    return sbGet('deployment_queue_cache',params).then(function(bikes){
+      if(!bikes||!bikes.length)return null;
+      return{bikes:bikes,note:note};
+    });
+  }
+  Promise.resolve()
+    .then(function(){return tryBikes(bikeParams,'Exact match');})
+    .then(function(r){if(r)return r;return tryBikes('hub_name=eq.'+hub+'&bike_model_id=eq.'+model+'&order=sort_group.asc,allotment_score.desc.nullslast&limit=3','Any tier match');})
+    .then(function(r){if(r)return r;return tryBikes('hub_name=eq.'+hub+'&order=sort_group.asc,allotment_score.desc.nullslast&limit=3','Any available bike');})
+    .then(function(r){
+      var bikes=r?r.bikes:[];
+      var note=r?r.note:'No bikes found';
+      var approxScore=null;
+      if(cust.assigned_bike_id&&cust.assigned_rfd_age_days!=null){
+        var assignedTier=computeBikeTier(cust.assigned_model,cust.assigned_odo_km);
+        var groupBikes=(LAST_QUEUE_DATA||[]).filter(function(b){
+          return b.bike_model_id==cust.assigned_bike_model_id&&b.tier===assignedTier;
         });
+        approxScore=computeApproxScore(cust,groupBikes);
       }
-      return Promise.resolve()
-        .then(function(){return tryBikes(bikeParams,'Exact match');})
-        .then(function(r){if(r)return r;return tryBikes('hub_name=eq.'+hub+'&bike_model_id=eq.'+model+'&order=sort_group.asc,allotment_score.desc.nullslast&limit=3','Any tier match');})
-        .then(function(r){if(r)return r;return tryBikes('hub_name=eq.'+hub+'&order=sort_group.asc,allotment_score.desc.nullslast&limit=3','Any available bike');})
-        .then(function(r){
-          var bikes=r?r.bikes:[];
-          var note=r?r.note:'No bikes found';
-          // Compute approx score for assigned bike using pre-fetched metrics
-          var approxScore=null;
-          if(cust.assigned_bike_id&&cust.assigned_rfd_age_days!=null){
-            var assignedTier=computeBikeTier(cust.assigned_model,cust.assigned_odo_km);
-            var assignedModelId=cust.assigned_bike_model_id;
-            var groupBikes=(LAST_QUEUE_DATA||[]).filter(function(b){
-              return b.bike_model_id==assignedModelId&&b.tier===assignedTier;
-            });
-            approxScore=computeApproxScore(cust,groupBikes);
-          }
-          return{cust:cust,bikes:bikes,note:note,approxScore:approxScore};
-        });
-    })
-    .then(function(res){
-      btn.disabled=false;btn.querySelector('span').textContent='Search';
-      renderAllocResult(res.cust,res.bikes,res.note,res.approxScore);
+      renderAllocResult(cust,bikes,note,approxScore);
     })
     .catch(function(err){
-      btn.disabled=false;btn.querySelector('span').textContent='Search';
-      var errBox=document.getElementById('alloc-err');
-      if(err.message==='NO_BOOKING'){errBox.textContent='No active pending booking found for this number.';}
-      else{errBox.textContent='Error: '+err.message;}
-      errBox.style.display='block';
+      result.innerHTML='<div class="err-box">Error: '+esc(err.message)+'</div>';
     });
 }
 
