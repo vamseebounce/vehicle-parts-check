@@ -48,6 +48,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
 #sb.open{transform:translateX(0)}
 body.pinned #sb{transform:translateX(0)}
 body.pinned #main{margin-left:var(--sb-width)}
+body.pinned #hbg{display:none}
 .sb-header{padding:20px 16px 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,.06)}
 .sb-brand{display:flex;align-items:center;gap:10px;text-decoration:none}
 @keyframes morph{0%,100%{border-radius:60% 40% 55% 45%/50% 60% 40% 50%}33%{border-radius:40% 60% 45% 55%/60% 40% 60% 40%}66%{border-radius:55% 45% 60% 40%/40% 55% 45% 60%}}
@@ -208,7 +209,7 @@ body.pinned #main{margin-left:var(--sb-width)}
 .fb-submit{background:var(--text);color:#fff;border:none;border-radius:8px;padding:7px 14px;font-size:.75rem;font-weight:700;font-family:inherit;cursor:pointer;align-self:flex-end;transition:background .15s}
 .fb-submit:hover{background:#374151}
 
-.site-footer{background:var(--sb-bg);color:rgba(255,255,255,.6);padding:40px 20px 32px;text-align:center;margin-top:auto}
+.site-footer{background:var(--sb-bg);color:rgba(255,255,255,.6);padding:20px 20px 16px;text-align:center;margin-top:auto}
 .footer-brand{display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:16px}
 .footer-brand-text{font-size:.95rem;font-weight:800;color:#fff}
 .footer-taglines p{font-size:.82rem;color:rgba(255,255,255,.5);line-height:1.9}
@@ -513,8 +514,8 @@ document.addEventListener('click',function(e){
 // ── Load ──────────────────────────────────────────────────────────────
 async function loadQueue(){
   try{
-    var res=await fetch(SB_URL+'/rest/v1/oos_work_queue?select=*&order=hub.asc,queue_position.asc',
-      {headers:{apikey:ANON_KEY,Authorization:'Bearer '+K}});
+    var res=await fetch(SB_URL+'/rest/v1/oos_work_queue?select=*&order=hub.asc,queue_position.asc&limit=10000',
+      {headers:{apikey:ANON_KEY,Authorization:'Bearer '+K,'Range':'0-9999'}});
     if(!res.ok)throw new Error('HTTP '+res.status);
     allData=await res.json();
     if(allData.length>0&&allData[0].synced_at){
@@ -531,8 +532,18 @@ async function loadQueue(){
   renderContent();
 }
 
-function toggleParts(){partsOnly=!partsOnly;document.getElementById('partsToggle').classList.toggle('on',partsOnly);renderContent();}
-function toggleLabour(){labourOnly=!labourOnly;document.getElementById('labourToggle').classList.toggle('on',labourOnly);renderContent();}
+function toggleParts(){
+  partsOnly=!partsOnly;
+  if(partsOnly){labourOnly=false;document.getElementById('labourToggle').classList.remove('on');}
+  document.getElementById('partsToggle').classList.toggle('on',partsOnly);
+  renderContent();
+}
+function toggleLabour(){
+  labourOnly=!labourOnly;
+  if(labourOnly){partsOnly=false;document.getElementById('partsToggle').classList.remove('on');}
+  document.getElementById('labourToggle').classList.toggle('on',labourOnly);
+  renderContent();
+}
 
 function clearFilters(){
   selectedHubs.clear();partsOnly=false;labourOnly=false;

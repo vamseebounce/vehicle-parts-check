@@ -131,13 +131,15 @@ body.pinned #main{margin-left:var(--sb-width)}
 .tile-err{font-size:.75rem;color:#DC2626}
 
 /* ── Footer ── */
-.site-footer{background:var(--sb-bg);color:rgba(255,255,255,.6);padding:40px 20px 32px;text-align:center;margin-top:auto}
-.footer-brand{display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:16px}
-.footer-brand-text{font-size:.95rem;font-weight:800;color:#fff}
-.footer-taglines{margin-bottom:20px}
-.footer-taglines p{font-size:.82rem;color:rgba(255,255,255,.5);line-height:1.9}
-.footer-taglines p strong{color:rgba(255,255,255,.8);font-weight:600}
-.footer-meta{font-size:.68rem;color:rgba(255,255,255,.25);margin-top:16px;border-top:1px solid rgba(255,255,255,.06);padding-top:16px}
+.site-footer{background:var(--sb-bg);color:rgba(255,255,255,.6);padding:20px 20px 16px;text-align:center;margin-top:auto}
+.footer-brand{display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:6px}
+.footer-brand-text{font-size:.88rem;font-weight:800;color:#fff}
+.footer-taglines{margin-bottom:0}
+.footer-taglines p{font-size:.75rem;color:rgba(255,255,255,.4);line-height:1.7}
+.footer-taglines p strong{color:rgba(255,255,255,.65);font-weight:600}
+.footer-meta{font-size:.62rem;color:rgba(255,255,255,.2);margin-top:10px;border-top:1px solid rgba(255,255,255,.06);padding-top:10px}
+/* Hide hamburger when sidebar is pinned */
+body.pinned #hbg{display:none}
 
 /* Feedback */
 .fb-fab{position:fixed;bottom:24px;right:24px;z-index:1000;background:var(--text);color:#fff;border:none;border-radius:50px;padding:10px 18px;font-size:.78rem;font-weight:700;font-family:inherit;cursor:pointer;box-shadow:0 4px 16px rgba(0,0,0,.18);display:flex;align-items:center;gap:7px;transition:background .15s}
@@ -286,7 +288,7 @@ body.pinned #main{margin-left:var(--sb-width)}
       <a class="tile" href="./maintenance.html">
         <div class="tile-accent" style="background:#E8191C"></div>
         <div class="tile-body">
-          <div class="tile-icon">🔧</div>
+          <div class="tile-icon">🔭</div>
           <div class="tile-title">Preventive Maintenance</div>
           <div class="tile-desc">Component health &amp; service schedule</div>
           <div id="pm-stat" class="tile-stat tile-loading">—</div>
@@ -300,7 +302,7 @@ body.pinned #main{margin-left:var(--sb-width)}
       <a class="tile" href="./queue.html">
         <div class="tile-accent" style="background:#0f2460"></div>
         <div class="tile-body">
-          <div class="tile-icon">📋</div>
+          <div class="tile-icon">🔧</div>
           <div class="tile-title">Pending OOS Vehicles</div>
           <div class="tile-desc">FIFO repair queue by hub</div>
           <div id="oos-stat" class="tile-stat tile-loading">—</div>
@@ -315,25 +317,16 @@ body.pinned #main{margin-left:var(--sb-width)}
         <div class="tile-accent" style="background:linear-gradient(90deg,#7C3AED,#0369A1,#059669)"></div>
         <div class="tile-body" style="flex-direction:row;align-items:center;gap:20px;flex-wrap:wrap">
           <div style="flex:1;min-width:180px">
-            <div class="tile-icon">🚲</div>
+            <div class="tile-icon" style="letter-spacing:-4px;filter:sepia(1) saturate(3) hue-rotate(5deg)">🛵🛵🛵</div>
             <div class="tile-title">Deployment Queue</div>
-            <div class="tile-desc">Allotment scoring · bike pipeline by hub · allocate by phone</div>
-          </div>
-          <div style="display:flex;gap:24px;flex-wrap:wrap">
-            <div style="text-align:center">
-              <div style="font-size:.6rem;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);margin-bottom:3px">Elite</div>
-              <div style="font-size:.65rem;font-weight:700;color:#7C3AED;background:#F5F3FF;border:1px solid #DDD6FE;border-radius:6px;padding:2px 8px">0–200 km</div>
-            </div>
-            <div style="text-align:center">
-              <div style="font-size:.6rem;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);margin-bottom:3px">Prime</div>
-              <div style="font-size:.65rem;font-weight:700;color:#0369A1;background:#EFF6FF;border:1px solid #BFDBFE;border-radius:6px;padding:2px 8px">200–3k km</div>
-            </div>
-            <div style="text-align:center">
-              <div style="font-size:.6rem;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);margin-bottom:3px">Standard</div>
-              <div style="font-size:.65rem;font-weight:700;color:#059669;background:#F0FDF4;border:1px solid #BBF7D0;border-radius:6px;padding:2px 8px">&gt;3k km</div>
+            <div class="tile-desc">Allotment scoring · pipeline by hub · allocate by phone</div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+              <span style="font-size:.65rem;font-weight:700;color:#7C3AED;background:#F5F3FF;border:1px solid #DDD6FE;border-radius:6px;padding:2px 8px">Elite 0–200 km</span>
+              <span style="font-size:.65rem;font-weight:700;color:#0369A1;background:#EFF6FF;border:1px solid #BFDBFE;border-radius:6px;padding:2px 8px">Prime 200–3k km</span>
+              <span style="font-size:.65rem;font-weight:700;color:#059669;background:#F0FDF4;border:1px solid #BBF7D0;border-radius:6px;padding:2px 8px">Standard &gt;3k km</span>
             </div>
           </div>
-          <button class="tile-cta" style="background:#F5F3FF;color:#7C3AED;margin-left:auto">Open →</button>
+          <button class="tile-cta" style="background:#F5F3FF;color:#7C3AED;align-self:center">Open →</button>
         </div>
       </a>
 
