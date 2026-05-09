@@ -188,25 +188,6 @@ body.pinned #main{margin-left:var(--sb-width)}
 @keyframes spin{to{transform:rotate(360deg)}}
 .spinner{display:inline-block;width:24px;height:24px;border:2px solid var(--border);border-top-color:var(--brand);border-radius:50%;animation:spin .7s linear infinite;margin-bottom:12px}
 
-/* ── Summary Tab ─────────────────────────────────────────────────── */
-.summary-wrap{max-width:960px;margin:28px auto 48px;padding:0 24px;width:100%}
-.summary-hub-label{font-size:.75rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:16px}
-.summary-hero{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px}
-@media(max-width:700px){.summary-hero{grid-template-columns:repeat(2,1fr)}}
-.hero-card{background:#fff;border-radius:14px;border:1px solid var(--border);box-shadow:var(--shadow);padding:18px 20px;text-align:center}
-.hero-val{font-size:2.2rem;font-weight:900;color:var(--text);line-height:1}
-.hero-label{font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);margin-top:6px}
-.summary-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
-@media(max-width:700px){.summary-grid{grid-template-columns:1fr}}
-.summary-card{background:#fff;border-radius:14px;border:1px solid var(--border);box-shadow:var(--shadow);padding:18px 20px}
-.summary-card-title{font-size:.65rem;font-weight:800;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);margin-bottom:14px}
-.sum-row{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid #F9FAFB}
-.sum-row:last-child{border-bottom:none}
-.sum-label{display:flex;align-items:center;gap:8px;font-size:.8rem;color:var(--text);font-weight:500;min-width:90px}
-.sum-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
-.sum-bar-wrap{flex:1;height:6px;background:#F3F4F6;border-radius:3px;overflow:hidden}
-.sum-bar{height:100%;border-radius:3px;transition:width .4s ease}
-.sum-count{font-size:.88rem;font-weight:800;color:var(--text);min-width:24px;text-align:right}
 
 /* ── Pipeline stats strip ────────────────────────────────────────── */
 .pipeline-stats{display:flex;gap:10px;padding:14px 20px 0;flex-wrap:wrap;margin-bottom:2px}
@@ -215,10 +196,10 @@ body.pinned #main{margin-left:var(--sb-width)}
 .ps-label{font-size:.58rem;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);margin-top:3px}
 
 /* ── Allocate Tab ────────────────────────────────────────────────── */
-.alloc-controls{display:flex;gap:10px;padding:16px 16px 12px;align-items:center;flex-wrap:wrap}
+.alloc-controls{display:flex;gap:10px;padding:16px 20px 12px;align-items:center;flex-wrap:wrap}
 .alloc-search-input{flex:1;min-width:180px;padding:9px 14px;border:1.5px solid var(--border);border-radius:10px;font-size:.82rem;font-family:inherit;color:var(--text);outline:none;transition:border-color .15s}
 .alloc-search-input:focus{border-color:#94A3B8}
-.alloc-list-wrap{max-width:1200px;margin:0 16px 8px;overflow-x:auto}
+.alloc-list-wrap{max-width:1200px;margin:0 20px 8px;overflow-x:auto}
 .alloc-table{width:100%;border-collapse:collapse;background:#fff;border-radius:12px;overflow:hidden;box-shadow:var(--shadow-md);border:1px solid var(--border)}
 .alloc-table th{background:#F8FAFC;padding:9px 12px;text-align:left;font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:#94A3B8;border-bottom:1px solid #F1F5F9;white-space:nowrap}
 .alloc-table td{padding:10px 12px;font-size:.8rem;color:var(--text);border-bottom:1px solid #F8FAFC;vertical-align:middle}
@@ -234,7 +215,7 @@ body.pinned #main{margin-left:var(--sb-width)}
 .ac-bike{font-family:monospace;font-size:.78rem;font-weight:600;color:#0F172A}
 .ac-nobike{color:#CBD5E1;font-size:.75rem;font-style:italic}
 .err-box{background:var(--star-bg);border:1px solid #FECACA;border-radius:12px;padding:14px 18px;margin:20px 0;font-size:.8rem;color:var(--star)}
-.result-section{margin-top:28px;display:none}
+.result-section{margin-top:20px;padding:0 20px 32px;display:none}
 .result-section.show{display:block}
 .result-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px}
 @media(max-width:680px){.result-grid{grid-template-columns:1fr}}
@@ -760,6 +741,7 @@ function computeApproxScore(cust,groupBikes){
   var rfdAge=cust.assigned_rfd_age_days;
   var avgKm=cust.assigned_avg_km_day||0;
   if(rfdAge==null)return null;
+  if(!groupBikes||!groupBikes.length)return null; // no peer group → score is meaningless
 
   // Reconstruct group including this bike to get max_rfd_age and total_bikes
   var groupRfd=groupBikes.map(function(b){return b.rfd_age_days||0;});
@@ -813,7 +795,7 @@ function renderAllocList(data){
     wrap.innerHTML='<div class="state-box"><div class="icon">👤</div><p>No pending customers found.</p></div>';
     return;
   }
-  var html='<div class="alloc-list-wrap"><table class="alloc-table"><thead><tr>'
+  var html='<table class="alloc-table"><thead><tr>'
     +'<th>#</th><th>Name</th><th>Phone</th><th>Model</th><th>Tier</th><th>Blocked Bike</th><th></th>'
     +'</tr></thead><tbody>';
   var mtShort={ls:'LS',hs:'HS',hsp:'HS Pro'};
@@ -834,7 +816,7 @@ function renderAllocList(data){
       +'<td style="text-align:right;color:var(--muted);font-size:.8rem">→</td>'
       +'</tr>';
   });
-  html+='</tbody></table></div>';
+  html+='</tbody></table>';
   wrap.innerHTML=html;
 }
 
@@ -845,7 +827,14 @@ function selectAllocRow(row,idx){
   var q=document.getElementById('alloc-search').value.trim().toLowerCase();
   var data=q?ALLOC_DATA.filter(function(c){return(c.full_name||'').toLowerCase().includes(q)||(c.phone_number||'').includes(q);}):ALLOC_DATA;
   var cust=data[idx];
-  if(cust)lookupAndRenderCustomer(cust);
+  if(cust){
+    lookupAndRenderCustomer(cust);
+    // Scroll result into view after render
+    setTimeout(function(){
+      var el=document.getElementById('alloc-result');
+      if(el)el.scrollIntoView({behavior:'smooth',block:'start'});
+    },400);
+  }
 }
 
 function lookupAndRenderCustomer(cust){
@@ -909,7 +898,7 @@ function renderAllocResult(cust,bikes,note,approxScore){
   html+='</div>';
   html+='<div class="info-card"><div class="ic-title">Booking</div>';
   var mtShortLabel={ls:'LS',hs:'HS',hsp:'HS Pro'};
-  html+=icRow('Hub',cust.hub_name||'—')+icRow('Model','<span class="bc-tag '+custMT+'" style="font-size:.72rem">'+mtShortLabel[custMT]+'</span>')+icRow('Tier',cust.tier||'—')+icRow('Premium Fee','₹'+(cust.paid_premium_fees||0));
+  html+=icRow('Hub',cust.hub_name||'—')+icRow('Model',mtShortLabel[custMT]||cust.booked_model||'—')+icRow('Tier',cust.tier||'—')+icRow('Premium Fee','₹'+(cust.paid_premium_fees||0));
   html+='</div></div>';
 
   // ── 2. Allocation comparison (if assigned bike + approx score computed)
