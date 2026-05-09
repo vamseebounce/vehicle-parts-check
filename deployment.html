@@ -915,7 +915,7 @@ function renderAllocResult(cust,bikes,note,approxScore){
       var recGuardIcon=flag==='STARVATION'?'🔴':flag==='OVERUSE'?'🟡':'🟢';
       var hasBetter=recScore>aScore;
       html+='<div class="'+(hasBetter?'better-banner':'confirm-banner')+'">';
-      html+='<div style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:'+(hasBetter?'#92400E':'#166534')+';margin-bottom:8px">'+(hasBetter?'⚠️ Better Option in Pipeline':'✅ Allocation Confirmed')+'</div>';
+      html+='<div style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:'+(hasBetter?'#92400E':'#166534')+';margin-bottom:8px">'+(hasBetter?'⚠️ Better Option in Pipeline':'✅ Current Allocation is Fine')+'</div>';
       html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">';
       html+='<div style="background:'+(hasBetter?'rgba(0,0,0,.05)':'rgba(22,163,74,.06)')+';border-radius:8px;padding:10px 12px">'
         +'<div style="font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:'+(hasBetter?'#92400E':'#166534')+';margin-bottom:5px">Allocated</div>'
@@ -927,7 +927,7 @@ function renderAllocResult(cust,bikes,note,approxScore){
         +'<div style="font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:'+(hasBetter?'#166534':'#6B7280')+';margin-bottom:5px">'+(hasBetter?'Better Available':'Pipeline Best')+'</div>'
         +'<div style="font-size:.92rem;font-weight:800;color:'+(hasBetter?'#14532D':'#374151')+'">'+esc(rec.reg_number||'—')+'</div>'
         +'<div style="font-size:.72rem;color:'+(hasBetter?'#166534':'#6B7280')+';margin-top:3px">'+recGuardIcon+' '+esc(flag)+' · Score <b>'+recScore.toFixed(3)+'</b> · Rank #'+esc(rec.deploy_rank||'—')+'</div>'
-        +'<div style="font-size:.68rem;color:#6B7280;margin-top:2px">RFD '+esc(rec.rfd_age_days)+'d · '+esc(rec.avg_km_day)+' km/d</div>'
+        +'<div style="font-size:.68rem;color:#6B7280;margin-top:2px">RFD '+(rec.rfd_age_days!=null?rec.rfd_age_days+'d':'—')+' · '+(rec.avg_km_day!=null?rec.avg_km_day+' km/d':'—')+'</div>'
         +'</div>';
       html+='</div></div>';
 
@@ -947,8 +947,9 @@ function renderAllocResult(cust,bikes,note,approxScore){
     }
   }
 
-  // ── 3. Recommended bike card
-  if(rec){
+  // ── 3. Recommended bike card — only show when comparison strip is NOT already showing
+  var hasComparison=!!(cust.assigned_bike_id&&approxScore&&rec);
+  if(!hasComparison&&rec){
     var scoreColor=flag==='STARVATION'?'#FCA5A5':flag==='OVERUSE'?'#FCD34D':'#86EFAC';
     html+='<div class="rec-card">';
     html+='<div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px">';
@@ -960,7 +961,8 @@ function renderAllocResult(cust,bikes,note,approxScore){
     html+='</div>';
     html+='<div style="font-size:.7rem;color:rgba(255,255,255,.5)">'+esc(note)+'</div>';
     html+='</div>';
-  }else{
+  }
+  if(!rec){
     html+='<div style="background:#FEF2F2;border:1px solid #FECACA;border-radius:12px;padding:18px;font-size:.82rem;color:#DC2626">No bikes available in the queue for this hub.</div>';
   }
 
