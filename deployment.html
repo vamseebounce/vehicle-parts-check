@@ -506,13 +506,17 @@ function switchTab(name){
   document.querySelectorAll('.tab-btn').forEach(function(b,i){b.classList.toggle('active',TAB_IDS[i]===name);});
   document.querySelectorAll('.tab-panel').forEach(function(p){p.classList.remove('active');});
   document.getElementById('tab-'+name).classList.add('active');
-  // Sync hub filter between tabs
+  // Sync hub filter between tabs and always reload on tab switch
   if(name==='allocate'){
     var h=document.getElementById('hub-select').value;
-    if(h){var s=document.getElementById('alloc-hub-select');if(s.value!==h){s.value=h;loadAllocList();}}
+    var s=document.getElementById('alloc-hub-select');
+    if(h&&s.value!==h)s.value=h;
+    loadAllocList();
   } else if(name==='queue'){
     var h=document.getElementById('alloc-hub-select').value;
-    if(h){var s=document.getElementById('hub-select');if(s.value!==h){s.value=h;loadQueue();}}
+    var s=document.getElementById('hub-select');
+    if(h&&s.value!==h)s.value=h;
+    loadQueue();
   }
 }
 
