@@ -503,6 +503,14 @@ function switchTab(name){
   document.querySelectorAll('.tab-btn').forEach(function(b,i){b.classList.toggle('active',TAB_IDS[i]===name);});
   document.querySelectorAll('.tab-panel').forEach(function(p){p.classList.remove('active');});
   document.getElementById('tab-'+name).classList.add('active');
+  // Sync hub filter between tabs
+  if(name==='allocate'){
+    var h=document.getElementById('hub-select').value;
+    if(h){var s=document.getElementById('alloc-hub-select');if(s.value!==h){s.value=h;loadAllocList();}}
+  } else if(name==='queue'){
+    var h=document.getElementById('alloc-hub-select').value;
+    if(h){var s=document.getElementById('hub-select');if(s.value!==h){s.value=h;loadQueue();}}
+  }
 }
 
 /* ── Data helpers ────────────────────────────────────────────────── */
@@ -584,6 +592,8 @@ function loadQueue(){
   var hub=document.getElementById('hub-select').value;
   if(!hub)return;
   localStorage.setItem('last_hub',hub);
+  // Sync to allocate tab
+  var as=document.getElementById('alloc-hub-select');if(as&&as.value!==hub)as.value=hub;
   var board=document.getElementById('kanban-board');
   board.innerHTML='<div class="state-box"><div class="spinner"></div><p>Loading pipeline…</p></div>';
   document.getElementById('queue-meta').textContent='';
@@ -774,6 +784,8 @@ function loadAllocList(){
   var wrap=document.getElementById('alloc-list-wrap');
   var result=document.getElementById('alloc-result');
   result.classList.remove('show');ALLOC_DATA=[];
+  // Sync to pipeline tab
+  var ps=document.getElementById('hub-select');if(ps&&ps.value!==hub)ps.value=hub;
   if(!hub){wrap.innerHTML='<div class="state-box"><div class="icon">🔍</div><p>Select a hub to view pending customers.</p></div>';return;}
   wrap.innerHTML='<div class="state-box"><div class="spinner"></div><p>Loading customers…</p></div>';
   sbGet('pending_bookings_cache','hub_name=eq.'+encodeURIComponent(hub)+'&order=full_name.asc&limit=500')
@@ -899,51 +911,56 @@ function renderAllocResult(cust,bikes,note,approxScore){
   html+=icRow('Hub',cust.hub_name||'—')+icRow('Model',mtShortLabel[custMT]||cust.booked_model||'—')+icRow('Tier',cust.tier||'—')+icRow('Premium Fee','₹'+(cust.paid_premium_fees||0));
   html+='</div></div>';
 
-  // ── 2. Allocated bike info — always show if customer has an assigned bike
+  // ── 2. Two scenarios only: ⚠️ needs change | ✅ allocation is fine
   if(cust.assigned_bike_id){
     var assignedReg=cust.assigned_reg||('Bike '+cust.assigned_bike_id);
     var aRfd=cust.assigned_rfd_age_days;
     var aKm=cust.assigned_avg_km_day;
     var aOdo=cust.assigned_odo_km;
-
+    // Determine if a better option exists — only when pipeline is loaded for same hub
+    var hasBetter=false;
+    var recScore=0,aScore=0,aGuard='',aGIcon='',recGuardIcon='';
     if(approxScore&&rec){
-      // Full comparison: allocated vs best pipeline bike
-      var recScore=rec.allotment_score!=null?parseFloat(rec.allotment_score):0;
-      var aScore=approxScore.allotment_score;
-      var aGuard=approxScore.guardrail;
-      var aGIcon=aGuard==='STARVATION'?'🔴':aGuard==='OVERUSE'?'🟡':'🟢';
-      var recGuardIcon=flag==='STARVATION'?'🔴':flag==='OVERUSE'?'🟡':'🟢';
-      var hasBetter=recScore>aScore;
-      html+='<div class="'+(hasBetter?'better-banner':'confirm-banner')+'">';
-      html+='<div style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:'+(hasBetter?'#92400E':'#166534')+';margin-bottom:8px">'+(hasBetter?'⚠️ Better Option in Pipeline':'✅ Current Allocation is Fine')+'</div>';
+      recScore=rec.allotment_score!=null?parseFloat(rec.allotment_score):0;
+      aScore=approxScore.allotment_score;
+      aGuard=approxScore.guardrail;
+      aGIcon=aGuard==='STARVATION'?'🔴':aGuard==='OVERUSE'?'🟡':'🟢';
+      recGuardIcon=flag==='STARVATION'?'🔴':flag==='OVERUSE'?'🟡':'🟢';
+      hasBetter=recScore>aScore;
+    }
+    if(hasBetter){
+      // ── Scenario B: better bike in pipeline — yellow warning strip
+      html+='<div class="better-banner">';
+      html+='<div style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#92400E;margin-bottom:8px">⚠️ Better Option in Pipeline</div>';
       html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">';
-      html+='<div style="background:'+(hasBetter?'rgba(0,0,0,.05)':'rgba(22,163,74,.06)')+';border-radius:8px;padding:10px 12px">'
-        +'<div style="font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:'+(hasBetter?'#92400E':'#166534')+';margin-bottom:5px">Allocated</div>'
-        +'<div style="font-size:.92rem;font-weight:800;color:'+(hasBetter?'#451A03':'#14532D')+'">'+esc(assignedReg)+'</div>'
-        +'<div style="font-size:.72rem;color:'+(hasBetter?'#78350F':'#166534')+';margin-top:3px">'+aGIcon+' '+esc(aGuard)+' · Score <b>'+aScore.toFixed(3)+'</b></div>'
+      html+='<div style="background:rgba(0,0,0,.05);border-radius:8px;padding:10px 12px">'
+        +'<div style="font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#92400E;margin-bottom:5px">Allocated</div>'
+        +'<div style="font-size:.92rem;font-weight:800;color:#451A03">'+esc(assignedReg)+'</div>'
+        +'<div style="font-size:.72rem;color:#78350F;margin-top:3px">'+aGIcon+' '+esc(aGuard)+' · Score <b>'+aScore.toFixed(3)+'</b></div>'
         +'<div style="font-size:.68rem;color:#6B7280;margin-top:2px">RFD '+(aRfd!=null?aRfd+'d':'—')+' · '+(aKm!=null?aKm+' km/d':'—')+'</div>'
-        +'</div>';
-      html+='<div style="background:'+(hasBetter?'rgba(22,163,74,.08)':'rgba(0,0,0,.04)')+';border:'+(hasBetter?'1px solid rgba(22,163,74,.22)':'none')+';border-radius:8px;padding:10px 12px">'
-        +'<div style="font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:'+(hasBetter?'#166534':'#6B7280')+';margin-bottom:5px">'+(hasBetter?'Better Available':'Pipeline Best')+'</div>'
-        +'<div style="font-size:.92rem;font-weight:800;color:'+(hasBetter?'#14532D':'#374151')+'">'+esc(rec.reg_number||'—')+'</div>'
-        +'<div style="font-size:.72rem;color:'+(hasBetter?'#166534':'#6B7280')+';margin-top:3px">'+recGuardIcon+' '+esc(flag)+' · Score <b>'+recScore.toFixed(3)+'</b> · Rank #'+esc(rec.deploy_rank||'—')+'</div>'
+        +'</div>'
+      +'<div style="background:rgba(22,163,74,.08);border:1px solid rgba(22,163,74,.22);border-radius:8px;padding:10px 12px">'
+        +'<div style="font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#166534;margin-bottom:5px">Better Available</div>'
+        +'<div style="font-size:.92rem;font-weight:800;color:#14532D">'+esc(rec.reg_number||'—')+'</div>'
+        +'<div style="font-size:.72rem;color:#166534;margin-top:3px">'+recGuardIcon+' '+esc(flag)+' · Score <b>'+recScore.toFixed(3)+'</b> · Rank #'+esc(rec.deploy_rank||'—')+'</div>'
         +'<div style="font-size:.68rem;color:#6B7280;margin-top:2px">RFD '+(rec.rfd_age_days!=null?rec.rfd_age_days+'d':'—')+' · '+(rec.avg_km_day!=null?rec.avg_km_day+' km/d':'—')+'</div>'
         +'</div>';
       html+='</div></div>';
-
     } else {
-      // No score data — just show the allocated bike card
-      html+='<div style="background:#EFF6FF;border:1.5px solid #BFDBFE;border-radius:12px;padding:14px 18px;margin-bottom:16px">'
-        +'<div style="font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#1D4ED8;margin-bottom:6px">🔗 Allocated Bike</div>'
-        +'<div style="font-size:1rem;font-weight:800;color:#1E3A8A">'+esc(assignedReg)+'</div>'
-        +'<div style="font-size:.75rem;color:#3B82F6;margin-top:4px">'
-          +(aRfd!=null?'RFD '+aRfd+'d':'')
-          +((aRfd!=null&&aKm!=null)?' · ':'')
-          +(aKm!=null?aKm+' km/d':'')
-          +(aOdo!=null?' · ODO '+parseInt(aOdo).toLocaleString('en-IN')+' km':'')
-        +'</div>'
-        +(rec?'<div style="font-size:.68rem;color:#93C5FD;margin-top:4px">Load Pipeline tab for score comparison</div>':'')
+      // ── Scenario A: allocation is fine — green confirmation strip
+      html+='<div class="confirm-banner">';
+      html+='<div style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#166534;margin-bottom:8px">✅ Current Allocation is Fine</div>';
+      html+='<div style="font-size:1rem;font-weight:800;color:#14532D;margin-bottom:4px">'+esc(assignedReg)+'</div>';
+      if(approxScore){
+        html+='<div style="font-size:.72rem;color:#166534;margin-bottom:3px">'+aGIcon+' '+esc(aGuard)+' · Score <b>'+aScore.toFixed(3)+'</b></div>';
+      }
+      html+='<div style="font-size:.68rem;color:#6B7280">'
+        +(aRfd!=null?'RFD '+aRfd+'d':'')
+        +((aRfd!=null&&aKm!=null)?' · ':'')
+        +(aKm!=null?aKm+' km/d':'')
+        +(aOdo!=null?' · ODO '+parseInt(aOdo).toLocaleString('en-IN')+' km':'')
         +'</div>';
+      html+='</div>';
     }
   }
 
@@ -961,9 +978,8 @@ function renderAllocResult(cust,bikes,note,approxScore){
     html+='<div style="font-size:.7rem;color:rgba(255,255,255,.5)">'+esc(note)+'</div>';
     html+='</div>';
   }
-  if(!rec){
-    html+='<div style="background:#FEF2F2;border:1px solid #FECACA;border-radius:12px;padding:18px;font-size:.82rem;color:#DC2626">No bikes available in the queue for this hub.</div>';
-  }
+  // No bikes in queue — only show if hasBetter was true (which it can't be without rec)
+  // i.e. silently ignored when allocation is fine
 
   // ── 4. Alternatives (same model type only)
   if(alts.length){
