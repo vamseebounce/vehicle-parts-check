@@ -214,6 +214,9 @@ body.pinned #main{margin-left:var(--sb-width)}
 .ac-badge.standard{background:#F0FDF4;color:#059669}
 .ac-bike{font-family:monospace;font-size:.78rem;font-weight:600;color:#0F172A}
 .ac-nobike{color:#CBD5E1;font-size:.75rem;font-style:italic}
+.rs-ok{display:inline-block;font-size:.68rem;font-weight:700;color:#166534;background:#F0FDF4;border:1px solid #BBF7D0;border-radius:6px;padding:2px 7px;white-space:nowrap}
+.rs-change{display:inline-block;font-size:.68rem;font-weight:700;color:#92400E;background:#FFFBEB;border:1px solid #FCD34D;border-radius:6px;padding:2px 7px;white-space:nowrap}
+.rs-suggest{font-family:monospace;font-size:.78rem;font-weight:700;color:#166534}
 .err-box{background:var(--star-bg);border:1px solid #FECACA;border-radius:12px;padding:14px 18px;margin:20px 0;font-size:.8rem;color:var(--star)}
 .result-section{margin-top:20px;padding:0 20px 32px;display:none}
 .result-section.show{display:block}
@@ -788,9 +791,31 @@ function loadAllocList(){
   var ps=document.getElementById('hub-select');if(ps&&ps.value!==hub)ps.value=hub;
   if(!hub){wrap.innerHTML='<div class="state-box"><div class="icon">🔍</div><p>Select a hub to view pending customers.</p></div>';return;}
   wrap.innerHTML='<div class="state-box"><div class="spinner"></div><p>Loading customers…</p></div>';
+  // Background-fetch pipeline data so approxScore works immediately on row click
+  if(hub&&LAST_QUEUE_HUB!==hub){
+    sbGet('deployment_queue_cache','hub_name=eq.'+encodeURIComponent(hub)+'&order=sort_group.asc,allotment_score.desc.nullslast')
+      .then(function(d){LAST_QUEUE_DATA=d||[];LAST_QUEUE_HUB=hub;if(ALLOC_DATA.length)renderAllocList(ALLOC_DATA);})
+      .catch(function(){});
+  }
   sbGet('pending_bookings_cache','hub_name=eq.'+encodeURIComponent(hub)+'&order=full_name.asc&limit=500')
     .then(function(data){ALLOC_DATA=data||[];renderAllocList(ALLOC_DATA);})
     .catch(function(err){wrap.innerHTML='<div class="state-box"><div class="icon">⚠️</div><p>Error: '+esc(err.message)+'</p></div>';});
+}
+
+function computeRowStatus(cust){
+  if(!LAST_QUEUE_DATA||!LAST_QUEUE_DATA.length||LAST_QUEUE_HUB!==cust.hub_name)return null;
+  if(!cust.assigned_bike_id||cust.assigned_rfd_age_days==null)return null;
+  // Best pipeline bike for this customer's model+tier
+  var custTier=cust.completed_count===0?'Standard':(cust.tier||'Standard');
+  var pipelineBikes=LAST_QUEUE_DATA.filter(function(b){return b.bike_model_id==cust.bike_model_id&&b.tier===custTier;});
+  // Approx score for allocated bike using its peer group
+  var assignedTier=computeBikeTier(cust.assigned_model,cust.assigned_odo_km);
+  var groupBikes=LAST_QUEUE_DATA.filter(function(b){return b.bike_model_id==cust.assigned_bike_model_id&&b.tier===assignedTier;});
+  var approx=computeApproxScore(cust,groupBikes);
+  if(!approx||!pipelineBikes.length)return{status:'ok',rec:null};
+  var best=pipelineBikes[0];
+  var bestScore=best.allotment_score!=null?parseFloat(best.allotment_score):0;
+  return{status:bestScore>approx.allotment_score?'change':'ok',rec:bestScore>approx.allotment_score?best:null};
 }
 
 function filterAllocList(){
@@ -807,8 +832,11 @@ function renderAllocList(data){
     wrap.innerHTML='<div class="state-box"><div class="icon">👤</div><p>No pending customers found.</p></div>';
     return;
   }
+  var pipelineReady=!!(LAST_QUEUE_DATA&&LAST_QUEUE_DATA.length&&LAST_QUEUE_HUB);
   var html='<table class="alloc-table"><thead><tr>'
-    +'<th>#</th><th>Name</th><th>Phone</th><th>Model</th><th>Tier</th><th>Blocked Bike</th><th></th>'
+    +'<th>#</th><th>Name</th><th>Phone</th><th>Model</th><th>Tier</th><th>Blocked Bike</th>'
+    +'<th>Waiting</th><th>Status</th><th>Suggested</th>'
+    +'<th></th>'
     +'</tr></thead><tbody>';
   var mtShort={ls:'LS',hs:'HS',hsp:'HS Pro'};
   data.forEach(function(c,i){
@@ -818,6 +846,22 @@ function renderAllocList(data){
     var bikeCell=c.assigned_bike_id
       ?'<span class="ac-bike">'+esc(c.assigned_reg||('ID '+c.assigned_bike_id))+'</span>'
       :'<span class="ac-nobike">None assigned</span>';
+    // Waiting: days since booking created
+    var waitCell='—';
+    if(c.booking_created_at){var days=Math.floor((Date.now()-new Date(c.booking_created_at).getTime())/86400000);waitCell=days+'d';}
+    // Status + Suggested
+    var rowStatus=computeRowStatus(c);
+    var statusCell,suggestCell;
+    if(!pipelineReady||!rowStatus){
+      statusCell='<span style="color:var(--muted);font-size:.8rem">—</span>';
+      suggestCell='<span style="color:var(--muted);font-size:.78rem">—</span>';
+    } else if(rowStatus.status==='change'){
+      statusCell='<span class="rs-change">⚠️ Change</span>';
+      suggestCell='<span class="rs-suggest">'+esc(rowStatus.rec.reg_number||'—')+'</span>';
+    } else {
+      statusCell='<span class="rs-ok">✅ Fine</span>';
+      suggestCell='<span style="color:var(--muted);font-size:.78rem">—</span>';
+    }
     html+='<tr onclick="selectAllocRow(this,'+i+')" data-idx="'+i+'">'
       +'<td style="color:var(--muted);font-size:.72rem">'+(i+1)+'</td>'
       +'<td><div class="ac-name">'+esc(c.full_name||'—')+'</div></td>'
@@ -825,6 +869,9 @@ function renderAllocList(data){
       +'<td><span class="bc-tag '+mt+'">'+mtShort[mt]+'</span></td>'
       +'<td><span class="ac-badge '+tierCls+'">'+esc(tier)+'</span></td>'
       +'<td>'+bikeCell+'</td>'
+      +'<td style="font-size:.78rem;color:var(--muted)">'+waitCell+'</td>'
+      +'<td>'+statusCell+'</td>'
+      +'<td>'+suggestCell+'</td>'
       +'<td style="text-align:right;color:var(--muted);font-size:.8rem">→</td>'
       +'</tr>';
   });
@@ -962,37 +1009,6 @@ function renderAllocResult(cust,bikes,note,approxScore){
         +'</div>';
       html+='</div>';
     }
-  }
-
-  // ── 3. Recommended bike card — only show when customer has NO allocated bike
-  if(!cust.assigned_bike_id&&rec){
-    var scoreColor=flag==='STARVATION'?'#FCA5A5':flag==='OVERUSE'?'#FCD34D':'#86EFAC';
-    html+='<div class="rec-card">';
-    html+='<div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px">';
-    html+='<div><div class="rec-reg">'+esc(rec.reg_number||'—')+'</div><div class="rec-model">'+esc(rec.model_name||'—')+' · '+mtL[mt]+'</div></div>';
-    html+='<div style="text-align:right"><span style="background:rgba(255,255,255,.15);color:#fff;padding:3px 10px;border-radius:20px;font-size:.68rem;font-weight:700">'+esc(rec.tier||'—')+'</span>';
-    html+='<span class="rec-flag '+fCls+'">'+flag+'</span></div></div>';
-    html+='<div class="rec-metrics">';
-    html+=recMetric('Rank','#'+(rec.deploy_rank||'—'))+recMetric('RFD',(rec.rfd_age_days!=null?rec.rfd_age_days+'d':'—'))+recMetric('km/day',fmt(rec.avg_km_day))+recMetric('Odometer',rec.current_odo_km!=null?parseInt(rec.current_odo_km).toLocaleString('en-IN'):'—');
-    html+='</div>';
-    html+='<div style="font-size:.7rem;color:rgba(255,255,255,.5)">'+esc(note)+'</div>';
-    html+='</div>';
-  }
-  // No bikes in queue — only show if hasBetter was true (which it can't be without rec)
-  // i.e. silently ignored when allocation is fine
-
-  // ── 4. Alternatives (same model type only)
-  if(alts.length){
-    html+='<div class="alt-section"><div class="alt-title">Alternatives</div><div class="alt-cards">';
-    alts.forEach(function(b){
-      var bmt=modelType(b.model_name);
-      html+='<div class="alt-card">'
-        +'<div class="alt-reg">'+esc(b.reg_number||'—')+'</div>'
-        +'<div class="alt-meta"><span class="bc-tag '+bmt+'" style="font-size:.6rem">'+mtShortLabel[bmt]+'</span> · '+esc(b.tier||'—')+'</div>'
-        +'<div class="alt-score">Score: '+(b.allotment_score!=null?parseFloat(b.allotment_score).toFixed(3):'—')+'</div>'
-        +'</div>';
-    });
-    html+='</div></div>';
   }
 
   result.innerHTML=html;result.classList.add('show');
