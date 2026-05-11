@@ -790,15 +790,18 @@ function loadAllocList(){
   // Sync to pipeline tab
   var ps=document.getElementById('hub-select');if(ps&&ps.value!==hub)ps.value=hub;
   if(!hub){wrap.innerHTML='<div class="state-box"><div class="icon">🔍</div><p>Select a hub to view pending customers.</p></div>';return;}
-  wrap.innerHTML='<div class="state-box"><div class="spinner"></div><p>Loading customers…</p></div>';
-  // Background-fetch pipeline data so approxScore works immediately on row click
-  if(hub&&LAST_QUEUE_HUB!==hub){
-    sbGet('deployment_queue_cache','hub_name=eq.'+encodeURIComponent(hub)+'&order=sort_group.asc,allotment_score.desc.nullslast')
-      .then(function(d){LAST_QUEUE_DATA=d||[];LAST_QUEUE_HUB=hub;if(ALLOC_DATA.length)renderAllocList(ALLOC_DATA);})
-      .catch(function(){});
-  }
-  sbGet('pending_bookings_cache','hub_name=eq.'+encodeURIComponent(hub)+'&order=full_name.asc&limit=500')
-    .then(function(data){ALLOC_DATA=data||[];renderAllocList(ALLOC_DATA);})
+  wrap.innerHTML='<div class="state-box"><div class="spinner"></div><p>Loading customers & pipeline…</p></div>';
+  // Fetch both caches in parallel — render only when both are ready
+  var pendingPromise=sbGet('pending_bookings_cache','hub_name=eq.'+encodeURIComponent(hub)+'&order=full_name.asc&limit=500');
+  var queuePromise=(LAST_QUEUE_HUB===hub)
+    ?Promise.resolve(LAST_QUEUE_DATA)
+    :sbGet('deployment_queue_cache','hub_name=eq.'+encodeURIComponent(hub)+'&order=sort_group.asc,allotment_score.desc.nullslast');
+  Promise.all([pendingPromise,queuePromise])
+    .then(function(results){
+      ALLOC_DATA=results[0]||[];
+      if(LAST_QUEUE_HUB!==hub){LAST_QUEUE_DATA=results[1]||[];LAST_QUEUE_HUB=hub;}
+      renderAllocList(ALLOC_DATA);
+    })
     .catch(function(err){wrap.innerHTML='<div class="state-box"><div class="icon">⚠️</div><p>Error: '+esc(err.message)+'</p></div>';});
 }
 
@@ -994,18 +997,18 @@ function renderAllocResult(cust,bikes,note,approxScore){
         +'</div>';
       html+='</div></div>';
     } else {
-      // ── Scenario A: allocation is fine — green confirmation strip
+      // ── Scenario A: allocation is fine — green confirmation strip (always same structure)
+      var scoreLine=approxScore
+        ?('<div style="font-size:.72rem;color:#166534;margin-bottom:3px">'+aGIcon+' '+esc(aGuard)+' · Score <b>'+aScore.toFixed(3)+'</b></div>')
+        :'';
       html+='<div class="confirm-banner">';
       html+='<div style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#166534;margin-bottom:8px">✅ Current Allocation is Fine</div>';
       html+='<div style="font-size:1rem;font-weight:800;color:#14532D;margin-bottom:4px">'+esc(assignedReg)+'</div>';
-      if(approxScore){
-        html+='<div style="font-size:.72rem;color:#166534;margin-bottom:3px">'+aGIcon+' '+esc(aGuard)+' · Score <b>'+aScore.toFixed(3)+'</b></div>';
-      }
+      html+=scoreLine;
       html+='<div style="font-size:.68rem;color:#6B7280">'
-        +(aRfd!=null?'RFD '+aRfd+'d':'')
-        +((aRfd!=null&&aKm!=null)?' · ':'')
-        +(aKm!=null?aKm+' km/d':'')
-        +(aOdo!=null?' · ODO '+parseInt(aOdo).toLocaleString('en-IN')+' km':'')
+        +'RFD '+(aRfd!=null?aRfd+'d':'—')
+        +' · '+(aKm!=null?aKm+' km/d':'— km/d')
+        +' · ODO '+(aOdo!=null?parseInt(aOdo).toLocaleString('en-IN')+' km':'—')
         +'</div>';
       html+='</div>';
     }
