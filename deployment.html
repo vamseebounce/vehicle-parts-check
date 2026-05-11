@@ -901,54 +901,29 @@ function selectAllocRow(row,idx){
 
 function lookupAndRenderCustomer(cust){
   var result=document.getElementById('alloc-result');
-  result.innerHTML='<div style="padding:28px;text-align:center"><div class="spinner"></div></div>';
   result.classList.add('show');
-  var hub=encodeURIComponent(cust.hub_name);
-  var model=cust.bike_model_id;
-  var tier=encodeURIComponent(cust.tier);
-  var isFirst=cust.completed_count===0;
-  // Always use model_id; first-timers get Standard tier (not Elite/Prime)
-  var bikeParams=isFirst
-    ?'hub_name=eq.'+hub+'&bike_model_id=eq.'+model+'&tier=eq.Standard&order=allotment_score.desc.nullslast&limit=4'
-    :'hub_name=eq.'+hub+'&bike_model_id=eq.'+model+'&tier=eq.'+tier+'&order=sort_group.asc,allotment_score.desc.nullslast&limit=4';
-  function tryBikes(params,note){
-    return sbGet('deployment_queue_cache',params).then(function(bikes){
-      if(!bikes||!bikes.length)return null;
-      return{bikes:bikes,note:note};
+  // Use the same in-memory computation as the list — guarantees list/detail consistency
+  var rowStatus=computeRowStatus(cust);
+  var rec=rowStatus?rowStatus.rec:null;
+  // approxScore using same peer-group logic
+  var approxScore=null;
+  if(cust.assigned_bike_id&&cust.assigned_rfd_age_days!=null&&LAST_QUEUE_DATA&&LAST_QUEUE_DATA.length&&LAST_QUEUE_HUB===cust.hub_name){
+    var assignedTier=computeBikeTier(cust.assigned_model,cust.assigned_odo_km);
+    var groupBikes=LAST_QUEUE_DATA.filter(function(b){
+      return b.bike_model_id==cust.assigned_bike_model_id&&b.tier===assignedTier;
     });
+    approxScore=computeApproxScore(cust,groupBikes);
   }
-  Promise.resolve()
-    .then(function(){return tryBikes(bikeParams,'Exact match');})
-    .then(function(r){
-      var bikes=r?r.bikes:[];
-      var note=r?r.note:'No bikes found';
-      // Only compute approx score if pipeline data is loaded for the same hub
-      var approxScore=null;
-      if(cust.assigned_bike_id&&cust.assigned_rfd_age_days!=null&&LAST_QUEUE_DATA&&LAST_QUEUE_DATA.length&&LAST_QUEUE_HUB===cust.hub_name){
-        var assignedTier=computeBikeTier(cust.assigned_model,cust.assigned_odo_km);
-        var groupBikes=LAST_QUEUE_DATA.filter(function(b){
-          return b.bike_model_id==cust.assigned_bike_model_id&&b.tier===assignedTier;
-        });
-        approxScore=computeApproxScore(cust,groupBikes);
-      }
-      renderAllocResult(cust,bikes,note,approxScore);
-    })
-    .catch(function(err){
-      result.innerHTML='<div class="err-box">Error: '+esc(err.message)+'</div>';
-    });
+  // bikes array: use rec from pipeline if it exists; empty otherwise
+  var bikes=rec?[rec]:[];
+  renderAllocResult(cust,bikes,'Pipeline',approxScore);
 }
 
 function renderAllocResult(cust,bikes,note,approxScore){
   var result=document.getElementById('alloc-result');
   var custMT=modelType(cust.booked_model);
-  // Only show alternatives of same model type
-  var sameMTBikes=bikes.filter(function(b){return modelType(b.model_name)===custMT;});
-  var rec=sameMTBikes[0]||bikes[0]||null;
-  var alts=sameMTBikes.slice(1);
+  var rec=bikes[0]||null;
   var flag=rec?(rec.guardrail||'OK'):'—';
-  var fCls=flag==='STARVATION'?'starvation':flag==='OVERUSE'?'overuse':'ok';
-  var mt=rec?modelType(rec.model_name):custMT;
-  var mtL={ls:'Low Speed',hs:'High Speed',hsp:'HS Pro'};
   var html='';
 
   // ── 1. Customer + Booking (always first)
