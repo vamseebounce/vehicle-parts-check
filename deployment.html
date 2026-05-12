@@ -469,6 +469,18 @@ async function checkGlobalLogout(userId){
     hideAuthScreen();document.getElementById('logout-btn').style.display='block';
     document.getElementById('fb-fab').style.display='flex';loadHubs();
   }else{showAuthScreen();}
+  var _logoutChannel=null;
+  function _subscribeLogout(userId){
+    if(_logoutChannel)sbClient.removeChannel(_logoutChannel);
+    _logoutChannel=sbClient.channel('global-logout-watch')
+      .on('postgres_changes',{event:'*',schema:'public',table:'app_settings',filter:'key=eq.global_logout_at'},
+        async function(){
+          var{data:{session:s}}=await sbClient.auth.getSession();
+          if(s)await checkGlobalLogout(s.user.id);
+        }
+      )
+      .subscribe();
+  }
   sbClient.auth.onAuthStateChange(async function(event,session){
     if((event==='SIGNED_IN'||event==='INITIAL_SESSION')&&session){
       if(event==='INITIAL_SESSION'){
@@ -479,12 +491,18 @@ async function checkGlobalLogout(userId){
       hideAuthScreen();document.getElementById('logout-btn').style.display='block';
       document.getElementById('logout-btn').title='Signed in as '+CURRENT_USER_EMAIL;
       document.getElementById('fb-fab').style.display='flex';loadHubs();
-    }else if(event==='SIGNED_OUT'){K=ANON_KEY;document.getElementById('logout-btn').style.display='none';showAuthScreen();}
+      // Subscribe with authenticated JWT so RLS allows the Realtime event
+      _subscribeLogout(session.user.id);
+    }else if(event==='SIGNED_OUT'){
+      K=ANON_KEY;document.getElementById('logout-btn').style.display='none';showAuthScreen();
+      if(_logoutChannel){sbClient.removeChannel(_logoutChannel);_logoutChannel=null;}
+    }
     else if(event==='TOKEN_REFRESHED'&&session){K=session.access_token;}
   });
   document.addEventListener('visibilitychange',async function(){
     if(!document.hidden){var r=await sbClient.auth.getSession();if(r.data&&r.data.session)K=r.data.session.access_token;}
   });
+  // Poll every 5 min as a safety net
   setInterval(async function(){var{data:{session:s}}=await sbClient.auth.getSession();if(s)await checkGlobalLogout(s.user.id);},5*60*1000);
 })();
 
