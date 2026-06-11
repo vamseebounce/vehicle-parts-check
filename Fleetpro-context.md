@@ -1,5 +1,5 @@
 # Fleetpro — Context File
-*Last updated: 2026-06-12 (session 6 — Phase 0 complete + 2½ additive tables + ticket_status_history + 1.2)*
+*Last updated: 2026-06-12 (session 6 — Phase 0 complete + 2½ additive tables + 1.2 + 5.6)*
 
 ## 🏗 Architecture Roadmap (session 5)
 - `ARCHITECTURE-PROPOSAL.md` created at repo root — 6-phase productization roadmap (PROPOSAL ONLY, nothing executed)
@@ -250,6 +250,7 @@ Both have 7-day session (no 12h reauth) in fw-map.html. RSA_EMAILS list in fw-ma
 - Daily health check scheduled via Cowork at 8:00 AM IST
 - Checks: cron last run (>10min=WARN, >30min=FAIL), DB reachable, tickets today, open tickets
 - Task ID: `fleetpro-health-check` in Cowork Scheduled sidebar
+- **Egress alert (task 5.6):** `health-check` fn updated — calls Supabase Management API (`MGMT_TOKEN` secret) daily via pg_cron job 16 (03:00 UTC / 08:30 IST). Emails `vamsee@bounceshare.com` if egress ≥ 70% (175 GB of 250 GB). Also emails on DB health failure.
 
 ---
 
