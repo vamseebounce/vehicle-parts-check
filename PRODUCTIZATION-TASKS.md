@@ -1,7 +1,15 @@
 # Fleetpro — Productization Task Tracker
-*Last updated: 2026-06-12 (session 6 — 2½.2, 1.2 done)*
+*Last updated: 2026-06-12 (session 6 — 2½.2, 1.2, 5.6 done + rsa-ticket-sync hotfix)*
 
 Legend: ⬜ TODO · 🔄 IN PROGRESS · ✅ DONE · ⏸ BLOCKED
+
+---
+
+## Hotfixes (production issues fixed outside phase order)
+
+| # | Issue | Status | Notes |
+|---|-------|--------|-------|
+| H1 | rsa-ticket-sync cron (job 13) dead since June 9 — over-escaped headers | ✅ | Recreated as job 17 with clean escaping. First success 2026-06-12 20:10 UTC |
 
 ---
 
