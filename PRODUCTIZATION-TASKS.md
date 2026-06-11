@@ -1,5 +1,5 @@
 # Fleetpro — Productization Task Tracker
-*Last updated: 2026-06-11*
+*Last updated: 2026-06-12*
 
 Legend: ⬜ TODO · 🔄 IN PROGRESS · ✅ DONE · ⏸ BLOCKED
 
@@ -16,7 +16,7 @@ Legend: ⬜ TODO · 🔄 IN PROGRESS · ✅ DONE · ⏸ BLOCKED
 | 0.3 | Pull all edge fn source into `supabase/functions/` | ✅ | tag: `phase-0.3` — all 13 fns captured + CNAME restored |
 | 0.4 | DB dump → baseline migration `supabase/migrations/00000000000000_baseline.sql` | ✅ | tag: `phase-0.4` |
 | 0.5 | Cron job definitions → `supabase/cron-jobs.sql` | ✅ | 9 jobs captured, keys redacted |
-| 0.6 | Write / update README so fresh clone can rebuild backend | ⬜ | |
+| 0.6 | Write / update README so fresh clone can rebuild backend | ✅ | tag: `phase-0.6` |
 
 ---
 
