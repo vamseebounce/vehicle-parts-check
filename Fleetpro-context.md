@@ -49,11 +49,11 @@
 
 ## 🟡 Pending Issues
 
-### 0. 🔴 URGENT (found session 5): rsa-ticket-sync cron dead since June 9 ~17:34 UTC
+### 0. ✅ FIXED (session 6): rsa-ticket-sync cron dead since June 9 — RESOLVED
 - pg_cron job 13 (`rsa-ticket-sync-2min`): 1,299 consecutive failures, "job startup timeout", 0 successes
 - rsa.html data only fresh via users clicking Refresh (manual edge fn calls work fine — Metabase card f79c5050 alive, 45 tickets synced 12:48 UTC June 11)
 - Suspected cause: job 13 command has over-escaped headers JSON (`\\\"` doubled) vs working job 11 — likely bad edit during June 9 fw-sheet-sync 401 fix session
-- Fix (execute in Sonnet window): `cron.unschedule(13)` + re-`cron.schedule` with clean escaping modeled on job 11; rsa-ticket-sync is verify_jwt=false so no auth headers needed
+- Fix applied 2026-06-12: unscheduled job 13, recreated as job 17 with clean escaping (no auth headers, verify_jwt=false). First run succeeded at 20:10 UTC.
 - Side effects while down: rsa_ticket_locations trails + edge-fn team tracking not appending (rsa-team-track-2min SQL job unaffected, healthy)
 - Also confirmed: Supabase/Fleetpro CANNOT delete Metabase tables — edge fn only GETs a public card URL, holds no Metabase credentials (Vamsee saw a Tickets table removed in Metabase; cause is upstream, not this project)
 
