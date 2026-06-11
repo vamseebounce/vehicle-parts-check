@@ -1,5 +1,5 @@
 # Fleetpro — Context File
-*Last updated: 2026-06-11 (session 6 — Phase 0 complete + 2½ additive tables)*
+*Last updated: 2026-06-12 (session 6 — Phase 0 complete + 2½ additive tables + ticket_status_history + 1.2)*
 
 ## 🏗 Architecture Roadmap (session 5)
 - `ARCHITECTURE-PROPOSAL.md` created at repo root — 6-phase productization roadmap (PROPOSAL ONLY, nothing executed)
@@ -20,7 +20,7 @@
 - **Branch:** `main` → GitHub Pages → bounceops.online
 - **PAT:** embedded in remote URL for sandbox-autonomous pushes. ⚠️ Token `<REDACTED_REGENERATE_IN_GITHUB>` was shared in chat — **regenerate it**.
 - **Lock file gotcha:** Sandbox creates `.git/index.lock` and `refs/remotes/origin/main.lock` on macOS FUSE mount but cannot delete them. Workaround: `git add` + `git commit` must run from user's **Terminal**; sandbox handles `git push` and `git tag`.
-- **Rollback tags:** `phase-0.0`, `v8-final`, `phase-0.3`, `phase-0.4`, `phase-0.5`, `phase-0.6`, `phase-2half-additive` (vehicles, sync_heartbeats, fw_pending_history)
+- **Rollback tags:** `phase-0.0`, `v8-final`, `phase-0.3`, `phase-0.4`, `phase-0.5`, `phase-0.6`, `phase-2half-additive` (vehicles, sync_heartbeats, fw_pending_history), `phase-2half-additive-2` (ticket_status_history)
 - **Task tracker:** `PRODUCTIZATION-TASKS.md` in repo root — 47 tasks across Phase 0–6 + Phase 2½
 - **.gitignore:** excludes `.DS_Store`, `v6/`, `v7/`, `archive/`, `*.lock`
 
@@ -179,6 +179,7 @@ Metabase (card f79c5050, last 30 days) → rsa-ticket-sync edge fn (v9) → rsa_
 | `vehicles` | Dimension table: one row per chassis (reg, model, city) | ML training anchor. Empty — needs backfill from bike_location_cache |
 | `sync_heartbeats` | One row per edge fn run (status, duration_ms, rows_affected) | Edge fns not yet wired to write here — Task 5.2 |
 | `fw_pending_history` | Daily snapshot of fw_pending_cache (chassis, hub, reg) | Cron `fw-pending-daily-snapshot` runs 18:25 UTC (23:55 IST) daily |
+| `ticket_status_history` | Immutable log of every ticket status transition | Trigger `trg_ticket_status_history` on rsa_tickets_cache INSERT/UPDATE |
 
 ---
 
@@ -284,7 +285,7 @@ Both have 7-day session (no 12h reauth) in fw-map.html. RSA_EMAILS list in fw-ma
 - bounceops.online/v8/fw-map.html → FW Flash Map (restricted allowlist)
 - bounceops.online/v8/rsa.html → RSA Warroom
 - bounceops.online/v8/tech.html → Technician PWA (Supabase auth, email/password)
-- bounceops.online/v8/admin-techs.html → Tech admin panel (unlock: Bounce@123)
+- bounceops.online/v8/admin-techs.html → Tech admin panel (unlock: <ADMIN_SECRET — see Supabase env var Login_key>)
 - bounceops.online/v8/maintenance.html, /queue.html, /deployment.html
 - All v8/ assets in git including logo.jpg (was missing, restored session 6)
 
@@ -292,4 +293,4 @@ Both have 7-day session (no 12h reauth) in fw-map.html. RSA_EMAILS list in fw-ma
 - Project ID: `clkfvmmlgwcvntxnolsv` (Tokyo, ap-northeast-1)
 - Plan: **Pro** ($25/mo, 250GB egress) — upgraded June 11, 2026
 - Anon key in all HTML files
-- Admin edge fn secret: env var `Login_key` = `Bounce@123`
+- Admin edge fn secret: env var `Login_key` — value stored in Supabase dashboard only (Task 1.1: rotate before sharing URLs wider)

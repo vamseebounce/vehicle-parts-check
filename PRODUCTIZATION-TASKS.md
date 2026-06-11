@@ -1,5 +1,5 @@
 # Fleetpro — Productization Task Tracker
-*Last updated: 2026-06-12*
+*Last updated: 2026-06-12 (session 6 — 2½.2, 1.2 done)*
 
 Legend: ⬜ TODO · 🔄 IN PROGRESS · ✅ DONE · ⏸ BLOCKED
 
@@ -26,7 +26,7 @@ Legend: ⬜ TODO · 🔄 IN PROGRESS · ✅ DONE · ⏸ BLOCKED
 | # | Task | Status | Notes |
 |---|------|--------|-------|
 | 1.1 | Rotate admin secret (`Login_key` / `Bounce@123`) in Supabase env vars | ⬜ | Update admin-techs.html + edge fn after |
-| 1.2 | Remove all plaintext secrets from `Fleetpro-context.md` | ⬜ | |
+| 1.2 | Remove all plaintext secrets from `Fleetpro-context.md` | ✅ | PAT + Bounce@123 redacted |
 | 1.3 | Add `role` claim (`admin`/`ops`/`tech`) to `app_metadata` via admin-create-tech fn | ⬜ | |
 | 1.4 | Replace RSA_EMAILS allowlist in fw-map with Supabase Auth + role check | ⬜ | |
 | 1.5 | Replace admin-techs unlock screen with Supabase Auth + role check | ⬜ | |
@@ -59,7 +59,7 @@ Legend: ⬜ TODO · 🔄 IN PROGRESS · ✅ DONE · ⏸ BLOCKED
 | # | Task | Status | Notes |
 |---|------|--------|-------|
 | 2½.1 | Create `vehicles` dimension table (`chassis_number` PK, reg, model, city) | ✅ | Applied to DB + migration file |
-| 2½.2 | Create `ticket_status_history` table + trigger on `rsa_tickets_cache` upsert | ⬜ | Additive, safe now |
+| 2½.2 | Create `ticket_status_history` table + trigger on `rsa_tickets_cache` upsert | ✅ | phase-2half-additive-2 |
 | 2½.3 | Create `fw_pending_history` table + daily pg_cron snapshot | ✅ | Applied to DB + migration file |
 | 2½.4 | Create `bike_telemetry_history` table (partitioned) + hourly insert in bike-location-sync | ⬜ | High volume — design partitioning first |
 | 2½.5 | Enforce `resolution_type` as constrained enum on ticket_events | ⬜ | Label quality for ML |
