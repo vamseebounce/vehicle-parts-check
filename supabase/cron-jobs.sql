@@ -1,0 +1,179 @@
+-- ============================================================
+-- FLEETPRO — CRON JOB DEFINITIONS
+-- Captured: 2026-06-11
+-- ============================================================
+-- Replace <SERVICE_ROLE_KEY> and <ANON_KEY> with actual values
+-- from Supabase dashboard → Project Settings → API.
+-- ⚠️  Never commit real keys to git.
+-- ============================================================
+-- To apply on a new project:
+--   Run each SELECT cron.schedule(...) in the Supabase SQL editor.
+-- To view current jobs on live project:
+--   SELECT jobid, jobname, schedule, active FROM cron.job ORDER BY jobid;
+-- ============================================================
+
+-- JOB 1: metabase-hourly-sync (vehicle_parts_check_flag)
+-- Calls metabase-sync edge fn every hour at :00
+SELECT cron.schedule(
+  'metabase-hourly-sync',
+  '0 * * * *',
+  $$
+    SELECT net.http_post(
+      url     := 'https://clkfvmmlgwcvntxnolsv.supabase.co/functions/v1/metabase-sync',
+      headers := jsonb_build_object(
+        'Content-Type',  'application/json',
+        'Authorization', 'Bearer <SERVICE_ROLE_KEY>'
+      ),
+      timeout_milliseconds := 5000
+    );
+  $$
+);
+
+-- JOB 2: OOS_QUEUE-hourly (oos_work_queue)
+-- Calls OOS_QUEUE edge fn every hour at :05
+SELECT cron.schedule(
+  'OOS_QUEUE-hourly',
+  '5 * * * *',
+  $$
+    SELECT net.http_post(
+      url     := 'https://clkfvmmlgwcvntxnolsv.supabase.co/functions/v1/OOS_QUEUE',
+      headers := jsonb_build_object(
+        'Content-Type',  'application/json',
+        'Authorization', 'Bearer <SERVICE_ROLE_KEY>'
+      ),
+      timeout_milliseconds := 30000
+    );
+  $$
+);
+
+-- JOB 6: refresh-deployment-cache (deployment_queue_cache + pending_bookings_cache)
+-- Every 15 min, no auth (verify_jwt=false on the fn)
+SELECT cron.schedule(
+  'refresh-deployment-cache',
+  '*/15 * * * *',
+  $$
+    SELECT net.http_post(
+      url     := 'https://clkfvmmlgwcvntxnolsv.supabase.co/functions/v1/refresh-deployment-cache',
+      headers := '{"Content-Type":"application/json"}'::jsonb,
+      body    := '{}'::jsonb
+    );
+  $$
+);
+
+-- JOB 7: jc-history-daily-sync (jc_history)
+-- Daily at 20:30 UTC (02:00 IST)
+SELECT cron.schedule(
+  'jc-history-daily-sync',
+  '30 20 * * *',
+  $$
+    SELECT net.http_post(
+      url     := 'https://clkfvmmlgwcvntxnolsv.supabase.co/functions/v1/jc-history-sync',
+      headers := jsonb_build_object(
+        'Content-Type',  'application/json',
+        'Authorization', 'Bearer <SERVICE_ROLE_KEY>'
+      ),
+      timeout_milliseconds := 60000
+    );
+  $$
+);
+
+-- JOB 9: fw-map-rider-sync (bike_rider_cache)
+-- Every hour at :00 (verify_jwt=false — no auth header needed)
+SELECT cron.schedule(
+  'fw-map-rider-sync-10min',
+  '0 * * * *',
+  $$
+    SELECT net.http_post(
+      url  := 'https://clkfvmmlgwcvntxnolsv.supabase.co/functions/v1/fw-map-rider-sync',
+      body := '{}'::jsonb
+    );
+  $$
+);
+
+-- JOB 10: fw-sheet-sync-15min (fw_pending_cache)
+-- Every 15 min. Uses anon key because verify_jwt=true on this fn.
+SELECT cron.schedule(
+  'fw-sheet-sync-15min',
+  '*/15 * * * *',
+  $$
+    SELECT net.http_post(
+      url     := 'https://clkfvmmlgwcvntxnolsv.supabase.co/functions/v1/fw-sheet-sync',
+      headers := jsonb_build_object(
+        'Content-Type',  'application/json',
+        'Authorization', 'Bearer <ANON_KEY>',
+        'apikey',        '<ANON_KEY>'
+      ),
+      body    := '{}'::jsonb
+    );
+  $$
+);
+
+-- JOB 11: bike-location-sync-5min (bike_location_cache)
+-- Every hour at :00 (no auth, verify_jwt=false)
+-- NOTE: name says "5min" but schedule is hourly — matches actual cadence in prod
+SELECT cron.schedule(
+  'bike-location-sync-5min',
+  '0 * * * *',
+  $$
+    SELECT net.http_post(
+      url     := 'https://clkfvmmlgwcvntxnolsv.supabase.co/functions/v1/bike-location-sync',
+      headers := '{"Content-Type":"application/json"}'::jsonb,
+      body    := '{}'::jsonb
+    );
+  $$
+);
+
+-- JOB 13: rsa-ticket-sync-2min (rsa_tickets_cache + location trails)
+-- Every 2 min. verify_jwt=false — no auth header needed.
+-- ⚠️  The live prod job had over-escaped headers causing failures.
+--     This version uses correct escaping.
+SELECT cron.schedule(
+  'rsa-ticket-sync-2min',
+  '*/2 * * * *',
+  $$
+    SELECT net.http_post(
+      url     := 'https://clkfvmmlgwcvntxnolsv.supabase.co/functions/v1/rsa-ticket-sync',
+      headers := '{"Content-Type":"application/json"}'::jsonb,
+      body    := '{}'::jsonb
+    );
+  $$
+);
+
+-- JOB 14: rsa-team-track-2min (rsa_team_locations)
+-- Pure SQL — no edge fn. Appends Nishanth/Pavan GPS from bike_location_cache.
+SELECT cron.schedule(
+  'rsa-team-track-2min',
+  '*/2 * * * *',
+  $$
+    INSERT INTO rsa_team_locations (name, chassis, reg_number, lat, lng, synced_at)
+    SELECT
+      CASE b.chassis_number
+        WHEN 'P6EBE1JYK25000288' THEN 'Nishanth'
+        WHEN 'P6EBE1JYK25000072' THEN 'Pavan'
+      END,
+      b.chassis_number,
+      CASE b.chassis_number
+        WHEN 'P6EBE1JYK25000288' THEN 'KA05AR5056'
+        WHEN 'P6EBE1JYK25000072' THEN 'KA05AR3238'
+      END,
+      b.lat, b.lng, now()
+    FROM bike_location_cache b
+    WHERE b.chassis_number IN ('P6EBE1JYK25000288', 'P6EBE1JYK25000072')
+      AND b.lat IS NOT NULL AND b.lng IS NOT NULL;
+  $$
+);
+
+-- ============================================================
+-- SUMMARY
+-- ============================================================
+-- jobid | name                      | schedule     | notes
+-- ------+---------------------------+--------------+--------
+--   1   | metabase-hourly-sync      | 0 * * * *    | vehicle_parts_check_flag
+--   2   | OOS_QUEUE-hourly          | 5 * * * *    | oos_work_queue
+--   6   | refresh-deployment-cache  | */15 * * * * | deployment + pending_bookings caches
+--   7   | jc-history-daily-sync     | 30 20 * * *  | jc_history (02:00 IST)
+--   9   | fw-map-rider-sync-10min   | 0 * * * *    | bike_rider_cache (hourly)
+--  10   | fw-sheet-sync-15min       | */15 * * * * | fw_pending_cache (anon key)
+--  11   | bike-location-sync-5min   | 0 * * * *    | bike_location_cache (hourly in prod)
+--  13   | rsa-ticket-sync-2min      | */2 * * * *  | rsa_tickets_cache + trails
+--  14   | rsa-team-track-2min       | */2 * * * *  | rsa_team_locations (pure SQL)
