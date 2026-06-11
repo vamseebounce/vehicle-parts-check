@@ -106,7 +106,7 @@ Legend: ⬜ TODO · 🔄 IN PROGRESS · ✅ DONE · ⏸ BLOCKED
 | 5.3 | Update Cowork 8 AM health check to read `sync_heartbeats` | ⬜ | |
 | 5.4 | Add Sentry (free tier) to shared lib | ⬜ | All pages get error reporting |
 | 5.5 | Add `Cache-Control` headers on static assets (Vercel/Pages config) | ⬜ | Egress guardrail |
-| 5.6 | Set up Supabase built-in alerts (egress >80%, CPU >80%, RAM >80%) | ⬜ | Settings → Alerts |
+| 5.6 | Egress + DB health alert | ✅ | health-check fn emails at 70% egress; cron job 16 daily 08:30 IST |
 
 ---
 

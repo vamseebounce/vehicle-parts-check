@@ -177,6 +177,7 @@ SELECT cron.schedule(
 --  11   | bike-location-sync-5min   | 0 * * * *    | bike_location_cache (hourly in prod)
 --  13   | rsa-ticket-sync-2min      | */2 * * * *  | rsa_tickets_cache + trails
 --  14   | rsa-team-track-2min       | */2 * * * *  | rsa_team_locations (pure SQL)
+--  16   | health-egress-daily       | 0 3 * * *    | DB + egress alert (03:00 UTC / 08:30 IST)
 
 -- ============================================================
 -- Task 5.6: Daily health + egress check (08:30 IST = 03:00 UTC)
