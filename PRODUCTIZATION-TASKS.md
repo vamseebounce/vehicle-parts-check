@@ -13,9 +13,9 @@ Legend: ⬜ TODO · 🔄 IN PROGRESS · ✅ DONE · ⏸ BLOCKED
 | 0.0 | Push v8 files to GitHub | ✅ | tag: `phase-0.0` |
 | 0.1 | Tag repo `v8-final` | ✅ | tag: `v8-final` |
 | 0.2 | Move `v6/` and `v7/` to `archive/` | ✅ | Preserved in archive/, gitignored |
-| 0.3 | Pull all edge fn source into `supabase/functions/` | ⬜ | rsa-ticket-sync, fw-sheet-sync, bike-location-sync, fw-map-rider-sync, admin-create-tech, rsa-history |
-| 0.4 | DB dump → baseline migration `supabase/migrations/00000000000000_baseline.sql` | ⬜ | Schema snapshot |
-| 0.5 | Cron job definitions → `supabase/cron-jobs.sql` | ⬜ | Query `cron.job` table |
+| 0.3 | Pull all edge fn source into `supabase/functions/` | ✅ | tag: `phase-0.3` — all 13 fns captured + CNAME restored |
+| 0.4 | DB dump → baseline migration `supabase/migrations/00000000000000_baseline.sql` | ✅ | tag: `phase-0.4` |
+| 0.5 | Cron job definitions → `supabase/cron-jobs.sql` | ✅ | 9 jobs captured, keys redacted |
 | 0.6 | Write / update README so fresh clone can rebuild backend | ⬜ | |
 
 ---
