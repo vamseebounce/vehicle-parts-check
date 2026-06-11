@@ -177,3 +177,21 @@ SELECT cron.schedule(
 --  11   | bike-location-sync-5min   | 0 * * * *    | bike_location_cache (hourly in prod)
 --  13   | rsa-ticket-sync-2min      | */2 * * * *  | rsa_tickets_cache + trails
 --  14   | rsa-team-track-2min       | */2 * * * *  | rsa_team_locations (pure SQL)
+
+-- ============================================================
+-- Task 5.6: Daily health + egress check (08:30 IST = 03:00 UTC)
+-- Calls health-check edge fn; fn emails if DB unhealthy OR egress > 70%
+-- Requires: MGMT_TOKEN secret in edge fn secrets
+-- ============================================================
+SELECT cron.schedule(
+  'health-egress-daily',
+  '0 3 * * *',
+  $$
+    SELECT net.http_get(
+      url := (SELECT 'https://' || (SELECT value FROM vault.secrets WHERE name = 'project_url') || '/functions/v1/health-check')
+    );
+  $$
+);
+-- Simpler alternative if vault not set up — paste your project URL directly:
+-- url := 'https://clkfvmmlgwcvntxnolsv.supabase.co/functions/v1/health-check'
+--  15  | health-egress-daily       | 0 3 * * *    | DB + egress alert (03:00 UTC / 08:30 IST)
