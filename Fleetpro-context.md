@@ -18,7 +18,7 @@
 
 - **Repo:** https://github.com/vamseebounce/vehicle-parts-check
 - **Branch:** `main` → GitHub Pages → bounceops.online
-- **PAT:** embedded in remote URL for sandbox-autonomous pushes. ⚠️ Token `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` was shared in chat — **regenerate it**.
+- **PAT:** embedded in remote URL for sandbox-autonomous pushes. ⚠️ Token `<REDACTED_REGENERATE_IN_GITHUB>` was shared in chat — **regenerate it**.
 - **Lock file gotcha:** Sandbox creates `.git/index.lock` and `refs/remotes/origin/main.lock` on macOS FUSE mount but cannot delete them. Workaround: `git add` + `git commit` must run from user's **Terminal**; sandbox handles `git push` and `git tag`.
 - **Rollback tags:** `phase-0.0`, `v8-final`, `phase-0.3`, `phase-0.4`, `phase-0.5`, `phase-0.6`, `phase-2half-additive` (vehicles, sync_heartbeats, fw_pending_history)
 - **Task tracker:** `PRODUCTIZATION-TASKS.md` in repo root — 47 tasks across Phase 0–6 + Phase 2½
