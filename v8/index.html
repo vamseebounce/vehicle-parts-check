@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/> 
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"/>
+<meta http-equiv="Pragma" content="no-cache"/>
+<meta http-equiv="Expires" content="0"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>FleetPro — Bounce Fleet Operations</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<style>
+
+/* ── Auth Screen ── */
+#auth-screen{position:fixed;inset:0;z-index:1000;background:linear-gradient(135deg,#1A1A2E 0%,#0f2460 100%);display:flex;align-items:center;justify-content:center;font-family:'Inter',sans-serif;}
+#auth-screen.hidden{display:none!important}
+.auth-card{background:#fff;border-radius:24px;padding:40px 36px;width:100%;max-width:380px;box-shadow:0 24px 80px rgba(0,0,0,.3);text-align:center;}
+.auth-logo{display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:24px}
+.auth-logo-name{font-size:1.1rem;font-weight:800;color:#0F172A}
+.auth-logo-sub{font-size:.7rem;color:#6B7280;font-weight:500;letter-spacing:.5px;text-transform:uppercase;margin-top:2px}
+.auth-title{font-size:1.3rem;font-weight:800;color:#0F172A;margin-bottom:6px}
+.auth-sub{font-size:.82rem;color:#6B7280;margin-bottom:28px;line-height:1.6}
+.auth-input{width:100%;padding:13px 16px;border:1.5px solid #E5E7EB;border-radius:12px;font-size:.9rem;font-family:'Inter',sans-serif;color:#111827;outline:none;transition:border-color .15s;margin-bottom:12px;}
+.auth-input:focus{border-color:#E8191C}
+.auth-btn{width:100%;padding:13px;background:#E8191C;color:#fff;border:none;border-radius:12px;font-size:.9rem;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;transition:background .15s;}
+.auth-btn:hover{background:#B01010}
+.auth-btn:disabled{background:#CBD5E1;cursor:not-allowed}
+.auth-domain{display:inline-block;background:#F0FDF4;color:#16A34A;border:1px solid #BBF7D0;border-radius:8px;padding:4px 12px;font-size:.75rem;font-weight:600;margin-bottom:20px}
+.auth-msg{font-size:.78rem;margin-top:12px;min-height:18px;line-height:1.5;color:#DC2626}
+.auth-sent{display:none;text-align:center}
+.auth-sent .big-icon{font-size:3rem;margin-bottom:12px}
+.auth-sent h3{font-size:1.1rem;font-weight:800;color:#0F172A;margin-bottom:8px}
+.auth-sent p{font-size:.82rem;color:#6B7280;line-height:1.6}
+.auth-sent .resend{background:none;border:none;color:#E8191C;font-size:.8rem;font-weight:600;cursor:pointer;margin-top:16px;font-family:'Inter',sans-serif}
+
+:root{
+  --brand:#E8191C;--brand-dark:#B01010;--brand-bg:#FEF2F2;
+  --sb-bg:#1A1A2E;--sb-text:rgba(255,255,255,.7);--sb-active:#fff;
+  --sb-hover:rgba(255,255,255,.08);--sb-width:260px;--topbar-h:56px;
+  --bg:#F5F6FA;--card:#fff;--border:#E5E7EB;--text:#111827;--muted:#6B7280;
+  --shadow:0 1px 3px rgba(0,0,0,.08),0 1px 2px rgba(0,0,0,.04);
+  --shadow-md:0 4px 16px rgba(0,0,0,.1);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+
+/* ── Overlay ── */
+#ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:150;backdrop-filter:blur(2px)}
+#ov.show{display:block}
+
+/* ── Sidebar ── */
+#sb{position:fixed;top:0;left:0;bottom:0;width:var(--sb-width);background:var(--sb-bg);z-index:200;transform:translateX(-100%);transition:transform .25s ease;display:flex;flex-direction:column;overflow:hidden;}
+#sb.open{transform:translateX(0)}
+body.pinned #sb{transform:translateX(0)}
+body.pinned #main{margin-left:var(--sb-width)}
+.sb-header{padding:20px 16px 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,.06)}
+.sb-brand{display:flex;align-items:center;gap:10px;text-decoration:none}
+@keyframes morph{0%,100%{border-radius:60% 40% 55% 45%/50% 60% 40% 50%}33%{border-radius:40% 60% 45% 55%/60% 40% 60% 40%}66%{border-radius:55% 45% 60% 40%/40% 55% 45% 60%}}
+.sb-brand-text .t1{font-size:.6rem;font-weight:700;color:rgba(255,255,255,.5);letter-spacing:.5px;text-transform:uppercase}
+.sb-brand-text .t2{font-size:.78rem;font-weight:800;color:#fff;letter-spacing:-.01em}
+.pin-btn{background:none;border:none;cursor:pointer;color:rgba(255,255,255,.35);font-size:.8rem;padding:4px 6px;border-radius:6px;transition:all .15s;display:flex;align-items:center;gap:3px;font-family:inherit}
+.pin-btn:hover{color:#fff;background:rgba(255,255,255,.08)}
+.pin-btn.pinned{color:var(--brand)}
+.sb-section{padding:12px 8px 4px}
+.sb-label{font-size:.6rem;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:rgba(255,255,255,.25);padding:0 8px 8px}
+.sb-item{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:10px;text-decoration:none;color:var(--sb-text);font-size:.82rem;font-weight:500;transition:all .15s;margin-bottom:2px}
+.sb-item:hover{background:var(--sb-hover);color:var(--sb-active)}
+.sb-item.active{background:rgba(232,25,28,.18);color:#fff;font-weight:600}
+.sb-item.active .si{color:var(--brand)}
+.si{font-size:1rem;width:20px;text-align:center;flex-shrink:0}
+.sb-spacer{flex:1}
+.sb-footer{padding:12px 16px;border-top:1px solid rgba(255,255,255,.06)}
+.sb-ver{font-size:.65rem;color:rgba(255,255,255,.25);font-weight:500}
+
+/* ── Settings Modal ── */
+#settings-modal{display:none;position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.45);backdrop-filter:blur(3px);align-items:center;justify-content:center;font-family:'Inter',sans-serif}
+#settings-modal.show{display:flex}
+.settings-card{background:#fff;border-radius:20px;width:100%;max-width:420px;box-shadow:0 24px 80px rgba(0,0,0,.25);overflow:hidden}
+.settings-header{padding:20px 24px 16px;border-bottom:1px solid #F3F4F6;display:flex;align-items:center;justify-content:space-between}
+.settings-header h2{font-size:1rem;font-weight:800;color:#0F172A}
+.settings-close{background:none;border:none;cursor:pointer;font-size:1.2rem;color:#9CA3AF;line-height:1;padding:2px 6px;border-radius:6px;transition:background .15s}
+.settings-close:hover{background:#F3F4F6;color:#374151}
+.settings-body{padding:20px 24px}
+.settings-row{margin-bottom:20px}
+.settings-row:last-child{margin-bottom:0}
+.settings-label{font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:#9CA3AF;margin-bottom:6px}
+.settings-value{font-size:.88rem;color:#374151;font-weight:500}
+.settings-divider{border:none;border-top:1px solid #F3F4F6;margin:20px 0}
+.settings-danger-zone{background:#FFF5F5;border:1px solid #FECACA;border-radius:12px;padding:16px}
+.settings-danger-title{font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:#DC2626;margin-bottom:8px}
+.settings-danger-desc{font-size:.8rem;color:#6B7280;margin-bottom:12px;line-height:1.5}
+.settings-danger-btn{width:100%;padding:10px;background:#DC2626;color:#fff;border:none;border-radius:10px;font-size:.82rem;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;transition:background .15s}
+.settings-danger-btn:hover{background:#B91C1C}
+.settings-danger-btn:disabled{background:#FCA5A5;cursor:not-allowed}
+#settings-last-logout{font-size:.78rem;color:#6B7280;margin-top:4px}
+
+/* ── Top Bar ── */
+#main{transition:margin-left .25s ease;min-height:100vh;display:flex;flex-direction:column}
+#topbar{position:sticky;top:0;z-index:100;height:var(--topbar-h);background:#fff;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;padding:0 16px;box-shadow:var(--shadow);}
+#hbg{width:36px;height:36px;background:none;border:none;cursor:pointer;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:5px;border-radius:8px;transition:background .15s;flex-shrink:0;}
+#hbg:hover{background:#F3F4F6}
+#hbg span{display:block;width:18px;height:2px;background:var(--text);border-radius:2px;transition:all .2s}
+.tb-brand{display:flex;align-items:center;gap:6px;flex:1;min-width:0}
+.tb-logo{display:flex;align-items:center;gap:7px;font-size:.85rem;font-weight:800;color:var(--brand);letter-spacing:-.01em;white-space:nowrap;text-decoration:none}
+.tb-dot{width:26px;height:26px;background:var(--brand);border-radius:60% 40% 55% 45%/50% 60% 40% 50%;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:.55rem;color:#fff;flex-shrink:0;animation:morph 6s ease-in-out infinite}
+.tb-right{display:flex;align-items:center;gap:8px;margin-left:auto;flex-shrink:0}
+
+/* ── Home Hero ── */
+.home-hero{background:linear-gradient(135deg,var(--sb-bg) 0%,#0f2460 100%);padding:48px 20px 64px;text-align:center;position:relative;overflow:hidden}
+.home-hero::after{content:'';position:absolute;bottom:-1px;left:0;right:0;height:40px;background:var(--bg);clip-path:ellipse(55% 100% at 50% 100%)}
+.home-hero-title{font-size:1.7rem;font-weight:900;color:#fff;letter-spacing:-.03em;margin-bottom:6px}
+.home-hero-sub{font-size:.85rem;color:rgba(255,255,255,.45)}
+
+/* ── Tile Grid ── */
+.tile-section{max-width:800px;margin:-24px auto 0;padding:0 16px 60px;width:100%}
+.tile-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+@media(max-width:600px){.tile-grid{grid-template-columns:1fr}}
+.tile{background:var(--card);border-radius:20px;box-shadow:var(--shadow-md);border:1px solid var(--border);overflow:hidden;text-decoration:none;color:inherit;display:flex;flex-direction:column;transition:box-shadow .2s,transform .15s;cursor:pointer}
+.tile:hover{box-shadow:0 8px 32px rgba(0,0,0,.13);transform:translateY(-2px)}
+.tile-accent{height:4px}
+.tile-body{padding:22px 22px 18px;flex:1;display:flex;flex-direction:column;gap:4px}
+.tile-icon{font-size:1.6rem;margin-bottom:8px}
+.tile-title{font-size:1rem;font-weight:800;color:#0F172A;margin-bottom:2px}
+.tile-desc{font-size:.76rem;color:var(--muted);margin-bottom:14px}
+.tile-stat{font-size:2.4rem;font-weight:900;letter-spacing:-.03em;line-height:1}
+.tile-stat-label{font-size:.75rem;color:var(--muted);font-weight:500;margin-bottom:10px}
+.tile-breakdown{font-size:.74rem;color:var(--muted);margin-bottom:16px}
+.tile-breakdown b{font-weight:700}
+.tile-cta{display:inline-flex;align-items:center;gap:5px;padding:8px 16px;border-radius:10px;font-size:.78rem;font-weight:700;border:none;cursor:pointer;font-family:inherit;transition:background .15s;margin-top:auto;align-self:flex-start}
+.tile-loading{font-size:.8rem;color:var(--muted);animation:pulse 1.5s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:.5}50%{opacity:1}}
+.tile-err{font-size:.75rem;color:#DC2626}
+
+/* ── Footer ── */
+.site-footer{background:var(--sb-bg);color:rgba(255,255,255,.6);padding:20px 20px 16px;text-align:center;margin-top:auto}
+.footer-brand{display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:6px}
+.footer-brand-text{font-size:.88rem;font-weight:800;color:#fff}
+.footer-taglines{margin-bottom:0}
+.footer-taglines p{font-size:.75rem;color:rgba(255,255,255,.4);line-height:1.7}
+.footer-taglines p strong{color:rgba(255,255,255,.65);font-weight:600}
+.footer-meta{font-size:.62rem;color:rgba(255,255,255,.2);margin-top:10px;border-top:1px solid rgba(255,255,255,.06);padding-top:10px}
+/* Hide hamburger when sidebar is pinned */
+body.pinned #hbg{display:none}
+
+/* Feedback */
+.fb-fab{position:fixed;bottom:24px;right:24px;z-index:1000;background:var(--text);color:#fff;border:none;border-radius:50px;padding:10px 18px;font-size:.78rem;font-weight:700;font-family:inherit;cursor:pointer;box-shadow:0 4px 16px rgba(0,0,0,.18);display:flex;align-items:center;gap:7px;transition:background .15s}
+.fb-fab:hover{background:#374151}
+.fb-popup{position:fixed;bottom:70px;right:24px;z-index:1001;background:#fff;border:1.5px solid var(--border);border-radius:14px;box-shadow:0 8px 32px rgba(0,0,0,.13);padding:16px;width:300px;display:none;flex-direction:column;gap:10px}
+.fb-popup.open{display:flex}
+.fb-title{font-size:.8rem;font-weight:700;color:var(--text)}
+.fb-sub{font-size:.7rem;color:var(--muted)}
+.fb-area{width:100%;border:1.5px solid var(--border);border-radius:8px;padding:8px 10px;font-size:.78rem;font-family:inherit;color:var(--text);resize:none;outline:none;transition:border-color .15s;box-sizing:border-box}
+.fb-area:focus{border-color:#94A3B8}
+.fb-submit{background:var(--text);color:#fff;border:none;border-radius:8px;padding:7px 14px;font-size:.75rem;font-weight:700;font-family:inherit;cursor:pointer;align-self:flex-end;transition:background .15s}
+.fb-submit:hover{background:#374151}
+
+@media(max-width:767px){body.pinned #main{margin-left:0}body.pinned #sb{transform:translateX(0)}.pin-btn{display:none}}
+@media(min-width:768px){.tile-section{padding:0 24px 60px}}
+</style>
+</head>
+<body>
+
+<!-- Auth Screen -->
+<div id="auth-screen" class="hidden">
+  <div class="auth-card">
+    <div class="auth-logo">
+      <img id="auth-logo-img" width="44" height="44" style="border-radius:10px;object-fit:cover;flex-shrink:0"/>
+      <div>
+        <div class="auth-logo-name">Bounce Daily</div>
+        <div class="auth-logo-sub">FleetPro</div>
+      </div>
+    </div>
+    <div class="auth-title">Welcome to FleetPro</div>
+    <div class="auth-sub">Enter your work email and we'll send you a one-click sign-in link.</div>
+    <div class="auth-domain">@bounceshare.com only</div>
+    <div id="auth-form">
+      <input id="auth-email" class="auth-input" type="email" placeholder="you@bounceshare.com" autocomplete="email"/>
+      <button id="auth-submit" class="auth-btn" onclick="sendMagicLink()">Send Magic Link</button>
+      <div id="auth-msg" class="auth-msg"></div>
+    </div>
+    <div id="auth-sent" class="auth-sent">
+      <div class="big-icon">📬</div>
+      <h3>Check your inbox</h3>
+      <p>Magic link sent to<br/><b id="auth-sent-email"></b><br/>Click it to sign in — expires in 15 min.</p>
+      <button class="resend" onclick="showForm()">← Use a different email</button>
+    </div>
+  </div>
+</div>
+
+<div id="ov"></div>
+
+<!-- Sidebar -->
+<nav id="sb">
+  <div class="sb-header">
+    <a href="./index.html" class="sb-brand">
+      <img src="logo.jpg" width="44" height="44" style="border-radius:10px;object-fit:cover;flex-shrink:0"/>
+      <div class="sb-brand-text">
+        <div class="t1">Bounce Daily</div>
+        <div class="t2">FleetPro</div>
+      </div>
+    </a>
+    <button class="pin-btn" id="pinBtn" onclick="togglePin()" title="Pin sidebar">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2v10M8 6l4-4 4 4M8 18l4 4 4-4M12 12v10"/></svg>
+      Pin
+    </button>
+  </div>
+  <div class="sb-section">
+    <div class="sb-label">Fleet Tools</div>
+    <a href="./index.html" class="sb-item active">
+      <span class="si">🏠</span><span>Home</span>
+    </a>
+    <a href="/maintenance" class="sb-item">
+      <span class="si">🔧</span><span>Preventive Maintenance</span>
+    </a>
+    <a href="/queue" class="sb-item">
+      <span class="si">📋</span><span>OOS Queue</span>
+    </a>
+    <a href="/deployment" class="sb-item">
+      <span class="si">🚲</span><span>Deployment Queue</span>
+    </a>
+    <a href="./fw-map.html" class="sb-item">
+      <span class="si">🗺️</span><span>FW Pending Map</span>
+    </a>
+    <a href="./rsa.html" class="sb-item">
+      <span class="si">🦺</span><span>RSA Warroom</span>
+    </a>
+  </div>
+  <div class="sb-section" style="margin-top:8px">
+    <div class="sb-label">Coming Soon</div>
+    <div class="sb-item" style="opacity:.4;cursor:default"><span class="si">📊</span><span>Fleet Analytics</span></div>
+    <div class="sb-item" style="opacity:.4;cursor:default"><span class="si">🔔</span><span>Alert Centre</span></div>
+  </div>
+  <div class="sb-spacer"></div>
+  <div class="sb-section" style="margin-top:0;padding-top:4px">
+    <button class="sb-item" onclick="openSettings()" style="width:100%;background:none;border:none;cursor:pointer;text-align:left">
+      <span class="si">⚙️</span><span>Settings</span>
+    </button>
+  </div>
+  <div class="sb-footer"><div class="sb-ver">FleetPro v5 · Data synced hourly</div></div>
+</nav>
+
+<!-- Settings Modal -->
+<div id="settings-modal">
+  <div class="settings-card">
+    <div class="settings-header">
+      <h2>⚙️ Fleet Pro Settings</h2>
+      <button class="settings-close" onclick="closeSettings()">✕</button>
+    </div>
+    <div class="settings-body">
+      <div class="settings-row">
+        <div class="settings-label">Session Expiry</div>
+        <div class="settings-value">12 hours after login</div>
+      </div>
+      <div class="settings-row">
+        <div class="settings-label">Signed in as</div>
+        <div class="settings-value" id="settings-user-email">—</div>
+      </div>
+      <hr class="settings-divider" id="settings-danger-divider"/>
+      <div id="settings-danger-section"><div class="settings-danger-zone">
+        <div class="settings-danger-title">⚠️ Danger Zone</div>
+        <div class="settings-danger-desc">Force-signs out all active Fleet Pro sessions across all users and devices. Everyone will need to re-authenticate.</div>
+        <button class="settings-danger-btn" id="force-logout-btn" onclick="forceLogoutAll()">Force Logout All Sessions</button>
+        <div id="settings-last-logout"></div>
+      </div></div>
+    </div>
+  </div>
+</div>
+
+<!-- Main -->
+<div id="main">
+  <header id="topbar">
+    <button id="hbg" onclick="toggleSidebar()" aria-label="Menu">
+      <span></span><span></span><span></span>
+    </button>
+    <div class="tb-brand">
+      <span class="tb-logo">
+        <img src="logo.jpg" width="30" height="30" style="border-radius:7px;object-fit:cover;flex-shrink:0"/>
+        FleetPro
+      </span>
+    </div>
+    <div class="tb-right">
+      <button id="logout-btn" onclick="signOut()" style="display:none;background:none;border:1px solid #E5E7EB;border-radius:8px;padding:5px 12px;font-size:.72rem;font-weight:600;color:#6B7280;cursor:pointer;font-family:'Inter',sans-serif;transition:all .15s" onmouseover="this.style.borderColor='#E8191C';this.style.color='#E8191C'" onmouseout="this.style.borderColor='#E5E7EB';this.style.color='#6B7280'">Sign out</button>
+    </div>
+  </header>
+
+  <section class="home-hero">
+    <h1 class="home-hero-title">Fleet Operations Hub</h1>
+    <p class="home-hero-sub">All your fleet tools in one place</p>
+  </section>
+
+  <section class="tile-section">
+    <div class="tile-grid">
+
+      <!-- PM Tile -->
+      <a class="tile" href="/maintenance">
+        <div class="tile-accent" style="background:#E8191C"></div>
+        <div class="tile-body">
+          <div class="tile-icon">🔭</div>
+          <div class="tile-title">Preventive Maintenance</div>
+          <div class="tile-desc">Component health &amp; service schedule</div>
+          <div id="pm-stat" class="tile-stat tile-loading">—</div>
+          <div id="pm-label" class="tile-stat-label tile-loading">loading…</div>
+          <div id="pm-breakdown" class="tile-breakdown"></div>
+          <button class="tile-cta" style="background:#FEF2F2;color:#E8191C">Open →</button>
+        </div>
+      </a>
+
+      <!-- OOS Tile -->
+      <a class="tile" href="/queue">
+        <div class="tile-accent" style="background:#0f2460"></div>
+        <div class="tile-body">
+          <div class="tile-icon">🔧</div>
+          <div class="tile-title">Pending OOS Vehicles</div>
+          <div class="tile-desc">FIFO repair queue by hub</div>
+          <div id="oos-stat" class="tile-stat tile-loading">—</div>
+          <div id="oos-label" class="tile-stat-label tile-loading">loading…</div>
+          <div id="oos-breakdown" class="tile-breakdown"></div>
+          <button class="tile-cta" style="background:#EFF6FF;color:#1D4ED8">Open →</button>
+        </div>
+      </a>
+
+      <!-- Deployment Queue Tile — spans full width -->
+      <a class="tile" href="/deployment" style="grid-column:1/-1">
+        <div class="tile-accent" style="background:linear-gradient(90deg,#7C3AED,#0369A1,#059669)"></div>
+        <div class="tile-body" style="flex-direction:row;align-items:center;gap:20px;flex-wrap:wrap">
+          <div style="flex:1;min-width:180px">
+            <div class="tile-icon" style="letter-spacing:-4px;filter:sepia(1) saturate(3) hue-rotate(5deg)">🛵🛵🛵</div>
+            <div class="tile-title">Deployment Queue</div>
+            <div class="tile-desc">Allotment scoring · pipeline by hub · allocate by phone</div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+              <span style="font-size:.65rem;font-weight:700;color:#7C3AED;background:#F5F3FF;border:1px solid #DDD6FE;border-radius:6px;padding:2px 8px">Elite 0–200 km</span>
+              <span style="font-size:.65rem;font-weight:700;color:#0369A1;background:#EFF6FF;border:1px solid #BFDBFE;border-radius:6px;padding:2px 8px">Prime 200–3k km</span>
+              <span style="font-size:.65rem;font-weight:700;color:#059669;background:#F0FDF4;border:1px solid #BBF7D0;border-radius:6px;padding:2px 8px">Standard &gt;3k km</span>
+            </div>
+          </div>
+          <button class="tile-cta" style="background:#F5F3FF;color:#7C3AED;align-self:center">Open →</button>
+        </div>
+      </a>
+
+      <!-- FW Pending Map Tile -->
+      <a class="tile" href="./fw-map.html">
+        <div class="tile-accent" style="background:linear-gradient(90deg,#0369A1,#0891B2)"></div>
+        <div class="tile-body">
+          <div class="tile-icon">🗺️</div>
+          <div class="tile-title">FW Pending Map</div>
+          <div class="tile-desc">Geo view of firmware-pending vehicles by hub</div>
+          <button class="tile-cta" style="background:#EFF6FF;color:#0369A1">Open →</button>
+        </div>
+      </a>
+      <a class="tile" href="./rsa.html">
+        <div class="tile-accent" style="background:linear-gradient(90deg,#7C3AED,#A855F7)"></div>
+        <div class="tile-body">
+          <div class="tile-icon">🦺</div>
+          <div class="tile-title">RSA Warroom</div>
+          <div class="tile-desc">Live RSA tickets across Bangalore with technician locations</div>
+          <button class="tile-cta" style="background:#F5F3FF;color:#7C3AED">Open →</button>
+        </div>
+      </a>
+
+    </div>
+  </section>
+
+  <footer class="site-footer">
+    <div class="footer-brand">
+      <img src="logo.jpg" width="32" height="32" style="border-radius:8px;object-fit:cover;flex-shrink:0"/>
+      <span class="footer-brand-text">Bounce Daily</span>
+    </div>
+    <div class="footer-taglines">
+      <p><strong>Keep Every Bike Road-Ready.</strong></p>
+      <p>Real-time fleet health · Zero surprises · Always on</p>
+    </div>
+    <div class="footer-meta">FleetPro v5 · Fleet Operations Dashboard · Bounce Fleet Operations<br/>Data synced every hour · Internal use only</div>
+  </footer>
+
+  <div class="fb-popup" id="fb-popup">
+    <div class="fb-title">Send Feedback</div>
+    <div class="fb-sub">Suggestions, bugs, or anything on your mind</div>
+    <textarea class="fb-area" id="fb-text" rows="4" placeholder="Type your feedback here…"></textarea>
+    <button class="fb-submit" onclick="submitFeedback()">Submit</button>
+  </div>
+  <button class="fb-fab" id="fb-fab" onclick="toggleFeedback()" style="display:none">✉ Feedback</button>
+</div>
+
+<script>
+var SB_URL='https://clkfvmmlgwcvntxnolsv.supabase.co';
+var ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNsa2Z2bW1sZ3djdm50eG5vbHN2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ1NDQ2NTgsImV4cCI6MjA5MDEyMDY1OH0.FA33GFQisWX_hDeGCWqL5yAZmPcuQRdxZX32I23lyoY';
+var SB=SB_URL;
+var K=ANON_KEY;
+var CURRENT_USER_EMAIL=null;
+
+var sbClient=supabase.createClient(SB_URL,ANON_KEY,{auth:{persistSession:true,storageKey:'fleetpro_session',autoRefreshToken:true}});
+
+function showAuthScreen(){document.getElementById('auth-screen').classList.remove('hidden');showForm();}
+function hideAuthScreen(){document.getElementById('auth-screen').classList.add('hidden');}
+function showForm(){
+  document.getElementById('auth-form').style.display='block';
+  document.getElementById('auth-sent').style.display='none';
+  document.getElementById('auth-msg').textContent='';
+  document.getElementById('auth-email').value='';
+}
+async function sendMagicLink(){
+  var email=document.getElementById('auth-email').value.trim().toLowerCase();
+  var msg=document.getElementById('auth-msg');
+  var btn=document.getElementById('auth-submit');
+  if(!email){msg.textContent='Please enter your email.';return;}
+  if(!email.endsWith('@bounceshare.com')){msg.textContent='Only @bounceshare.com emails are allowed.';return;}
+  btn.disabled=true;btn.textContent='Sending…';msg.textContent='';
+  var res=await sbClient.auth.signInWithOtp({email:email,options:{emailRedirectTo:window.location.origin+window.location.pathname}});
+  btn.disabled=false;btn.textContent='Send Magic Link';
+  if(res.error){msg.textContent=res.error.message||'Failed to send link. Please try again.';}
+  else{document.getElementById('auth-form').style.display='none';document.getElementById('auth-sent').style.display='block';document.getElementById('auth-sent-email').textContent=email;}
+}
+document.getElementById('auth-email').addEventListener('keydown',function(e){if(e.key==='Enter')sendMagicLink();});
+async function signOut(){await sbClient.auth.signOut();document.getElementById('logout-btn').style.display='none';showAuthScreen();}
+
+async function enforce24hReauth(userId){
+  try{
+    var{data}=await sbClient.from('user_last_login').select('last_login_at').eq('user_id',userId).single();
+    if(!data)return;
+    var hours=(Date.now()-new Date(data.last_login_at))/36e5;
+    if(hours>12){console.log('Session >12h, signing out.');await sbClient.auth.signOut();}
+  }catch(e){console.warn('12h check failed:',e);}
+}
+
+async function checkGlobalLogout(userId){
+  try{
+    var[r1,r2]=await Promise.all([
+      sbClient.from('user_last_login').select('last_login_at').eq('user_id',userId).single(),
+      sbClient.from('app_settings').select('value').eq('key','global_logout_at').single()
+    ]);
+    if(!r1.data||!r2.data)return;
+    if(new Date(r1.data.last_login_at)<new Date(r2.data.value)){
+      console.log('Global logout triggered.');
+      await sbClient.auth.signOut();
+    }
+  }catch(e){console.warn('Global logout check failed:',e);}
+}
+
+// Settings modal
+var ADMIN_EMAILS=['vamsee@bounceshare.com'];
+function openSettings(){
+  document.getElementById('settings-user-email').textContent=CURRENT_USER_EMAIL||'—';
+  document.getElementById('settings-modal').classList.add('show');
+  var isAdmin=ADMIN_EMAILS.includes(CURRENT_USER_EMAIL);
+  document.getElementById('settings-danger-section').style.display=isAdmin?'block':'none';
+  document.getElementById('settings-danger-divider').style.display=isAdmin?'block':'none';
+  sbClient.from('app_settings').select('value,updated_at').eq('key','global_logout_at').single().then(function(r){
+    var el=document.getElementById('settings-last-logout');
+    if(r.data&&r.data.updated_at){
+      var d=new Date(r.data.updated_at);
+      el.textContent='Last forced logout: '+d.toLocaleString('en-IN',{timeZone:'Asia/Kolkata',day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});
+    }else{el.textContent='';}
+  });
+}
+function closeSettings(){document.getElementById('settings-modal').classList.remove('show');}
+document.getElementById('settings-modal').addEventListener('click',function(e){if(e.target===this)closeSettings();});
+
+async function forceLogoutAll(){
+  if(!confirm('This will immediately sign out ALL active Fleet Pro sessions.\n\nYou will also be signed out. Continue?'))return;
+  var btn=document.getElementById('force-logout-btn');
+  btn.disabled=true;btn.textContent='Signing out all sessions…';
+  var now=new Date().toISOString();
+  var{error}=await sbClient.from('app_settings').update({value:now,updated_at:now}).eq('key','global_logout_at');
+  if(error){btn.disabled=false;btn.textContent='Force Logout All Sessions';alert('Error: '+error.message);return;}
+  await signOut();
+}
+
+(async function(){
+  var mainLogo=document.querySelector('.sb-brand img');
+  if(mainLogo)document.getElementById('auth-logo-img').src=mainLogo.src;
+  var isHashLogin=window.location.hash.includes('access_token');
+  var{data:{session}}=await sbClient.auth.getSession();
+  var _authReady=false;
+  if(session){
+    K=session.access_token;CURRENT_USER_EMAIL=session.user.email;
+    hideAuthScreen();
+    document.getElementById('logout-btn').style.display='block';
+    document.getElementById('fb-fab').style.display='flex';
+    loadTileStats();
+    _authReady=true;
+    if(!isHashLogin)enforce24hReauth(session.user.id).then(function(){checkGlobalLogout(session.user.id);});
+  } else {_authReady=true;showAuthScreen();}
+  sbClient.auth.onAuthStateChange(async function(event,session){
+    if(event==='SIGNED_IN'&&session){
+      K=session.access_token;CURRENT_USER_EMAIL=session.user.email;
+      hideAuthScreen();
+      document.getElementById('logout-btn').style.display='block';
+      document.getElementById('logout-btn').title='Signed in as '+CURRENT_USER_EMAIL;
+      document.getElementById('fb-fab').style.display='flex';
+      loadTileStats();
+    } else if(event==='SIGNED_OUT'){K=ANON_KEY;document.getElementById('logout-btn').style.display='none';if(_authReady)showAuthScreen();}
+    else if(event==='TOKEN_REFRESHED'&&session){K=session.access_token;}
+  });
+  // Periodic global logout check every 5 min
+  setInterval(async function(){
+    var{data:{session:s}}=await sbClient.auth.getSession();
+    if(s)await checkGlobalLogout(s.user.id);
+  },5*60*1000);
+  // Idle timeout — sign out after 8 hours of inactivity
+  var _idleTimer;
+  function _resetIdle(){
+    clearTimeout(_idleTimer);
+    _idleTimer=setTimeout(async function(){
+      await sbClient.auth.signOut();
+      window.location.reload();
+    },8*60*60*1000);
+  }
+  ['click','keypress','scroll','mousemove','touchstart'].forEach(function(e){
+    document.addEventListener(e,_resetIdle,true);
+  });
+  _resetIdle();
+})();
+
+// ── Sidebar ──────────────────────────────────────────────────────────
+var pinned=localStorage.getItem('sb_pinned')==='1';
+var sbOpen=false;
+function applyPin(){
+  if(pinned){document.body.classList.add('pinned');document.getElementById('pinBtn').classList.add('pinned');document.getElementById('pinBtn').title='Unpin sidebar';document.getElementById('ov').classList.remove('show');document.getElementById('sb').classList.add('open');sbOpen=true;}
+  else{document.body.classList.remove('pinned');document.getElementById('pinBtn').classList.remove('pinned');document.getElementById('pinBtn').title='Pin sidebar';}
+}
+function toggleSidebar(){if(pinned){togglePin();return;}sbOpen=!sbOpen;document.getElementById('sb').classList.toggle('open',sbOpen);document.getElementById('ov').classList.toggle('show',sbOpen);}
+function closeSidebar(){if(pinned)return;sbOpen=false;document.getElementById('sb').classList.remove('open');document.getElementById('ov').classList.remove('show');}
+function togglePin(){pinned=!pinned;localStorage.setItem('sb_pinned',pinned?'1':'0');applyPin();if(!pinned){sbOpen=false;document.getElementById('sb').classList.remove('open');}}
+document.getElementById('ov').addEventListener('click',closeSidebar);
+applyPin();
+
+// ── Tile Stats ───────────────────────────────────────────────────────
+function fmtTime(mins){if(!mins&&mins!==0)return '—';var h=Math.floor(mins/60);var m=mins%60;if(h===0)return m+'m';return m===0?h+'h':h+'h '+m+'m';}
+
+async function loadTileStats(){
+  var h={headers:{apikey:ANON_KEY,Authorization:'Bearer '+K}};
+  var base=SB+'/rest/v1/';
+
+  // PM stats — use count=exact header to bypass server max-rows cap
+  var pmH={headers:Object.assign({},h.headers,{'Prefer':'count=exact','Range':'0-0'})};
+  Promise.all([
+    fetch(base+'vehicle_parts_check_flag?select=overall_urgency&check_required=eq.true',pmH),
+    fetch(base+'vehicle_parts_check_flag?select=overall_urgency&check_required=eq.true&overall_urgency=eq.1',pmH),
+    fetch(base+'vehicle_parts_check_flag?select=overall_urgency&check_required=eq.true&overall_urgency=eq.2',pmH)
+  ]).then(function(rs){
+    function getCount(r){var cr=r.headers.get('Content-Range');return cr?parseInt(cr.split('/')[1])||0:0;}
+    var attention=getCount(rs[0]);
+    var overdue=getCount(rs[1]);
+    var dueSoon=getCount(rs[2]);
+    var el=document.getElementById('pm-stat');
+    el.textContent=attention;
+    el.className='tile-stat';
+    el.style.color='#E8191C';
+    document.getElementById('pm-label').textContent='bikes need attention';
+    document.getElementById('pm-label').className='tile-stat-label';
+    document.getElementById('pm-breakdown').innerHTML=
+      (overdue?'<b style="color:#DC2626">'+overdue+' Overdue</b>':'')
+      +(overdue&&dueSoon?' · ':'')
+      +(dueSoon?'<b style="color:#D97706">'+dueSoon+' Due Soon</b>':'')
+      +(!overdue&&!dueSoon?'<b style="color:#16A34A">All bikes OK ✓</b>':'');
+  }).catch(function(){
+    document.getElementById('pm-stat').textContent='—';
+    document.getElementById('pm-label').textContent='error loading';
+  });
+
+  // OOS stats — count=exact for total, small fetch for hub/time breakdown
+  var oosCountH={headers:Object.assign({},h.headers,{'Prefer':'count=exact','Range':'0-0'})};
+  Promise.all([
+    fetch(base+'oos_work_queue?select=hub,estimated_mins&limit=10000',h),
+    fetch(base+'oos_work_queue?select=hub,estimated_mins',oosCountH)
+  ]).then(function(rs){return Promise.all([rs[0].json(),rs[1]]);})
+  .then(function(results){
+    var data=results[0];
+    var countR=results[1].headers.get('Content-Range');
+    if(!Array.isArray(data)){
+      document.getElementById('oos-stat').textContent='—';
+      document.getElementById('oos-label').textContent='could not load';
+      document.getElementById('oos-stat').className='tile-stat tile-err';
+      return;
+    }
+    var count=countR?parseInt(countR.split('/')[1])||data.length:data.length;
+    var hubs=new Set(data.map(function(r){return r.hub;}).filter(Boolean)).size;
+    var totalMins=data.reduce(function(s,r){return s+(r.estimated_mins||0)+60;},0);
+    var el=document.getElementById('oos-stat');
+    el.textContent=count;
+    el.className='tile-stat';
+    el.style.color='#0f2460';
+    document.getElementById('oos-label').textContent='vehicles in queue';
+    document.getElementById('oos-label').className='tile-stat-label';
+    document.getElementById('oos-breakdown').innerHTML=
+      count===0
+      ?'<b style="color:#16A34A">Queue clear ✓</b>'
+      :'<b>'+hubs+' hub'+(hubs!==1?'s':'')+'</b> · Est. <b>'+fmtTime(totalMins)+'</b> total';
+  }).catch(function(){
+    document.getElementById('oos-stat').textContent='—';
+    document.getElementById('oos-label').textContent='error loading';
+  });
+}
+
+// ── Feedback ─────────────────────────────────────────────────────────
+function toggleFeedback(){var p=document.getElementById('fb-popup');p.classList.toggle('open');if(p.classList.contains('open'))document.getElementById('fb-text').focus();}
+function submitFeedback(){
+  var txt=document.getElementById('fb-text');
+  var msg=(txt&&txt.value.trim())||'';
+  if(!msg){txt&&txt.focus();return;}
+  var btn=document.querySelector('.fb-submit');
+  btn.textContent='Submitting…';btn.disabled=true;
+  fetch(SB+'/rest/v1/feedback',{method:'POST',headers:{apikey:ANON_KEY,Authorization:'Bearer '+K,'Content-Type':'application/json',Prefer:'return=minimal'},body:JSON.stringify({message:msg,submitted_by:CURRENT_USER_EMAIL})})
+  .then(function(r){
+    btn.textContent='Submit';btn.disabled=false;
+    if(r.ok||r.status===201){
+      txt.value='';document.getElementById('fb-popup').classList.remove('open');
+      var t=document.createElement('div');
+      t.style.cssText='position:fixed;bottom:80px;right:24px;background:#22C55E;color:#fff;padding:8px 16px;border-radius:8px;font-size:.78rem;font-weight:600;z-index:2000';
+      t.textContent='Feedback submitted!';document.body.appendChild(t);setTimeout(function(){t.remove();},3000);
+    } else {alert('Could not submit feedback.');}
+  }).catch(function(){btn.textContent='Submit';btn.disabled=false;alert('Network error.');});
+}
+</script>
+</body>
+</html>

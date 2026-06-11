@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FleetPro — Tech Admin</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Inter',sans-serif;background:#0f172a;color:#f1f5f9;min-height:100vh}
+:root{--teal:#14b8a6;--amber:#f59e0b;--green:#22c55e;--red:#ef4444;--card:#1e293b;--border:#334155;--muted:#94a3b8}
+#header{background:#1e293b;border-bottom:1px solid var(--border);padding:14px 24px;display:flex;align-items:center;gap:16px}
+#header h1{font-size:18px;font-weight:800}
+#header a{color:var(--muted);text-decoration:none;font-size:13px;margin-left:auto}
+#header a:hover{color:#f1f5f9}
+.container{max-width:960px;margin:0 auto;padding:28px 24px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:24px;margin-bottom:24px}
+.card-title{font-size:15px;font-weight:700;margin-bottom:20px;color:#f1f5f9;display:flex;align-items:center;gap:8px}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.form-group{display:flex;flex-direction:column;gap:6px}
+label{font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.5px;text-transform:uppercase}
+input[type=text],input[type=email],input[type=password]{background:#0f172a;border:1.5px solid var(--border);border-radius:8px;padding:10px 12px;font-size:14px;color:#f1f5f9;outline:none;transition:border-color .15s;width:100%}
+input:focus{border-color:var(--teal)}
+.btn{border:none;border-radius:8px;padding:10px 18px;font-size:13px;font-weight:700;cursor:pointer;transition:opacity .15s;display:inline-flex;align-items:center;gap:6px}
+.btn:active{opacity:.8}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn-teal{background:var(--teal);color:#0f172a}
+.btn-red{background:rgba(239,68,68,.15);color:var(--red);border:1px solid rgba(239,68,68,.3)}
+.btn-ghost{background:rgba(148,163,184,.1);color:#f1f5f9}
+table{width:100%;border-collapse:collapse}
+th{text-align:left;font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.5px;text-transform:uppercase;padding:8px 12px;border-bottom:1px solid var(--border)}
+td{padding:12px;border-bottom:1px solid rgba(51,65,85,.5);font-size:13px;vertical-align:middle}
+tr:last-child td{border-bottom:none}
+.status-dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:6px}
+.dot-green{background:var(--green)}
+.dot-red{background:var(--red)}
+.msg{padding:12px 16px;border-radius:8px;font-size:13px;font-weight:600;margin-bottom:16px;display:none}
+.msg-success{background:rgba(34,197,94,.1);color:var(--green);border:1px solid rgba(34,197,94,.2)}
+.msg-error{background:rgba(239,68,68,.1);color:var(--red);border:1px solid rgba(239,68,68,.2)}
+#actions-section{margin-top:24px}
+.action-row{display:flex;gap:8px;padding:10px 12px;border-bottom:1px solid var(--border);align-items:flex-start}
+.action-row:last-child{border-bottom:none}
+.action-time{font-size:11px;color:var(--muted);white-space:nowrap;flex-shrink:0;margin-top:2px}
+.action-main{flex:1;min-width:0}
+.action-type{font-size:12px;font-weight:700;color:var(--teal);text-transform:uppercase;letter-spacing:.3px}
+.action-ticket{font-size:13px;font-weight:700;color:#f1f5f9}
+.action-note{font-size:12px;color:var(--muted);margin-top:2px}
+.badge{display:inline-flex;padding:2px 8px;border-radius:12px;font-size:10px;font-weight:700}
+.badge-done{background:rgba(34,197,94,.15);color:var(--green)}
+.badge-progress{background:rgba(245,158,11,.15);color:var(--amber)}
+.admin-lock{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;gap:16px;padding:32px}
+.admin-lock h2{font-size:20px;font-weight:800}
+.admin-lock p{font-size:13px;color:var(--muted)}
+</style>
+</head>
+<body>
+
+<div id="lock-screen" class="admin-lock">
+  <div style="font-size:48px">🔐</div>
+  <h2>Admin Access</h2>
+  <p>Enter admin secret to continue</p>
+  <div style="width:100%;max-width:320px;display:flex;flex-direction:column;gap:12px">
+    <input type="password" id="admin-secret-input" placeholder="Admin secret" style="width:100%" onkeydown="if(event.key==='Enter')unlockAdmin()">
+    <button class="btn btn-teal" style="width:100%;padding:12px" onclick="unlockAdmin()">Unlock</button>
+    <div id="lock-err" style="color:var(--red);font-size:13px;text-align:center;min-height:16px"></div>
+  </div>
+</div>
+
+<div id="main-content" style="display:none">
+<div id="header">
+  <div style="width:32px;height:32px;background:var(--teal);border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:900;color:#0f172a">F</div>
+  <h1>Tech Management</h1>
+  <a href="rsa.html">← Back to Warroom</a>
+</div>
+
+<div class="container">
+
+  <!-- CREATE TECH -->
+  <div class="card">
+    <div class="card-title">➕ Add New Technician</div>
+    <div id="create-msg" class="msg"></div>
+    <div class="grid-2" style="margin-bottom:16px">
+      <div class="form-group">
+        <label>Full Name (must match Metabase)</label>
+        <input type="text" id="new-name" placeholder="e.g. Nishanth">
+      </div>
+      <div class="form-group">
+        <label>Phone</label>
+        <input type="text" id="new-phone" placeholder="+91 98765 43210">
+      </div>
+      <div class="form-group">
+        <label>Email</label>
+        <input type="email" id="new-email" placeholder="tech@bounce.bike">
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" id="new-password" placeholder="Min 8 characters">
+      </div>
+    </div>
+    <button class="btn btn-teal" id="create-btn" onclick="createTech()">Create Account</button>
+  </div>
+
+  <!-- TECH LIST -->
+  <div class="card">
+    <div class="card-title">👥 All Technicians <button class="btn btn-ghost" style="margin-left:auto;padding:6px 12px;font-size:12px" onclick="loadTechs()">↻ Refresh</button></div>
+    <div id="techs-table-wrap">
+      <div style="padding:24px;text-align:center;color:var(--muted)">Loading...</div>
+    </div>
+  </div>
+
+  <!-- RECENT ACTIONS -->
+  <div class="card">
+    <div class="card-title">📋 Recent Tech Actions</div>
+    <div style="margin-bottom:12px;display:flex;gap:8px;align-items:center">
+      <select id="filter-tech" onchange="loadActions()" style="background:#0f172a;border:1px solid var(--border);border-radius:6px;padding:6px 10px;font-size:13px;color:#f1f5f9;outline:none">
+        <option value="">All technicians</option>
+      </select>
+      <select id="filter-action" onchange="loadActions()" style="background:#0f172a;border:1px solid var(--border);border-radius:6px;padding:6px 10px;font-size:13px;color:#f1f5f9;outline:none">
+        <option value="">All actions</option>
+        <option value="on_my_way">On My Way</option>
+        <option value="on_site">On Site</option>
+        <option value="completed">Completed</option>
+        <option value="note">Notes</option>
+      </select>
+    </div>
+    <div id="actions-list"><div style="padding:24px;text-align:center;color:var(--muted)">Loading...</div></div>
+  </div>
+
+</div>
+</div>
+
+<!-- RESET PASSWORD MODAL -->
+<div id="reset-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:100;display:none;align-items:center;justify-content:center">
+  <div style="background:#1e293b;border-radius:14px;padding:24px;width:100%;max-width:380px;margin:16px">
+    <div style="font-size:16px;font-weight:700;margin-bottom:16px">Reset Password</div>
+    <input type="hidden" id="reset-user-id">
+    <div class="form-group" style="margin-bottom:16px">
+      <label>New Password</label>
+      <input type="password" id="reset-password" placeholder="Min 8 characters" style="width:100%">
+    </div>
+    <div style="display:flex;gap:10px">
+      <button class="btn btn-ghost" style="flex:1" onclick="document.getElementById('reset-modal').style.display='none'">Cancel</button>
+      <button class="btn btn-teal" style="flex:1" id="reset-btn" onclick="doReset()">Reset</button>
+    </div>
+    <div id="reset-msg" class="msg" style="margin-top:12px;margin-bottom:0"></div>
+  </div>
+</div>
+
+<script>
+const SB_URL='https://clkfvmmlgwcvntxnolsv.supabase.co';
+const ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNsa2Z2bW1sZ3djdm50eG5vbHN2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ1NDQ2NTgsImV4cCI6MjA5MDEyMDY1OH0.FA33GFQisWX_hDeGCWqL5yAZmPcuQRdxZX32I23lyoY';
+const EDGE_URL = SB_URL + '/functions/v1/admin-create-tech';
+
+const sb = supabase.createClient(SB_URL, ANON_KEY);
+let ADMIN_SECRET = '';
+let _techs = [];
+
+function unlockAdmin() {
+  const s = document.getElementById('admin-secret-input').value.trim();
+  if (!s) { document.getElementById('lock-err').textContent = 'Enter the admin secret'; return; }
+  ADMIN_SECRET = s;
+  document.getElementById('lock-screen').style.display = 'none';
+  document.getElementById('main-content').style.display = 'block';
+  loadTechs();
+  loadActions();
+}
+
+async function adminFetch(body) {
+  const res = await fetch(EDGE_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-admin-secret': ADMIN_SECRET },
+    body: JSON.stringify(body)
+  });
+  return res.json();
+}
+
+async function createTech() {
+  const name = document.getElementById('new-name').value.trim();
+  const email = document.getElementById('new-email').value.trim();
+  const password = document.getElementById('new-password').value;
+  const phone = document.getElementById('new-phone').value.trim();
+  const msg = document.getElementById('create-msg');
+  const btn = document.getElementById('create-btn');
+
+  if (!name || !email || !password) { showMsg(msg, 'error', 'Name, email and password are required'); return; }
+  if (password.length < 8) { showMsg(msg, 'error', 'Password must be at least 8 characters'); return; }
+
+  btn.disabled = true; btn.textContent = 'Creating...';
+  const data = await adminFetch({ action: 'create', name, email, password, phone });
+  btn.disabled = false; btn.textContent = 'Create Account';
+
+  if (data.error) { showMsg(msg, 'error', data.error); return; }
+  showMsg(msg, 'success', `✓ Account created for ${name}`);
+  document.getElementById('new-name').value = '';
+  document.getElementById('new-email').value = '';
+  document.getElementById('new-password').value = '';
+  document.getElementById('new-phone').value = '';
+  loadTechs();
+}
+
+async function loadTechs() {
+  const data = await adminFetch({ action: 'list' });
+  _techs = data.data || [];
+  // Populate filter
+  const sel = document.getElementById('filter-tech');
+  const prev = sel.value;
+  sel.innerHTML = '<option value="">All technicians</option>' + _techs.map(t => `<option value="${t.id}" ${t.id===prev?'selected':''}>${t.name}</option>`).join('');
+
+  const wrap = document.getElementById('techs-table-wrap');
+  if (!_techs.length) { wrap.innerHTML = '<div style="padding:24px;text-align:center;color:var(--muted)">No technicians yet</div>'; return; }
+  wrap.innerHTML = `<table>
+    <thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>Status</th><th>Created</th><th></th></tr></thead>
+    <tbody>${_techs.map(t => `<tr>
+      <td style="font-weight:700">${t.name}</td>
+      <td style="color:var(--muted)">${t.email}</td>
+      <td style="color:var(--muted)">${t.phone || '--'}</td>
+      <td><span class="status-dot ${t.is_active ? 'dot-green' : 'dot-red'}"></span>${t.is_active ? 'Active' : 'Inactive'}</td>
+      <td style="color:var(--muted)">${fmtDate(t.created_at)}</td>
+      <td style="display:flex;gap:6px">
+        <button class="btn btn-ghost" style="padding:5px 10px;font-size:11px" onclick="openReset('${t.id}')">Reset PW</button>
+        ${t.is_active ? `<button class="btn btn-red" style="padding:5px 10px;font-size:11px" onclick="deactivate('${t.id}','${t.name}')">Deactivate</button>` : ''}
+      </td>
+    </tr>`).join('')}</tbody>
+  </table>`;
+}
+
+async function loadActions() {
+  const techId = document.getElementById('filter-tech').value;
+  const action = document.getElementById('filter-action').value;
+  let q = sb.from('rsa_tech_actions').select('*').order('created_at', { ascending: false }).limit(100);
+  if (techId) q = q.eq('technician_id', techId);
+  if (action) q = q.eq('action', action);
+  const { data } = await q;
+  const el = document.getElementById('actions-list');
+  if (!data || !data.length) { el.innerHTML = '<div style="padding:24px;text-align:center;color:var(--muted)">No actions found</div>'; return; }
+  el.innerHTML = (data || []).map(a => `
+    <div class="action-row">
+      <div class="action-time">${fmtDateTime(a.created_at)}</div>
+      <div class="action-main">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:3px">
+          <span class="action-type">${a.action.replace('_',' ')}</span>
+          <span style="font-size:11px;color:var(--muted)">by ${a.technician_name}</span>
+          ${a.action==='completed'?`<span class="badge badge-done">DONE</span>`:''}
+        </div>
+        <div class="action-ticket">${a.ticket_number}</div>
+        ${a.resolution_type ? `<div style="font-size:11px;color:var(--green);margin-top:2px">${resLabel(a.resolution_type)}</div>` : ''}
+        ${a.notes ? `<div class="action-note">${a.notes}</div>` : ''}
+        ${a.evidence_urls && a.evidence_urls.length ? `<div style="font-size:11px;color:var(--teal);margin-top:3px">📎 ${a.evidence_urls.length} file(s)</div>` : ''}
+      </div>
+    </div>
+  `).join('');
+}
+
+async function deactivate(id, name) {
+  if (!confirm(`Deactivate ${name}? They will no longer be able to log in.`)) return;
+  const data = await adminFetch({ action: 'deactivate', user_id: id });
+  if (data.error) { alert('Error: ' + data.error); return; }
+  loadTechs();
+}
+
+function openReset(userId) {
+  document.getElementById('reset-user-id').value = userId;
+  document.getElementById('reset-password').value = '';
+  document.getElementById('reset-msg').style.display = 'none';
+  document.getElementById('reset-modal').style.display = 'flex';
+}
+async function doReset() {
+  const userId = document.getElementById('reset-user-id').value;
+  const pw = document.getElementById('reset-password').value;
+  const msg = document.getElementById('reset-msg');
+  const btn = document.getElementById('reset-btn');
+  if (pw.length < 8) { showMsg(msg, 'error', 'Min 8 characters'); return; }
+  btn.disabled = true; btn.textContent = 'Resetting...';
+  const data = await adminFetch({ action: 'reset_password', user_id: userId, password: pw });
+  btn.disabled = false; btn.textContent = 'Reset';
+  if (data.error) { showMsg(msg, 'error', data.error); return; }
+  showMsg(msg, 'success', '✓ Password reset');
+  setTimeout(() => document.getElementById('reset-modal').style.display = 'none', 1500);
+}
+
+function showMsg(el, type, text) {
+  el.textContent = text;
+  el.className = 'msg ' + (type === 'success' ? 'msg-success' : 'msg-error');
+  el.style.display = 'block';
+  if (type === 'success') setTimeout(() => { el.style.display = 'none'; }, 4000);
+}
+function fmtDate(ts) {
+  if (!ts) return '--';
+  return new Date(ts).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'2-digit'});
+}
+function fmtDateTime(ts) {
+  if (!ts) return '--';
+  return new Date(ts).toLocaleString('en-IN',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit',hour12:true,timeZone:'Asia/Kolkata'});
+}
+function resLabel(r) {
+  return {phone_resolved:'Resolved over phone',repaired_on_site:'Repaired on site',porter_needed:'Porter arranged',towed_to_hub:'Towed to hub',battery_swap:'Battery swap',other:'Other'}[r] || r;
+}
+</script>
+</body>
+</html>

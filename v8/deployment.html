@@ -1,0 +1,1047 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>FleetPro v6 — Deployment Queue</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<style>
+/* ── Auth ─────────────────────────────────────────────────────────── */
+#auth-screen{position:fixed;inset:0;z-index:1000;background:linear-gradient(135deg,#1A1A2E 0%,#0f2460 100%);display:flex;align-items:center;justify-content:center;font-family:'Inter',sans-serif}
+#auth-screen.hidden{display:none!important}
+.auth-card{background:#fff;border-radius:24px;padding:40px 36px;width:100%;max-width:380px;box-shadow:0 24px 80px rgba(0,0,0,.3);text-align:center}
+.auth-logo{display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:24px}
+.auth-logo-name{font-size:1.1rem;font-weight:800;color:#0F172A}
+.auth-logo-sub{font-size:.7rem;color:#6B7280;font-weight:500;letter-spacing:.5px;text-transform:uppercase;margin-top:2px}
+.auth-title{font-size:1.3rem;font-weight:800;color:#0F172A;margin-bottom:6px}
+.auth-sub{font-size:.82rem;color:#6B7280;margin-bottom:28px;line-height:1.6}
+.auth-input{width:100%;padding:13px 16px;border:1.5px solid #E5E7EB;border-radius:12px;font-size:.9rem;font-family:'Inter',sans-serif;color:#111827;outline:none;transition:border-color .15s;margin-bottom:12px}
+.auth-input:focus{border-color:#E8191C}
+.auth-btn{width:100%;padding:13px;background:#E8191C;color:#fff;border:none;border-radius:12px;font-size:.9rem;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;transition:background .15s}
+.auth-btn:hover{background:#B01010}
+.auth-btn:disabled{background:#CBD5E1;cursor:not-allowed}
+.auth-domain{display:inline-block;background:#F0FDF4;color:#16A34A;border:1px solid #BBF7D0;border-radius:8px;padding:4px 12px;font-size:.75rem;font-weight:600;margin-bottom:20px}
+.auth-msg{font-size:.78rem;margin-top:12px;min-height:18px;line-height:1.5;color:#DC2626}
+.auth-sent{display:none;text-align:center}
+.auth-sent .big-icon{font-size:3rem;margin-bottom:12px}
+.auth-sent h3{font-size:1.1rem;font-weight:800;color:#0F172A;margin-bottom:8px}
+.auth-sent p{font-size:.82rem;color:#6B7280;line-height:1.6}
+.auth-sent .resend{background:none;border:none;color:#E8191C;font-size:.8rem;font-weight:600;cursor:pointer;margin-top:16px;font-family:'Inter',sans-serif}
+
+/* ── Root ─────────────────────────────────────────────────────────── */
+:root{
+  --brand:#E8191C;--brand-dark:#B01010;
+  --sb-bg:#1A1A2E;--sb-width:260px;--topbar-h:56px;
+  --bg:#F0F2F8;--card:#fff;--border:#E5E7EB;--text:#111827;--muted:#6B7280;
+  --shadow:0 1px 3px rgba(0,0,0,.08);--shadow-md:0 4px 16px rgba(0,0,0,.1);
+  --elite:#7C3AED;--elite-bg:#F5F3FF;--elite-border:#DDD6FE;
+  --prime:#0369A1;--prime-bg:#EFF6FF;--prime-border:#BFDBFE;
+  --ls:#059669;--ls-bg:#F0FDF4;--ls-border:#BBF7D0;
+  --hs:#D97706;--hs-bg:#FFFBEB;--hs-border:#FCD34D;
+  --hsp:#DC2626;--hsp-bg:#FEF2F2;--hsp-border:#FECACA;
+  --star:#DC2626;--star-bg:#FEF2F2;
+  --over:#D97706;--over-bg:#FFFBEB;
+  --ok:#16A34A;--ok-bg:#F0FDF4;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+
+/* ── Overlay & Sidebar ───────────────────────────────────────────── */
+#ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:150;backdrop-filter:blur(2px)}
+#ov.show{display:block}
+#sb{position:fixed;top:0;left:0;bottom:0;width:var(--sb-width);background:var(--sb-bg);z-index:200;transform:translateX(-100%);transition:transform .25s ease;display:flex;flex-direction:column;overflow:hidden}
+#sb.open{transform:translateX(0)}
+body.pinned #sb{transform:translateX(0)}
+body.pinned #main{margin-left:var(--sb-width)}
+.sb-header{padding:20px 16px 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,.06)}
+.sb-brand{display:flex;align-items:center;gap:10px;text-decoration:none}
+.sb-brand-text .t1{font-size:.6rem;font-weight:700;color:rgba(255,255,255,.5);letter-spacing:.5px;text-transform:uppercase}
+.sb-brand-text .t2{font-size:.78rem;font-weight:800;color:#fff;letter-spacing:-.01em}
+.pin-btn{background:none;border:none;cursor:pointer;color:rgba(255,255,255,.35);font-size:.8rem;padding:4px 6px;border-radius:6px;transition:all .15s;display:flex;align-items:center;gap:3px;font-family:inherit}
+.pin-btn:hover{color:#fff;background:rgba(255,255,255,.08)}
+.pin-btn.pinned{color:var(--brand)}
+.sb-section{padding:12px 8px 4px}
+.sb-label{font-size:.6rem;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:rgba(255,255,255,.25);padding:0 8px 8px}
+.sb-item{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:10px;text-decoration:none;color:rgba(255,255,255,.7);font-size:.82rem;font-weight:500;transition:all .15s;margin-bottom:2px}
+.sb-item:hover{background:rgba(255,255,255,.08);color:#fff}
+.sb-item.active{background:rgba(232,25,28,.18);color:#fff;font-weight:600}
+.sb-item.active .si{color:var(--brand)}
+.si{font-size:1rem;width:20px;text-align:center;flex-shrink:0}
+.sb-spacer{flex:1}
+.sb-footer{padding:12px 16px;border-top:1px solid rgba(255,255,255,.06)}
+.sb-ver{font-size:.65rem;color:rgba(255,255,255,.25);font-weight:500}
+
+/* ── Top Bar ─────────────────────────────────────────────────────── */
+#main{transition:margin-left .25s ease;min-height:100vh;display:flex;flex-direction:column}
+#topbar{position:sticky;top:0;z-index:100;height:var(--topbar-h);background:#fff;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;padding:0 16px;box-shadow:var(--shadow);flex-shrink:0}
+#hbg{width:36px;height:36px;background:none;border:none;cursor:pointer;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:5px;border-radius:8px;transition:background .15s;flex-shrink:0}
+#hbg:hover{background:#F3F4F6}
+#hbg span{display:block;width:18px;height:2px;background:var(--text);border-radius:2px}
+.tb-brand{display:flex;align-items:center;gap:6px;flex:1;min-width:0}
+.tb-logo{display:flex;align-items:center;gap:7px;font-size:.85rem;font-weight:800;color:var(--brand);text-decoration:none;white-space:nowrap}
+.tb-sep{color:var(--border);font-size:.9rem}
+.tb-page{font-size:.82rem;font-weight:600;color:var(--muted);white-space:nowrap}
+.tb-right{display:flex;align-items:center;gap:8px;margin-left:auto;flex-shrink:0}
+@keyframes morph{0%,100%{border-radius:60% 40% 55% 45%/50% 60% 40% 50%}33%{border-radius:40% 60% 45% 55%/60% 40% 60% 40%}66%{border-radius:55% 45% 60% 40%/40% 55% 45% 60%}}
+.tb-dot{width:26px;height:26px;background:var(--brand);border-radius:60% 40% 55% 45%/50% 60% 40% 50%;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:.55rem;color:#fff;flex-shrink:0;animation:morph 6s ease-in-out infinite}
+
+/* ── Page Header ─────────────────────────────────────────────────── */
+.page-header{background:linear-gradient(135deg,#1A1A2E 0%,#0f2460 100%);padding:22px 24px 18px;color:#fff;flex-shrink:0}
+.page-header-inner{max-width:100%;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px}
+.page-header-title{font-size:1.3rem;font-weight:900;letter-spacing:-.02em}
+.page-header-sub{font-size:.75rem;color:rgba(255,255,255,.5);margin-top:2px}
+
+/* ── Tabs ────────────────────────────────────────────────────────── */
+.tabs-bar-wrap{background:#fff;border-bottom:1px solid var(--border);flex-shrink:0}
+.tabs-bar{padding:0 24px;display:flex}
+.tab-btn{padding:13px 18px;font-size:.84rem;font-weight:600;color:var(--muted);border:none;background:none;cursor:pointer;font-family:inherit;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .15s;display:flex;align-items:center;gap:6px}
+.tab-btn.active{color:var(--brand);border-bottom-color:var(--brand)}
+.tab-panel{display:none}
+.tab-panel.active{display:flex;flex-direction:column;flex:1}
+
+/* ── Controls ────────────────────────────────────────────────────── */
+.controls{padding:16px 20px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;flex-shrink:0}
+.ctl-select{padding:8px 14px;border:1.5px solid var(--border);border-radius:10px;font-size:.82rem;font-family:inherit;color:var(--text);background:#fff;outline:none;cursor:pointer;transition:border-color .15s;min-width:200px}
+.ctl-select:focus{border-color:var(--brand)}
+.ctl-btn{padding:8px 16px;background:var(--brand);color:#fff;border:none;border-radius:10px;font-size:.82rem;font-weight:700;cursor:pointer;font-family:inherit;transition:background .15s;display:flex;align-items:center;gap:5px}
+.ctl-btn:hover{background:var(--brand-dark)}
+.ctl-btn:disabled{background:#CBD5E1;cursor:not-allowed}
+.ctl-btn.secondary{background:#fff;color:var(--text);border:1.5px solid var(--border)}
+.ctl-btn.secondary:hover{border-color:var(--brand);color:var(--brand)}
+.ctl-meta{font-size:.74rem;color:var(--muted);margin-left:auto}
+
+/* ── Kanban Board ────────────────────────────────────────────────── */
+.kanban-board{display:flex;gap:14px;padding:14px 20px 32px;overflow-x:auto;flex:1;align-items:flex-start}
+.kanban-board::-webkit-scrollbar{height:6px}
+.kanban-board::-webkit-scrollbar-track{background:transparent}
+.kanban-board::-webkit-scrollbar-thumb{background:#D1D5DB;border-radius:3px}
+
+.kb-col{display:flex;flex-direction:column;min-width:230px;width:230px;flex-shrink:0}
+.kb-col-header{border-radius:14px 14px 0 0;padding:12px 14px 10px;display:flex;align-items:center;justify-content:space-between;margin-bottom:0}
+.kb-col-header.elite{background:var(--elite);color:#fff}
+.kb-col-header.prime{background:var(--prime);color:#fff}
+.kb-col-header.ls{background:var(--ls);color:#fff}
+.kb-col-header.hs{background:var(--hs);color:#fff}
+.kb-col-header.hsp{background:var(--hsp);color:#fff}
+.kb-col-title{font-size:.82rem;font-weight:800;letter-spacing:-.01em}
+.kb-col-sub{font-size:.62rem;opacity:.75;margin-top:1px}
+.kb-count{background:rgba(255,255,255,.25);color:#fff;font-size:.68rem;font-weight:800;border-radius:20px;padding:2px 8px;white-space:nowrap}
+
+.kb-cards{background:rgba(0,0,0,.04);border-radius:0 0 14px 14px;padding:8px;display:flex;flex-direction:column;gap:7px;min-height:60px}
+
+/* ── Bike Card ───────────────────────────────────────────────────── */
+.bike-card{background:#fff;border-radius:10px;padding:10px 12px;cursor:pointer;transition:all .15s;border:1.5px solid #E5E7EB;position:relative;overflow:hidden}
+.bike-card:hover{box-shadow:0 6px 20px rgba(0,0,0,.12);transform:translateY(-1px)}
+.bike-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:10px 0 0 10px}
+.bike-card.flag-star::before{background:var(--star)}
+.bike-card.flag-over::before{background:var(--over)}
+.bike-card.flag-ok::before{background:#D1FAE5}
+.bc-top{display:flex;align-items:center;gap:7px;margin-bottom:6px}
+.bc-rank{width:20px;height:20px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:.62rem;font-weight:900;flex-shrink:0}
+.bc-rank.r1{background:#FEF3C7;color:#92400E}
+.bc-rank.r2{background:#DCFCE7;color:#166534}
+.bc-rank.r3{background:#DBEAFE;color:#1E40AF}
+.bc-rank.rn{background:#F3F4F6;color:#6B7280}
+.bc-reg{font-size:.88rem;font-weight:800;color:var(--text);letter-spacing:-.01em;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bc-bottom{display:flex;align-items:center;gap:5px;flex-wrap:wrap}
+.bc-flag{display:inline-flex;align-items:center;gap:3px;padding:2px 6px;border-radius:5px;font-size:.6rem;font-weight:700}
+.bc-flag.star{background:var(--star-bg);color:var(--star)}
+.bc-flag.over{background:var(--over-bg);color:var(--over)}
+.bc-flag.ok{background:var(--ok-bg);color:var(--ok)}
+.bc-tag{display:inline-flex;padding:2px 6px;border-radius:5px;font-size:.6rem;font-weight:700}
+.bc-tag.ls{background:var(--ls-bg);color:var(--ls)}
+.bc-tag.hs{background:var(--hs-bg);color:var(--hs)}
+.bc-tag.hsp{background:var(--hsp-bg);color:var(--hsp)}
+/* tier badge for LS column */
+.bc-tier{display:inline-flex;padding:2px 6px;border-radius:5px;font-size:.6rem;font-weight:700}
+.bc-tier.prime{background:var(--prime-bg);color:var(--prime)}
+.bc-tier.standard{background:#F3F4F6;color:#6B7280}
+.bc-rfd{font-size:.62rem;color:var(--muted);margin-left:auto}
+
+/* ── Detail Modal ────────────────────────────────────────────────── */
+#detail-modal{display:none;position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.45);backdrop-filter:blur(3px);align-items:flex-end;justify-content:center}
+#detail-modal.show{display:flex}
+.detail-sheet{background:#fff;border-radius:24px 24px 0 0;width:100%;max-width:520px;max-height:85vh;overflow-y:auto;padding:0 0 32px;box-shadow:0 -8px 40px rgba(0,0,0,.2);animation:slideUp .2s ease}
+@keyframes slideUp{from{transform:translateY(40px);opacity:0}to{transform:translateY(0);opacity:1}}
+.ds-handle{width:36px;height:4px;background:#E5E7EB;border-radius:2px;margin:12px auto 0}
+.ds-header{padding:16px 22px 14px;border-bottom:1px solid #F3F4F6;display:flex;align-items:flex-start;gap:14px}
+.ds-reg{font-size:1.8rem;font-weight:900;color:var(--text);letter-spacing:-.02em;line-height:1}
+.ds-meta{margin-top:4px;display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.ds-close{margin-left:auto;background:none;border:none;cursor:pointer;font-size:1.3rem;color:#9CA3AF;padding:2px 6px;border-radius:6px;flex-shrink:0;line-height:1}
+.ds-close:hover{background:#F3F4F6;color:#374151}
+.ds-grid{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:#F3F4F6;margin:14px 22px;border-radius:12px;overflow:hidden}
+.ds-cell{background:#fff;padding:12px 14px}
+.ds-cell-label{font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);margin-bottom:4px}
+.ds-cell-val{font-size:1rem;font-weight:800;color:var(--text)}
+.ds-cell-val.big{font-size:1.3rem}
+.ds-score-bar{height:5px;background:#F3F4F6;border-radius:3px;overflow:hidden;margin-top:6px}
+.ds-score-fill{height:100%;border-radius:3px}
+.ds-section-title{font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);padding:0 22px;margin:14px 0 8px}
+
+/* ── State boxes ─────────────────────────────────────────────────── */
+.state-box{padding:64px 24px;text-align:center;color:var(--muted);width:100%}
+.state-box .icon{font-size:2.5rem;margin-bottom:12px}
+.state-box p{font-size:.85rem;line-height:1.6}
+@keyframes spin{to{transform:rotate(360deg)}}
+.spinner{display:inline-block;width:24px;height:24px;border:2px solid var(--border);border-top-color:var(--brand);border-radius:50%;animation:spin .7s linear infinite;margin-bottom:12px}
+
+
+/* ── Pipeline stats strip ────────────────────────────────────────── */
+.pipeline-stats{display:flex;gap:12px;padding:16px 20px 14px;margin-bottom:0}
+.ps-chip{background:#fff;border:1px solid var(--border);border-top:3px solid transparent;border-radius:10px;padding:12px 20px 10px;display:flex;flex-direction:column;align-items:center;flex:1;box-shadow:var(--shadow)}
+.ps-val{font-size:1.4rem;font-weight:900;line-height:1}
+.ps-label{font-size:.58rem;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);margin-top:3px}
+
+/* ── Allocate Tab ────────────────────────────────────────────────── */
+.alloc-controls{display:flex;gap:10px;padding:16px 20px 12px;align-items:center;flex-wrap:wrap}
+.alloc-search-input{flex:1;min-width:180px;padding:9px 14px;border:1.5px solid var(--border);border-radius:10px;font-size:.82rem;font-family:inherit;color:var(--text);outline:none;transition:border-color .15s}
+.alloc-search-input:focus{border-color:#94A3B8}
+.alloc-list-wrap{max-width:1200px;margin:0 20px 8px;overflow-x:auto}
+.alloc-table{width:100%;border-collapse:collapse;background:#fff;border-radius:12px;overflow:hidden;box-shadow:var(--shadow-md);border:1px solid var(--border)}
+.alloc-table th{background:#F8FAFC;padding:9px 12px;text-align:left;font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:#94A3B8;border-bottom:1px solid #F1F5F9;white-space:nowrap}
+.alloc-table td{padding:10px 12px;font-size:.8rem;color:var(--text);border-bottom:1px solid #F8FAFC;vertical-align:middle}
+.alloc-table tr:last-child td{border-bottom:none}
+.alloc-table tr:hover td{background:#F8FAFC;cursor:pointer}
+.alloc-table tr.active-row td{background:#EFF6FF}
+.ac-name{font-weight:700;color:#0F172A}
+.ac-phone{font-size:.72rem;color:var(--muted)}
+.ac-badge{display:inline-block;padding:2px 7px;border-radius:6px;font-size:.63rem;font-weight:700}
+.ac-badge.elite{background:#F5F3FF;color:#7C3AED}
+.ac-badge.prime{background:#EFF6FF;color:#0369A1}
+.ac-badge.standard{background:#F0FDF4;color:#059669}
+.ac-bike{font-family:monospace;font-size:.78rem;font-weight:600;color:#0F172A}
+.ac-nobike{color:#CBD5E1;font-size:.75rem;font-style:italic}
+.rs-ok{display:inline-block;font-size:.68rem;font-weight:700;color:#166534;background:#F0FDF4;border:1px solid #BBF7D0;border-radius:6px;padding:2px 7px;white-space:nowrap}
+.rs-change{display:inline-block;font-size:.68rem;font-weight:700;color:#92400E;background:#FFFBEB;border:1px solid #FCD34D;border-radius:6px;padding:2px 7px;white-space:nowrap}
+.rs-suggest{font-family:monospace;font-size:.78rem;font-weight:700;color:#166534}
+.err-box{background:var(--star-bg);border:1px solid #FECACA;border-radius:12px;padding:14px 18px;margin:20px 0;font-size:.8rem;color:var(--star)}
+.result-section{margin-top:20px;padding:0 20px 32px;display:none}
+.result-section.show{display:block}
+.result-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px}
+@media(max-width:680px){.result-grid{grid-template-columns:1fr}}
+.info-card{background:#fff;border-radius:14px;border:1px solid var(--border);box-shadow:var(--shadow);padding:18px 20px}
+.ic-title{font-size:.65rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:12px}
+.ic-row{display:flex;justify-content:space-between;align-items:baseline;padding:5px 0;border-bottom:1px solid #F9FAFB}
+.ic-row:last-child{border-bottom:none}
+.ic-label{font-size:.75rem;color:var(--muted)}
+.ic-val{font-size:.8rem;font-weight:600;color:var(--text);text-align:right;max-width:55%}
+/* better-option warning banner */
+.better-banner{background:#FFFBEB;border:1.5px solid #FCD34D;border-radius:12px;padding:14px 18px;margin-bottom:16px}
+.better-banner-title{font-size:.68rem;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:#92400E;margin-bottom:6px}
+.confirm-banner{background:#F0FDF4;border:1.5px solid #BBF7D0;border-radius:12px;padding:14px 18px;margin-bottom:16px}
+.rec-card{background:linear-gradient(135deg,#1A1A2E 0%,#0f2460 100%);border-radius:16px;padding:22px 24px;color:#fff;margin-bottom:16px}
+.rec-reg{font-size:2rem;font-weight:900;letter-spacing:-.02em;color:#fff;line-height:1}
+.rec-model{font-size:.78rem;color:rgba(255,255,255,.55);margin-top:4px}
+.rec-metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:16px 0 14px}
+.rec-metric{text-align:center}
+.rec-metric-val{font-size:1.2rem;font-weight:800;color:#fff;line-height:1}
+.rec-metric-label{font-size:.62rem;color:rgba(255,255,255,.4);margin-top:3px}
+.rec-flag{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:6px;font-size:.68rem;font-weight:700;margin-left:8px}
+.rec-flag.ok{background:rgba(34,197,94,.2);color:#86EFAC}
+.rec-flag.starvation{background:rgba(220,38,38,.2);color:#FCA5A5}
+.rec-flag.overuse{background:rgba(217,119,6,.2);color:#FCD34D}
+.alt-section{margin-bottom:24px}
+.alt-title{font-size:.72rem;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);margin-bottom:10px}
+.alt-cards{display:flex;gap:10px;flex-wrap:wrap}
+.alt-card{background:#fff;border:1.5px solid var(--border);border-radius:12px;padding:12px 16px;flex:1;min-width:200px}
+.alt-reg{font-size:1rem;font-weight:800;color:var(--text)}
+.alt-meta{font-size:.72rem;color:var(--muted);margin-top:3px}
+.alt-score{font-size:.7rem;font-weight:700;color:var(--brand);margin-top:5px}
+
+/* ── Feedback ────────────────────────────────────────────────────── */
+.fb-fab{position:fixed;bottom:24px;right:24px;z-index:400;background:var(--text);color:#fff;border:none;border-radius:50px;padding:10px 18px;font-size:.78rem;font-weight:700;font-family:inherit;cursor:pointer;box-shadow:0 4px 16px rgba(0,0,0,.18);display:flex;align-items:center;gap:7px;transition:background .15s}
+.fb-fab:hover{background:#374151}
+.fb-popup{position:fixed;bottom:70px;right:24px;z-index:401;background:#fff;border:1.5px solid var(--border);border-radius:14px;box-shadow:0 8px 32px rgba(0,0,0,.13);padding:16px;width:300px;display:none;flex-direction:column;gap:10px}
+.fb-popup.open{display:flex}
+.fb-title{font-size:.8rem;font-weight:700}
+.fb-area{width:100%;border:1.5px solid var(--border);border-radius:8px;padding:8px 10px;font-size:.78rem;font-family:inherit;color:var(--text);resize:none;outline:none}
+.fb-submit{background:var(--text);color:#fff;border:none;border-radius:8px;padding:7px 14px;font-size:.75rem;font-weight:700;font-family:inherit;cursor:pointer;align-self:flex-end}
+
+body.pinned #hbg{display:none}
+@media(max-width:767px){body.pinned #main{margin-left:0}body.pinned #sb{transform:translateX(0)}.pin-btn{display:none}}
+@media(max-width:600px){.rec-metrics{grid-template-columns:repeat(2,1fr)}.kb-col{min-width:200px;width:200px}}
+</style>
+</head>
+<body>
+
+<!-- Auth -->
+<div id="auth-screen">
+  <div class="auth-card">
+    <div class="auth-logo">
+      <img id="auth-logo-img" src="../logo.jpg" width="44" height="44" style="border-radius:10px;object-fit:cover;flex-shrink:0" onerror="this.style.display='none'"/>
+      <div><div class="auth-logo-name">Bounce Daily</div><div class="auth-logo-sub">FleetPro</div></div>
+    </div>
+    <div class="auth-title">Welcome to FleetPro</div>
+    <div class="auth-sub">Enter your work email and we'll send you a one-click sign-in link.</div>
+    <div class="auth-domain">@bounceshare.com only</div>
+    <div id="auth-form">
+      <input id="auth-email" class="auth-input" type="email" placeholder="you@bounceshare.com" autocomplete="email"/>
+      <button id="auth-submit" class="auth-btn" onclick="sendMagicLink()">Send Magic Link</button>
+      <div id="auth-msg" class="auth-msg"></div>
+    </div>
+    <div id="auth-sent" class="auth-sent">
+      <div class="big-icon">📬</div>
+      <h3>Check your inbox</h3>
+      <p>Magic link sent to<br/><b id="auth-sent-email"></b><br/>Click it to sign in — expires in 15 min.</p>
+      <button class="resend" onclick="showForm()">← Use a different email</button>
+    </div>
+  </div>
+</div>
+
+<div id="ov"></div>
+
+<!-- Sidebar -->
+<nav id="sb">
+  <div class="sb-header">
+    <a href="/" class="sb-brand">
+      <img src="../logo.jpg" width="44" height="44" style="border-radius:10px;object-fit:cover;flex-shrink:0" onerror="this.style.display='none'"/>
+      <div class="sb-brand-text"><div class="t1">Bounce Daily</div><div class="t2">FleetPro</div></div>
+    </a>
+    <button class="pin-btn" id="pinBtn" onclick="togglePin()" title="Pin sidebar">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2v10M8 6l4-4 4 4M8 18l4 4 4-4M12 12v10"/></svg>Pin
+    </button>
+  </div>
+  <div class="sb-section">
+    <div class="sb-label">Fleet Tools</div>
+    <a href="/" class="sb-item"><span class="si">🏠</span><span>Home</span></a>
+    <a href="../maintenance" class="sb-item"><span class="si">🔧</span><span>Preventive Maintenance</span></a>
+    <a href="../queue" class="sb-item"><span class="si">📋</span><span>OOS Queue</span></a>
+    <a href="../deployment" class="sb-item active"><span class="si">🚲</span><span>Deployment Queue</span></a>
+    <a href="./fw-map.html" class="sb-item"><span class="si">🗺️</span><span>FW Pending Map</span></a>
+    <a href="./rsa.html" class="sb-item"><span class="si">🦺</span><span>RSA Warroom</span></a>
+  </div>
+  <div class="sb-section" style="margin-top:8px">
+    <div class="sb-label">Coming Soon</div>
+    <div class="sb-item" style="opacity:.4;cursor:default"><span class="si">📊</span><span>Fleet Analytics</span></div>
+    <div class="sb-item" style="opacity:.4;cursor:default"><span class="si">🔔</span><span>Alert Centre</span></div>
+  </div>
+  <div class="sb-spacer"></div>
+  <div class="sb-footer"><div class="sb-ver">FleetPro v6 · Deployment Queue</div></div>
+</nav>
+
+<!-- Main -->
+<div id="main">
+  <header id="topbar">
+    <button id="hbg" onclick="toggleSidebar()"><span></span><span></span><span></span></button>
+    <div class="tb-brand">
+      <a href="/" class="tb-logo">
+        <img src="../logo.jpg" width="28" height="28" style="border-radius:6px;object-fit:cover;flex-shrink:0" onerror="this.style.display='none'"/>
+        FleetPro
+      </a>
+      <span class="tb-sep">›</span><span class="tb-page">Deployment Queue</span>
+    </div>
+    <div class="tb-right">
+      <button id="logout-btn" onclick="signOut()" style="display:none;background:none;border:1px solid #E5E7EB;border-radius:8px;padding:5px 12px;font-size:.72rem;font-weight:600;color:#6B7280;cursor:pointer;font-family:'Inter',sans-serif" onmouseover="this.style.borderColor='#E8191C';this.style.color='#E8191C'" onmouseout="this.style.borderColor='#E5E7EB';this.style.color='#6B7280'">Sign out</button>
+    </div>
+  </header>
+
+  <div class="page-header">
+    <div class="page-header-inner">
+      <div>
+        <div class="page-header-title">🚲 Deployment Queue</div>
+        <div class="page-header-sub">RFD pipeline · Allotment scoring · Rider allocation</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="tabs-bar-wrap">
+    <div class="tabs-bar">
+      <button class="tab-btn active" onclick="switchTab('queue')">📊 Pipeline</button>
+      <button class="tab-btn" onclick="switchTab('allocate')">👤 Allocate</button>
+    </div>
+  </div>
+
+  <!-- TAB: PIPELINE (Kanban) -->
+  <div id="tab-queue" class="tab-panel active">
+    <div class="controls">
+      <select id="hub-select" class="ctl-select" onchange="loadQueue()">
+        <option value="">Select a hub…</option>
+      </select>
+      <button class="ctl-btn secondary" onclick="loadQueue()" id="refresh-btn"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg> Refresh</button>
+      <span class="ctl-meta" id="queue-meta"></span>
+    </div>
+    <div class="pipeline-stats" id="pipeline-stats" style="display:none"></div>
+    <div class="kanban-board" id="kanban-board">
+      <div class="state-box"><div class="icon">🏭</div><p>Select a hub above to view the pipeline.</p></div>
+    </div>
+  </div>
+
+  <!-- TAB: ALLOCATE -->
+  <div id="tab-allocate" class="tab-panel">
+    <div class="alloc-controls">
+      <select id="alloc-hub-select" class="ctl-select" onchange="loadAllocList()">
+        <option value="">Select a hub…</option>
+      </select>
+      <input id="alloc-search" class="alloc-search-input" type="text" placeholder="Search name or phone…" oninput="filterAllocList()"/>
+    </div>
+    <div id="alloc-list-wrap">
+      <div class="state-box"><div class="icon">🔍</div><p>Select a hub to view pending customers.</p></div>
+    </div>
+    <div id="alloc-result" class="result-section"></div>
+  </div>
+
+  <!-- Detail Modal -->
+  <div id="detail-modal" onclick="if(event.target===this)closeDetail()">
+    <div class="detail-sheet" id="detail-sheet">
+      <div class="ds-handle"></div>
+      <div class="ds-header" id="ds-header"></div>
+      <div class="ds-section-title">METRICS</div>
+      <div class="ds-grid" id="ds-grid"></div>
+      <div class="ds-section-title">SCORING</div>
+      <div class="ds-grid" id="ds-score-grid"></div>
+    </div>
+  </div>
+
+  <div class="fb-popup" id="fb-popup">
+    <div class="fb-title">Send Feedback</div>
+    <textarea class="fb-area" id="fb-text" rows="4" placeholder="Suggestions or issues…"></textarea>
+    <button class="fb-submit" onclick="submitFeedback()">Submit</button>
+  </div>
+  <button class="fb-fab" id="fb-fab" onclick="toggleFeedback()" style="display:none">✉ Feedback</button>
+</div>
+
+<script>
+var SB_URL  = 'https://clkfvmmlgwcvntxnolsv.supabase.co';
+var ANON_KEY= 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNsa2Z2bW1sZ3djdm50eG5vbHN2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ1NDQ2NTgsImV4cCI6MjA5MDEyMDY1OH0.FA33GFQisWX_hDeGCWqL5yAZmPcuQRdxZX32I23lyoY';
+var K = ANON_KEY;
+var CURRENT_USER_EMAIL = null;
+var sbClient = supabase.createClient(SB_URL, ANON_KEY, {auth:{persistSession:true,storageKey:'fleetpro_session',autoRefreshToken:true}});
+
+// Global queue data (used by Summary tab)
+var LAST_QUEUE_DATA = null;
+var LAST_QUEUE_HUB  = '';
+var ALLOC_DATA      = [];
+
+/* ── Auth ─────────────────────────────────────────────────────────── */
+function showAuthScreen(){document.getElementById('auth-screen').classList.remove('hidden');showForm();}
+function hideAuthScreen(){document.getElementById('auth-screen').classList.add('hidden');}
+function showForm(){
+  document.getElementById('auth-form').style.display='block';
+  document.getElementById('auth-sent').style.display='none';
+  document.getElementById('auth-msg').textContent='';
+  document.getElementById('auth-email').value='';
+}
+async function sendMagicLink(){
+  var email=document.getElementById('auth-email').value.trim();
+  var msg=document.getElementById('auth-msg');
+  var btn=document.getElementById('auth-submit');
+  msg.textContent='';
+  if(!email.endsWith('@bounceshare.com')){msg.textContent='Only @bounceshare.com emails allowed.';return;}
+  btn.disabled=true;btn.textContent='Sending…';
+  var{error}=await sbClient.auth.signInWithOtp({email,options:{shouldCreateUser:false}});
+  btn.disabled=false;btn.textContent='Send Magic Link';
+  if(error){msg.textContent=error.message;return;}
+  document.getElementById('auth-form').style.display='none';
+  document.getElementById('auth-sent').style.display='block';
+  document.getElementById('auth-sent-email').textContent=email;
+}
+document.getElementById('auth-email').addEventListener('keydown',function(e){if(e.key==='Enter')sendMagicLink();});
+async function signOut(){await sbClient.auth.signOut();document.getElementById('logout-btn').style.display='none';showAuthScreen();}
+
+async function enforce24hReauth(userId){
+  try{
+    var{data}=await sbClient.from('user_last_login').select('last_login_at').eq('user_id',userId).single();
+    if(!data)return;
+    var hours=(Date.now()-new Date(data.last_login_at))/36e5;
+    if(hours>12){await sbClient.auth.signOut();}
+  }catch(e){}
+}
+async function checkGlobalLogout(userId){
+  try{
+    var[r1,r2]=await Promise.all([
+      sbClient.from('user_last_login').select('last_login_at').eq('user_id',userId).single(),
+      sbClient.from('app_settings').select('value').eq('key','global_logout_at').single()
+    ]);
+    if(!r1.data||!r2.data)return;
+    if(new Date(r1.data.last_login_at)<new Date(r2.data.value))await sbClient.auth.signOut();
+  }catch(e){}
+}
+
+(async function(){
+  var isHashLogin=window.location.hash.includes('access_token');
+  var{data:{session}}=await sbClient.auth.getSession();
+  if(session){
+    if(!isHashLogin){await enforce24hReauth(session.user.id);await checkGlobalLogout(session.user.id);}
+    var{data:{session:s2}}=await sbClient.auth.getSession();
+    if(!s2){showAuthScreen();return;}
+    K=s2.access_token;CURRENT_USER_EMAIL=s2.user.email;
+    hideAuthScreen();document.getElementById('logout-btn').style.display='block';
+    document.getElementById('fb-fab').style.display='flex';loadHubs();
+  }else{showAuthScreen();}
+  var _logoutChannel=null;
+  function _subscribeLogout(userId){
+    if(_logoutChannel)sbClient.removeChannel(_logoutChannel);
+    _logoutChannel=sbClient.channel('global-logout-watch')
+      .on('postgres_changes',{event:'*',schema:'public',table:'app_settings',filter:'key=eq.global_logout_at'},
+        async function(){
+          var{data:{session:s}}=await sbClient.auth.getSession();
+          if(s)await checkGlobalLogout(s.user.id);
+        }
+      )
+      .subscribe();
+  }
+  sbClient.auth.onAuthStateChange(async function(event,session){
+    if((event==='SIGNED_IN'||event==='INITIAL_SESSION')&&session){
+      if(event==='INITIAL_SESSION'){
+        await enforce24hReauth(session.user.id);await checkGlobalLogout(session.user.id);
+        var{data:{session:s2}}=await sbClient.auth.getSession();if(!s2)return;
+        K=s2.access_token;CURRENT_USER_EMAIL=s2.user.email;
+      }else{K=session.access_token;CURRENT_USER_EMAIL=session.user.email;}
+      hideAuthScreen();document.getElementById('logout-btn').style.display='block';
+      document.getElementById('logout-btn').title='Signed in as '+CURRENT_USER_EMAIL;
+      document.getElementById('fb-fab').style.display='flex';loadHubs();
+      // Subscribe with authenticated JWT so RLS allows the Realtime event
+      _subscribeLogout(session.user.id);
+    }else if(event==='SIGNED_OUT'){
+      K=ANON_KEY;document.getElementById('logout-btn').style.display='none';showAuthScreen();
+      if(_logoutChannel){sbClient.removeChannel(_logoutChannel);_logoutChannel=null;}
+    }
+    else if(event==='TOKEN_REFRESHED'&&session){K=session.access_token;}
+  });
+  document.addEventListener('visibilitychange',async function(){
+    if(!document.hidden){var r=await sbClient.auth.getSession();if(r.data&&r.data.session)K=r.data.session.access_token;}
+  });
+  // Poll every 5 min as a safety net
+  setInterval(async function(){var{data:{session:s}}=await sbClient.auth.getSession();if(s)await checkGlobalLogout(s.user.id);},5*60*1000);
+  // Idle timeout — sign out after 8 hours of inactivity
+  var _idleTimer;
+  function _resetIdle(){
+    clearTimeout(_idleTimer);
+    _idleTimer=setTimeout(async function(){
+      await sbClient.auth.signOut();
+      window.location.reload();
+    },8*60*60*1000);
+  }
+  ['click','keypress','scroll','mousemove','touchstart'].forEach(function(e){
+    document.addEventListener(e,_resetIdle,true);
+  });
+  _resetIdle();
+})();
+
+/* ── Sidebar ─────────────────────────────────────────────────────── */
+var pinned=localStorage.getItem('sb_pinned')==='1',sbOpen=false;
+function applyPin(){
+  if(pinned){document.body.classList.add('pinned');document.getElementById('pinBtn').classList.add('pinned');document.getElementById('ov').classList.remove('show');document.getElementById('sb').classList.add('open');sbOpen=true;}
+  else{document.body.classList.remove('pinned');document.getElementById('pinBtn').classList.remove('pinned');}
+}
+function toggleSidebar(){if(pinned){togglePin();return;}sbOpen=!sbOpen;document.getElementById('sb').classList.toggle('open',sbOpen);document.getElementById('ov').classList.toggle('show',sbOpen);}
+function closeSidebar(){if(pinned)return;sbOpen=false;document.getElementById('sb').classList.remove('open');document.getElementById('ov').classList.remove('show');}
+function togglePin(){pinned=!pinned;localStorage.setItem('sb_pinned',pinned?'1':'0');applyPin();if(!pinned){sbOpen=false;document.getElementById('sb').classList.remove('open');}}
+document.getElementById('ov').addEventListener('click',closeSidebar);
+applyPin();
+
+/* ── Tabs ────────────────────────────────────────────────────────── */
+var TAB_IDS=['queue','allocate'];
+function switchTab(name){
+  document.querySelectorAll('.tab-btn').forEach(function(b,i){b.classList.toggle('active',TAB_IDS[i]===name);});
+  document.querySelectorAll('.tab-panel').forEach(function(p){p.classList.remove('active');});
+  document.getElementById('tab-'+name).classList.add('active');
+  // Sync hub filter between tabs and always reload on tab switch
+  if(name==='allocate'){
+    var h=document.getElementById('hub-select').value;
+    var s=document.getElementById('alloc-hub-select');
+    if(h&&s.value!==h)s.value=h;
+    loadAllocList();
+  } else if(name==='queue'){
+    var h=document.getElementById('alloc-hub-select').value;
+    var s=document.getElementById('hub-select');
+    if(h&&s.value!==h)s.value=h;
+    loadQueue();
+  }
+}
+
+/* ── Data helpers ────────────────────────────────────────────────── */
+var SB_REST=SB_URL+'/rest/v1/';
+function sbGet(table,params){
+  return sbClient.auth.getSession().then(function(res){
+    var token=(res.data&&res.data.session)?res.data.session.access_token:ANON_KEY;
+    return fetch(SB_REST+table+'?'+params,{headers:{apikey:ANON_KEY,Authorization:'Bearer '+token,Accept:'application/json'}});
+  }).then(function(r){if(!r.ok)return r.text().then(function(t){throw new Error(t);});return r.json();});
+}
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function fmt(v){return(v==null||v==='')?'—':v;}
+function fmtOdo(v){if(v==null)return'—';var n=parseInt(v);return isNaN(n)?'—':n.toLocaleString('en-IN')+' km';}
+
+/* ── Model type classification ───────────────────────────────────── */
+function modelType(modelName){
+  var m=(modelName||'').toLowerCase();
+  if(m.includes('pro'))return'hsp';
+  if(m.includes('e1+x')||m.includes('e1 x')||m.includes('high speed')||m.includes('hs'))return'hs';
+  return'ls';
+}
+function modelTag(type){
+  var labels={ls:'LS',hs:'HS',hsp:'HS Pro'};
+  return'<span class="bc-tag '+type+'">'+labels[type]+'</span>';
+}
+
+/* ── Load hubs ───────────────────────────────────────────────────── */
+function loadHubs(){
+  var sel=document.getElementById('hub-select');
+  var sel2=document.getElementById('alloc-hub-select');
+  // Merge hubs from both tables so hubs with 0 bikes still appear in dropdown
+  Promise.all([
+    sbGet('deployment_queue_cache','select=hub_name&order=hub_name'),
+    sbGet('fw_pending_cache','select=hub&order=hub')
+  ]).then(function(results){
+    var seen={};
+    var hubs=[];
+    (results[0]||[]).forEach(function(r){if(r.hub_name&&!seen[r.hub_name]){seen[r.hub_name]=true;hubs.push(r.hub_name);}});
+    (results[1]||[]).forEach(function(r){if(r.hub&&!seen[r.hub]){seen[r.hub]=true;hubs.push(r.hub);}});
+    hubs.sort().forEach(function(h){
+      var o=document.createElement('option');o.value=h;o.textContent=h;sel.appendChild(o);
+      var o2=document.createElement('option');o2.value=h;o2.textContent=h;sel2.appendChild(o2);
+    });
+    var last=localStorage.getItem('last_hub');
+    if(last){sel.value=last;if(sel.value)loadQueue();}
+  }).catch(function(){});
+}
+
+/* ── Kanban column definitions ───────────────────────────────────── */
+// Order: LS → HS (Standard) → HSP (Standard) → Prime (HS+HSP) → Elite (HS+HSP)
+// LS: all tiers merged; for LS bikes the "Elite" band is treated as Prime (no Elite tier for LS)
+var COLUMNS=[
+  {
+    id:'ls', label:'Low Speed', sub:'Standard · >3k km · LS', cls:'ls',
+    filter:function(b){return b.tier==='Standard'&&modelType(b.model_name)==='ls';},
+    showModelTag:false, showTierBadge:false
+  },
+  {
+    id:'hs', label:'High Speed', sub:'Standard · e1+x', cls:'hs',
+    filter:function(b){return b.tier==='Standard'&&modelType(b.model_name)==='hs';},
+    showModelTag:false, showTierBadge:false
+  },
+  {
+    id:'hsp', label:'HS Pro', sub:'Standard · e1+xPRO', cls:'hsp',
+    filter:function(b){return b.tier==='Standard'&&modelType(b.model_name)==='hsp';},
+    showModelTag:false, showTierBadge:false
+  },
+  {
+    id:'prime', label:'Prime', sub:'0–3k km LS · 200–3k km HS+HSP', cls:'prime',
+    filter:function(b){return b.tier==='Prime';},
+    showModelTag:true, showTierBadge:false   // show model tag since mixed LS+HS+HSP
+  },
+  {
+    id:'elite', label:'Elite', sub:'0–200 km · HS+HSP', cls:'elite',
+    filter:function(b){return b.tier==='Elite';},
+    showModelTag:true, showTierBadge:false
+  },
+];
+
+/* ── Load & render queue ─────────────────────────────────────────── */
+function loadQueue(){
+  var hub=document.getElementById('hub-select').value;
+  if(!hub)return;
+  localStorage.setItem('last_hub',hub);
+  // Sync to allocate tab
+  var as=document.getElementById('alloc-hub-select');if(as&&as.value!==hub)as.value=hub;
+  var board=document.getElementById('kanban-board');
+  board.innerHTML='<div class="state-box"><div class="spinner"></div><p>Loading pipeline…</p></div>';
+  document.getElementById('queue-meta').textContent='';
+  document.getElementById('refresh-btn').disabled=true;
+
+  sbGet('deployment_queue_cache',
+    'hub_name=eq.'+encodeURIComponent(hub)
+    +'&order=sort_group.asc,allotment_score.desc.nullslast'
+  ).then(function(data){
+    document.getElementById('refresh-btn').disabled=false;
+    if(!data||!data.length){
+      board.innerHTML='<div class="state-box"><div class="icon">✅</div><p>No bikes in queue for <b>'+esc(hub)+'</b>.<br/>Cache may be empty — edge function runs every 15 min.</p></div>';
+      LAST_QUEUE_DATA=[];LAST_QUEUE_HUB=hub;
+      return;
+    }
+    var ts=data[0]&&data[0].refreshed_at?new Date(data[0].refreshed_at).toLocaleString('en-IN',{timeZone:'Asia/Kolkata',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):'';
+    document.getElementById('queue-meta').textContent=ts?'Synced '+ts:'';
+    // Store for Summary / stats
+    LAST_QUEUE_DATA=data;LAST_QUEUE_HUB=hub;
+    renderKanban(data,board);
+  }).catch(function(err){
+    document.getElementById('refresh-btn').disabled=false;
+    board.innerHTML='<div class="state-box"><div class="icon">⚠️</div><p>Error: '+esc(err.message)+'</p></div>';
+  });
+}
+
+/* ── Kanban render ───────────────────────────────────────────────── */
+function renderKanban(data,board){
+  var html='';
+  COLUMNS.forEach(function(col){
+    var bikes=data.filter(col.filter);
+    html+='<div class="kb-col">';
+    html+='<div class="kb-col-header '+col.cls+'">';
+    html+='<div><div class="kb-col-title">'+col.label+'</div><div class="kb-col-sub">'+col.sub+'</div></div>';
+    html+='<span class="kb-count">'+bikes.length+'</span>';
+    html+='</div>';
+    html+='<div class="kb-cards">';
+    if(!bikes.length){
+      html+='<div style="padding:16px 8px;text-align:center;font-size:.72rem;color:#9CA3AF">No bikes</div>';
+    }else{
+      bikes.forEach(function(b){
+        var rank=b.deploy_rank||'—';
+        var flag=b.guardrail||'OK';
+        var rfd=b.rfd_age_days;
+        var mt=modelType(b.model_name);
+        var rClass=rank===1||rank==='1'?'r1':rank===2||rank==='2'?'r2':rank===3||rank==='3'?'r3':'rn';
+        var fCls=flag==='STARVATION'?'star':flag==='OVERUSE'?'over':'ok';
+        var fIcon=flag==='STARVATION'?'🔴':flag==='OVERUSE'?'🟡':'🟢';
+        var cardData=encodeURIComponent(JSON.stringify(b));
+        html+='<div class="bike-card flag-'+fCls+'" onclick="openDetail(this)" data-bike="'+esc(cardData)+'">';
+        html+='<div class="bc-top">';
+        html+='<span class="bc-rank '+rClass+'">'+rank+'</span>';
+        html+='<span class="bc-reg">'+esc(b.reg_number||'—')+'</span>';
+        html+='</div>';
+        html+='<div class="bc-bottom">';
+        html+='<span class="bc-flag '+fCls+'">'+fIcon+' '+esc(flag)+'</span>';
+        // LS column: show tier badge (Elite shown as Prime since LS has no Elite)
+        if(col.showTierBadge){
+          var dispTier=(b.tier==='Elite')?'Prime':(b.tier||'Standard');
+          var tierCls=dispTier.toLowerCase();
+          html+='<span class="bc-tier '+tierCls+'">'+esc(dispTier)+'</span>';
+        }
+        // Prime/Elite columns: show model type (HS / HS Pro)
+        if(col.showModelTag)html+=modelTag(mt);
+        if(rfd!=null)html+='<span class="bc-rfd">'+rfd+'d</span>';
+        html+='</div>';
+        html+='</div>';
+      });
+    }
+    html+='</div></div>';
+  });
+  board.innerHTML=html;
+
+  // Pipeline stats strip
+  var total=data.length;
+  var starv=data.filter(function(b){return b.guardrail==='STARVATION';}).length;
+  var over=data.filter(function(b){return b.guardrail==='OVERUSE';}).length;
+  var rfdSum=data.reduce(function(s,b){return s+(b.rfd_age_days||0);},0);
+  var avgRfd=total?Math.round(rfdSum/total):0;
+  var statsEl=document.getElementById('pipeline-stats');
+  statsEl.innerHTML=
+    psChip(total,'Total RFD','var(--text)')+
+    psChip(starv,'Starvation','#DC2626')+
+    psChip(over,'Overuse','#D97706')+
+    psChip(avgRfd+'d','Avg RFD Age','var(--text)');
+  statsEl.style.display='flex';
+}
+function psChip(val,label,color){
+  return'<div class="ps-chip" style="border-top-color:'+color+'"><div class="ps-val" style="color:'+color+'">'+val+'</div><div class="ps-label">'+label+'</div></div>';
+}
+
+/* ── Detail modal ────────────────────────────────────────────────── */
+function openDetail(el){
+  var b=JSON.parse(decodeURIComponent(el.dataset.bike));
+  var flag=b.guardrail||'OK';
+  var mt=modelType(b.model_name);
+  var mtLabels={ls:'Low Speed',hs:'High Speed',hsp:'HS Pro'};
+  var fCls=flag==='STARVATION'?'star':flag==='OVERUSE'?'over':'ok';
+  var fIcon=flag==='STARVATION'?'🔴':flag==='OVERUSE'?'🟡':'🟢';
+  var scoreColor=flag==='STARVATION'?'#DC2626':flag==='OVERUSE'?'#D97706':'#16A34A';
+  var scorePct=b.allotment_score!=null?Math.round(parseFloat(b.allotment_score)*100):0;
+  var tierCls=(b.tier||'').toLowerCase();
+  var tierColors={elite:'#7C3AED',prime:'#0369A1',standard:'#059669'};
+  var tc=tierColors[tierCls]||'#6B7280';
+
+  document.getElementById('ds-header').innerHTML=
+    '<div style="flex:1"><div class="ds-reg">'+esc(b.reg_number||'—')+'</div>'
+    +'<div class="ds-meta">'
+    +'<span style="background:'+tc+';color:#fff;padding:3px 10px;border-radius:20px;font-size:.68rem;font-weight:700">'+esc(b.tier||'—')+'</span>'
+    +'<span class="bc-tag '+mt+'" style="padding:3px 10px;font-size:.68rem">'+mtLabels[mt]+'</span>'
+    +'<span class="bc-flag '+fCls+'" style="font-size:.68rem">'+fIcon+' '+esc(flag)+'</span>'
+    +'</div></div>'
+    +'<button class="ds-close" onclick="closeDetail()">✕</button>';
+
+  document.getElementById('ds-grid').innerHTML=
+    dsCell('Rank','#'+(b.deploy_rank||'—'),true)
+    +dsCell('RFD Age',(b.rfd_age_days!=null?b.rfd_age_days+'d':'—'),false)
+    +dsCell('Avg km/day',fmt(b.avg_km_day),false)
+    +dsCell('Odometer',fmtOdo(b.current_odo_km),false)
+    +dsCell('Model',esc(b.model_name||'—'),false)
+    +dsCell('Hub',esc(b.hub_name||'—'),false);
+
+  document.getElementById('ds-score-grid').innerHTML=
+    '<div class="ds-cell" style="grid-column:1/-1">'
+    +'<div class="ds-cell-label">Allotment Score</div>'
+    +'<div class="ds-cell-val big" style="color:'+scoreColor+'">'+(b.allotment_score!=null?parseFloat(b.allotment_score).toFixed(3):'—')+'</div>'
+    +'<div class="ds-score-bar"><div class="ds-score-fill" style="width:'+scorePct+'%;background:'+scoreColor+'"></div></div>'
+    +'</div>'
+    +dsCell('FIFO Score',(b.fifo_score!=null?parseFloat(b.fifo_score).toFixed(3):'—'),false)
+    +dsCell('Util Score',(b.util_score!=null?parseFloat(b.util_score).toFixed(3):'—'),false)
+    +dsCell('Sort Group',fmt(b.sort_group),false)
+    +dsCell('Rental Status',esc(b.rental_status||'—'),false);
+
+  document.getElementById('detail-modal').classList.add('show');
+}
+function dsCell(label,val,big){
+  return'<div class="ds-cell"><div class="ds-cell-label">'+label+'</div><div class="ds-cell-val'+(big?' big':'')+'">'+val+'</div></div>';
+}
+function closeDetail(){document.getElementById('detail-modal').classList.remove('show');}
+document.addEventListener('keydown',function(e){if(e.key==='Escape')closeDetail();});
+
+
+/* ── Tier computation (model-aware, mirrors SQL logic) ───────────── */
+function computeBikeTier(modelName,odo){
+  var m=(modelName||'').toLowerCase();
+  var isLS=!m.includes('pro')&&!m.includes('e1+x')&&!m.includes('e1 x')&&!m.includes('high speed');
+  if(isLS)return(odo||0)<=3000?'Prime':'Standard';
+  return(odo||0)<=200?'Elite':(odo||0)<=3000?'Prime':'Standard';
+}
+
+/* ── Approximate allotment score for assigned (blocked) bike ─────── */
+// Uses rfd_age_days + avg_km_day from pending_bookings_cache (pre-fetched
+// via LATERAL subqueries in SQL) and group stats from LAST_QUEUE_DATA.
+function computeApproxScore(cust,groupBikes){
+  var rfdAge=cust.assigned_rfd_age_days;
+  var avgKm=cust.assigned_avg_km_day||0;
+  if(rfdAge==null)return null;
+  if(!groupBikes||!groupBikes.length)return null; // no peer group → score is meaningless
+
+  // Reconstruct group including this bike to get max_rfd_age and total_bikes
+  var groupRfd=groupBikes.map(function(b){return b.rfd_age_days||0;});
+  groupRfd.push(rfdAge);
+  var maxRfdAge=Math.max.apply(null,groupRfd);
+
+  var groupKm=groupBikes.map(function(b){return b.avg_km_day||0;});
+  var totalBikes=groupBikes.length+1;
+  var bikesHigherKm=groupKm.filter(function(km){return km>avgKm;}).length;
+
+  var fifo=maxRfdAge>0?rfdAge/maxRfdAge:0;
+  var util=totalBikes>0?bikesHigherKm/totalBikes:0;
+  var score=0.6*fifo+0.4*util;
+  var guardrail=rfdAge>15?'STARVATION':avgKm>120?'OVERUSE':'OK';
+
+  return{
+    rfd_age_days:rfdAge,
+    avg_km_day:avgKm,
+    odo_km:cust.assigned_odo_km,
+    fifo_score:Math.round(fifo*1000)/1000,
+    util_score:Math.round(util*1000)/1000,
+    allotment_score:Math.round(score*1000)/1000,
+    guardrail:guardrail
+  };
+}
+
+/* ── Allocate tab ────────────────────────────────────────────────── */
+function loadAllocList(){
+  var hub=document.getElementById('alloc-hub-select').value;
+  var wrap=document.getElementById('alloc-list-wrap');
+  var result=document.getElementById('alloc-result');
+  result.classList.remove('show');ALLOC_DATA=[];
+  // Sync to pipeline tab
+  var ps=document.getElementById('hub-select');if(ps&&ps.value!==hub)ps.value=hub;
+  if(!hub){wrap.innerHTML='<div class="state-box"><div class="icon">🔍</div><p>Select a hub to view pending customers.</p></div>';return;}
+  wrap.innerHTML='<div class="state-box"><div class="spinner"></div><p>Loading customers & pipeline…</p></div>';
+  // Fetch both caches in parallel — render only when both are ready
+  var pendingPromise=sbGet('pending_bookings_cache','hub_name=eq.'+encodeURIComponent(hub)+'&order=full_name.asc&limit=500');
+  var queuePromise=(LAST_QUEUE_HUB===hub)
+    ?Promise.resolve(LAST_QUEUE_DATA)
+    :sbGet('deployment_queue_cache','hub_name=eq.'+encodeURIComponent(hub)+'&order=sort_group.asc,allotment_score.desc.nullslast');
+  Promise.all([pendingPromise,queuePromise])
+    .then(function(results){
+      ALLOC_DATA=results[0]||[];
+      if(LAST_QUEUE_HUB!==hub){LAST_QUEUE_DATA=results[1]||[];LAST_QUEUE_HUB=hub;}
+      renderAllocList(ALLOC_DATA);
+    })
+    .catch(function(err){wrap.innerHTML='<div class="state-box"><div class="icon">⚠️</div><p>Error: '+esc(err.message)+'</p></div>';});
+}
+
+function computeRowStatus(cust){
+  if(!LAST_QUEUE_DATA||!LAST_QUEUE_DATA.length||LAST_QUEUE_HUB!==cust.hub_name)return null;
+  if(!cust.assigned_bike_id||cust.assigned_rfd_age_days==null)return null;
+  // Best pipeline bike for this customer's model+tier
+  var custTier=cust.completed_count===0?'Standard':(cust.tier||'Standard');
+  var pipelineBikes=LAST_QUEUE_DATA.filter(function(b){return b.bike_model_id==cust.bike_model_id&&b.tier===custTier;});
+  // Approx score for allocated bike using its peer group
+  var assignedTier=computeBikeTier(cust.assigned_model,cust.assigned_odo_km);
+  var groupBikes=LAST_QUEUE_DATA.filter(function(b){return b.bike_model_id==cust.assigned_bike_model_id&&b.tier===assignedTier;});
+  var approx=computeApproxScore(cust,groupBikes);
+  if(!approx||!pipelineBikes.length)return{status:'ok',rec:null};
+  var best=pipelineBikes[0];
+  var bestScore=best.allotment_score!=null?parseFloat(best.allotment_score):0;
+  return{status:bestScore>approx.allotment_score?'change':'ok',rec:bestScore>approx.allotment_score?best:null};
+}
+
+function filterAllocList(){
+  var q=document.getElementById('alloc-search').value.trim().toLowerCase();
+  if(!q){renderAllocList(ALLOC_DATA);return;}
+  renderAllocList(ALLOC_DATA.filter(function(c){
+    return(c.full_name||'').toLowerCase().includes(q)||(c.phone_number||'').includes(q);
+  }));
+}
+
+function renderAllocList(data){
+  var wrap=document.getElementById('alloc-list-wrap');
+  if(!data||!data.length){
+    wrap.innerHTML='<div class="state-box"><div class="icon">👤</div><p>No pending customers found.</p></div>';
+    return;
+  }
+  var pipelineReady=!!(LAST_QUEUE_DATA&&LAST_QUEUE_DATA.length&&LAST_QUEUE_HUB);
+  var html='<table class="alloc-table"><thead><tr>'
+    +'<th>#</th><th>Name</th><th>Phone</th><th>Model</th><th>Tier</th><th>Blocked Bike</th>'
+    +'<th>Waiting</th><th>Status</th><th>Suggested</th>'
+    +'<th></th>'
+    +'</tr></thead><tbody>';
+  var mtShort={ls:'LS',hs:'HS',hsp:'HS Pro'};
+  data.forEach(function(c,i){
+    var tier=c.tier||'—';
+    var tierCls=tier.toLowerCase();
+    var mt=modelType(c.booked_model);
+    var bikeCell=c.assigned_bike_id
+      ?'<span class="ac-bike">'+esc(c.assigned_reg||('ID '+c.assigned_bike_id))+'</span>'
+      :'<span class="ac-nobike">None assigned</span>';
+    // Waiting: days since booking created
+    var waitCell='—';
+    if(c.booking_created_at){var days=Math.floor((Date.now()-new Date(c.booking_created_at).getTime())/86400000);waitCell=days+'d';}
+    // Status + Suggested
+    var rowStatus=computeRowStatus(c);
+    var statusCell,suggestCell;
+    if(!pipelineReady||!rowStatus){
+      statusCell='<span style="color:var(--muted);font-size:.8rem">—</span>';
+      suggestCell='<span style="color:var(--muted);font-size:.78rem">—</span>';
+    } else if(rowStatus.status==='change'){
+      statusCell='<span class="rs-change">⚠️ Change</span>';
+      suggestCell='<span class="rs-suggest">'+esc(rowStatus.rec.reg_number||'—')+'</span>';
+    } else {
+      statusCell='<span class="rs-ok">✅ Fine</span>';
+      suggestCell='<span style="color:var(--muted);font-size:.78rem">—</span>';
+    }
+    html+='<tr onclick="selectAllocRow(this,'+i+')" data-idx="'+i+'">'
+      +'<td style="color:var(--muted);font-size:.72rem">'+(i+1)+'</td>'
+      +'<td><div class="ac-name">'+esc(c.full_name||'—')+'</div></td>'
+      +'<td><div class="ac-phone">'+esc(c.phone_number||'—')+'</div></td>'
+      +'<td><span class="bc-tag '+mt+'">'+mtShort[mt]+'</span></td>'
+      +'<td><span class="ac-badge '+tierCls+'">'+esc(tier)+'</span></td>'
+      +'<td>'+bikeCell+'</td>'
+      +'<td style="font-size:.78rem;color:var(--muted)">'+waitCell+'</td>'
+      +'<td>'+statusCell+'</td>'
+      +'<td>'+suggestCell+'</td>'
+      +'<td style="text-align:right;color:var(--muted);font-size:.8rem">→</td>'
+      +'</tr>';
+  });
+  html+='</tbody></table>';
+  wrap.innerHTML=html;
+}
+
+function selectAllocRow(row,idx){
+  document.querySelectorAll('#alloc-list-wrap tr').forEach(function(r){r.classList.remove('active-row');});
+  row.classList.add('active-row');
+  // Resolve against current filtered set
+  var q=document.getElementById('alloc-search').value.trim().toLowerCase();
+  var data=q?ALLOC_DATA.filter(function(c){return(c.full_name||'').toLowerCase().includes(q)||(c.phone_number||'').includes(q);}):ALLOC_DATA;
+  var cust=data[idx];
+  if(cust){
+    lookupAndRenderCustomer(cust);
+    // Scroll result into view after render
+    setTimeout(function(){
+      var el=document.getElementById('alloc-result');
+      if(el)el.scrollIntoView({behavior:'smooth',block:'start'});
+    },400);
+  }
+}
+
+function lookupAndRenderCustomer(cust){
+  var result=document.getElementById('alloc-result');
+  result.classList.add('show');
+  // Use the same in-memory computation as the list — guarantees list/detail consistency
+  var rowStatus=computeRowStatus(cust);
+  var rec=rowStatus?rowStatus.rec:null;
+  // approxScore using same peer-group logic
+  var approxScore=null;
+  if(cust.assigned_bike_id&&cust.assigned_rfd_age_days!=null&&LAST_QUEUE_DATA&&LAST_QUEUE_DATA.length&&LAST_QUEUE_HUB===cust.hub_name){
+    var assignedTier=computeBikeTier(cust.assigned_model,cust.assigned_odo_km);
+    var groupBikes=LAST_QUEUE_DATA.filter(function(b){
+      return b.bike_model_id==cust.assigned_bike_model_id&&b.tier===assignedTier;
+    });
+    approxScore=computeApproxScore(cust,groupBikes);
+  }
+  // bikes array: use rec from pipeline if it exists; empty otherwise
+  var bikes=rec?[rec]:[];
+  renderAllocResult(cust,bikes,'Pipeline',approxScore);
+}
+
+function renderAllocResult(cust,bikes,note,approxScore){
+  var result=document.getElementById('alloc-result');
+  var custMT=modelType(cust.booked_model);
+  var rec=bikes[0]||null;
+  var flag=rec?(rec.guardrail||'OK'):'—';
+  var html='';
+
+  // ── 1. Customer + Booking (always first)
+  html+='<div class="result-grid">';
+  html+='<div class="info-card"><div class="ic-title">Customer</div>';
+  html+=icRow('Name',cust.full_name||'—')+icRow('Bookings',cust.completed_count===0?'🆕 First time':(cust.completed_count||'0')+' completed')+icRow('Loyalty',cust.loyalty_tier||'—');
+  html+='</div>';
+  html+='<div class="info-card"><div class="ic-title">Booking</div>';
+  var mtShortLabel={ls:'LS',hs:'HS',hsp:'HS Pro'};
+  html+=icRow('Hub',cust.hub_name||'—')+icRow('Model',mtShortLabel[custMT]||cust.booked_model||'—')+icRow('Tier',cust.tier||'—')+icRow('Premium Fee','₹'+(cust.paid_premium_fees||0));
+  html+='</div></div>';
+
+  // ── 2. Two scenarios only: ⚠️ needs change | ✅ allocation is fine
+  if(cust.assigned_bike_id){
+    var assignedReg=cust.assigned_reg||('Bike '+cust.assigned_bike_id);
+    var aRfd=cust.assigned_rfd_age_days;
+    var aKm=cust.assigned_avg_km_day;
+    var aOdo=cust.assigned_odo_km;
+    // Determine if a better option exists — only when pipeline is loaded for same hub
+    var hasBetter=false;
+    var recScore=0,aScore=0,aGuard='',aGIcon='',recGuardIcon='';
+    if(approxScore&&rec){
+      recScore=rec.allotment_score!=null?parseFloat(rec.allotment_score):0;
+      aScore=approxScore.allotment_score;
+      aGuard=approxScore.guardrail;
+      aGIcon=aGuard==='STARVATION'?'🔴':aGuard==='OVERUSE'?'🟡':'🟢';
+      recGuardIcon=flag==='STARVATION'?'🔴':flag==='OVERUSE'?'🟡':'🟢';
+      hasBetter=recScore>aScore;
+    }
+    if(hasBetter){
+      // ── Scenario B: better bike in pipeline — yellow warning strip
+      html+='<div class="better-banner">';
+      html+='<div style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#92400E;margin-bottom:8px">⚠️ Better Option in Pipeline</div>';
+      html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">';
+      html+='<div style="background:rgba(0,0,0,.05);border-radius:8px;padding:10px 12px">'
+        +'<div style="font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#92400E;margin-bottom:5px">Allocated</div>'
+        +'<div style="font-size:.92rem;font-weight:800;color:#451A03">'+esc(assignedReg)+'</div>'
+        +'<div style="font-size:.72rem;color:#78350F;margin-top:3px">'+aGIcon+' '+esc(aGuard)+' · Score <b>'+aScore.toFixed(3)+'</b></div>'
+        +'<div style="font-size:.68rem;color:#6B7280;margin-top:2px">RFD '+(aRfd!=null?aRfd+'d':'—')+' · '+(aKm!=null?aKm+' km/d':'—')+'</div>'
+        +'</div>'
+      +'<div style="background:rgba(22,163,74,.08);border:1px solid rgba(22,163,74,.22);border-radius:8px;padding:10px 12px">'
+        +'<div style="font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#166534;margin-bottom:5px">Better Available</div>'
+        +'<div style="font-size:.92rem;font-weight:800;color:#14532D">'+esc(rec.reg_number||'—')+'</div>'
+        +'<div style="font-size:.72rem;color:#166534;margin-top:3px">'+recGuardIcon+' '+esc(flag)+' · Score <b>'+recScore.toFixed(3)+'</b> · Rank #'+esc(rec.deploy_rank||'—')+'</div>'
+        +'<div style="font-size:.68rem;color:#6B7280;margin-top:2px">RFD '+(rec.rfd_age_days!=null?rec.rfd_age_days+'d':'—')+' · '+(rec.avg_km_day!=null?rec.avg_km_day+' km/d':'—')+'</div>'
+        +'</div>';
+      html+='</div></div>';
+    } else {
+      // ── Scenario A: allocation is fine — green confirmation strip (always same structure)
+      var scoreLine=approxScore
+        ?('<div style="font-size:.72rem;color:#166534;margin-bottom:3px">'+aGIcon+' '+esc(aGuard)+' · Score <b>'+aScore.toFixed(3)+'</b></div>')
+        :'';
+      html+='<div class="confirm-banner">';
+      html+='<div style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#166534;margin-bottom:8px">✅ Current Allocation is Fine</div>';
+      html+='<div style="font-size:1rem;font-weight:800;color:#14532D;margin-bottom:4px">'+esc(assignedReg)+'</div>';
+      html+=scoreLine;
+      html+='<div style="font-size:.68rem;color:#6B7280">'
+        +'RFD '+(aRfd!=null?aRfd+'d':'—')
+        +' · '+(aKm!=null?aKm+' km/d':'— km/d')
+        +' · ODO '+(aOdo!=null?parseInt(aOdo).toLocaleString('en-IN')+' km':'—')
+        +'</div>';
+      html+='</div>';
+    }
+  }
+
+  result.innerHTML=html;result.classList.add('show');
+}
+function icRow(l,v){return'<div class="ic-row"><span class="ic-label">'+l+'</span><span class="ic-val">'+esc(v)+'</span></div>';}
+function recMetric(l,v){return'<div class="rec-metric"><div class="rec-metric-val">'+esc(v)+'</div><div class="rec-metric-label">'+l+'</div></div>';}
+
+/* ── Feedback ────────────────────────────────────────────────────── */
+function toggleFeedback(){document.getElementById('fb-popup').classList.toggle('open');}
+async function submitFeedback(){
+  var t=document.getElementById('fb-text').value.trim();
+  if(!t)return;
+  await sbClient.from('feedback').insert([{page:'deployment-v6',message:t,user_email:CURRENT_USER_EMAIL,created_at:new Date().toISOString()}]).catch(function(){});
+  document.getElementById('fb-text').value='';document.getElementById('fb-popup').classList.remove('open');
+}
+</script>
+</body>
+</html>

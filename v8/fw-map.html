@@ -1,0 +1,890 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"/>
+<meta http-equiv="Pragma" content="no-cache"/>
+<meta http-equiv="Expires" content="0"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>FW Pending Map — FleetPro</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+/* ── Auth Screen ── */
+#auth-screen{position:fixed;inset:0;z-index:1100;background:linear-gradient(135deg,#1A1A2E 0%,#0f2460 100%);display:flex;align-items:center;justify-content:center;font-family:'Inter',sans-serif;}
+#auth-screen.hidden{display:none!important}
+.auth-card{background:#fff;border-radius:24px;padding:40px 36px;width:100%;max-width:380px;box-shadow:0 24px 80px rgba(0,0,0,.3);text-align:center;}
+.auth-logo{display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:24px}
+.auth-logo-name{font-size:1.1rem;font-weight:800;color:#0F172A}
+.auth-logo-sub{font-size:.7rem;color:#6B7280;font-weight:500;letter-spacing:.5px;text-transform:uppercase;margin-top:2px}
+.auth-title{font-size:1.3rem;font-weight:800;color:#0F172A;margin-bottom:6px}
+.auth-sub{font-size:.82rem;color:#6B7280;margin-bottom:28px;line-height:1.6}
+.auth-input{width:100%;padding:13px 16px;border:1.5px solid #E5E7EB;border-radius:12px;font-size:.9rem;font-family:'Inter',sans-serif;color:#111827;outline:none;transition:border-color .15s;margin-bottom:12px;}
+.auth-input:focus{border-color:#E8191C}
+.auth-btn{width:100%;padding:13px;background:#E8191C;color:#fff;border:none;border-radius:12px;font-size:.9rem;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;transition:background .15s;}
+.auth-btn:hover{background:#B01010}
+.auth-btn:disabled{background:#CBD5E1;cursor:not-allowed}
+.auth-domain{display:inline-block;background:#F0FDF4;color:#16A34A;border:1px solid #BBF7D0;border-radius:8px;padding:4px 12px;font-size:.75rem;font-weight:600;margin-bottom:20px}
+.auth-msg{font-size:.78rem;margin-top:12px;min-height:18px;line-height:1.5;color:#DC2626}
+.auth-sent{display:none;text-align:center}
+.auth-sent .big-icon{font-size:3rem;margin-bottom:12px}
+.auth-sent h3{font-size:1.1rem;font-weight:800;color:#0F172A;margin-bottom:8px}
+.auth-sent p{font-size:.82rem;color:#6B7280;line-height:1.6}
+.auth-sent .resend{background:none;border:none;color:#E8191C;font-size:.8rem;font-weight:600;cursor:pointer;margin-top:16px;font-family:'Inter',sans-serif}
+
+:root{
+  --brand:#E8191C;--brand-dark:#B01010;--brand-bg:#FEF2F2;
+  --sb-bg:#1A1A2E;--sb-text:rgba(255,255,255,.7);--sb-active:#fff;
+  --sb-hover:rgba(255,255,255,.08);--sb-width:260px;--topbar-h:56px;
+  --bg:#F5F6FA;--card:#fff;--border:#E5E7EB;--text:#111827;--muted:#6B7280;
+  --shadow:0 1px 3px rgba(0,0,0,.08),0 1px 2px rgba(0,0,0,.04);
+  --shadow-md:0 4px 16px rgba(0,0,0,.1);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+
+/* ── Overlay ── */
+#ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:1000;backdrop-filter:blur(2px)}
+#ov.show{display:block}
+
+/* ── Sidebar ── */
+#sb{position:fixed;top:0;left:0;bottom:0;width:var(--sb-width);background:var(--sb-bg);z-index:1050;transform:translateX(-100%);transition:transform .25s ease;display:flex;flex-direction:column;overflow-y:auto;overflow-x:hidden;}
+#sb.open{transform:translateX(0)}
+body.pinned #sb{transform:translateX(0)}
+body.pinned #main{margin-left:var(--sb-width)}
+.sb-header{padding:20px 16px 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,.06)}
+.sb-brand{display:flex;align-items:center;gap:10px;text-decoration:none}
+@keyframes morph{0%,100%{border-radius:60% 40% 55% 45%/50% 60% 40% 50%}33%{border-radius:40% 60% 45% 55%/60% 40% 60% 40%}66%{border-radius:55% 45% 60% 40%/40% 55% 45% 60%}}
+.sb-brand-text .t1{font-size:.6rem;font-weight:700;color:rgba(255,255,255,.5);letter-spacing:.5px;text-transform:uppercase}
+.sb-brand-text .t2{font-size:.78rem;font-weight:800;color:#fff;letter-spacing:-.01em}
+.pin-btn{background:none;border:none;cursor:pointer;color:rgba(255,255,255,.35);font-size:.8rem;padding:4px 6px;border-radius:6px;transition:all .15s;display:flex;align-items:center;gap:3px;font-family:inherit}
+.pin-btn:hover{color:#fff;background:rgba(255,255,255,.08)}
+.pin-btn.pinned{color:var(--brand)}
+.sb-section{padding:12px 8px 4px}
+.sb-label{font-size:.6rem;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:rgba(255,255,255,.25);padding:0 8px 8px}
+.sb-item{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:10px;text-decoration:none;color:var(--sb-text);font-size:.82rem;font-weight:500;transition:all .15s;margin-bottom:2px}
+.sb-item:hover{background:var(--sb-hover);color:var(--sb-active)}
+.sb-item.active{background:rgba(232,25,28,.18);color:#fff;font-weight:600}
+.sb-item.active .si{color:var(--brand)}
+.si{font-size:1rem;width:20px;text-align:center;flex-shrink:0}
+.sb-spacer{flex:1}
+.sb-footer{padding:12px 16px;border-top:1px solid rgba(255,255,255,.06)}
+.sb-ver{font-size:.65rem;color:rgba(255,255,255,.25);font-weight:500}
+
+/* ── Settings Modal ── */
+#settings-modal{display:none;position:fixed;inset:0;z-index:1200;background:rgba(0,0,0,.45);backdrop-filter:blur(3px);align-items:center;justify-content:center;font-family:'Inter',sans-serif}
+#settings-modal.show{display:flex}
+.settings-card{background:#fff;border-radius:20px;width:100%;max-width:420px;box-shadow:0 24px 80px rgba(0,0,0,.25);overflow:hidden}
+.settings-header{padding:20px 24px 16px;border-bottom:1px solid #F3F4F6;display:flex;align-items:center;justify-content:space-between}
+.settings-header h2{font-size:1rem;font-weight:800;color:#0F172A}
+.settings-close{background:none;border:none;cursor:pointer;font-size:1.2rem;color:#9CA3AF;line-height:1;padding:2px 6px;border-radius:6px;transition:background .15s}
+.settings-close:hover{background:#F3F4F6;color:#374151}
+.settings-body{padding:20px 24px}
+.settings-row{margin-bottom:20px}
+.settings-row:last-child{margin-bottom:0}
+.settings-label{font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:#9CA3AF;margin-bottom:6px}
+.settings-value{font-size:.88rem;color:#374151;font-weight:500}
+.settings-divider{border:none;border-top:1px solid #F3F4F6;margin:20px 0}
+.settings-danger-zone{background:#FFF5F5;border:1px solid #FECACA;border-radius:12px;padding:16px}
+.settings-danger-title{font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:#DC2626;margin-bottom:8px}
+.settings-danger-desc{font-size:.8rem;color:#6B7280;margin-bottom:12px;line-height:1.5}
+.settings-danger-btn{width:100%;padding:10px;background:#DC2626;color:#fff;border:none;border-radius:10px;font-size:.82rem;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;transition:background .15s}
+.settings-danger-btn:hover{background:#B91C1C}
+.settings-danger-btn:disabled{background:#FCA5A5;cursor:not-allowed}
+#settings-last-logout{font-size:.78rem;color:#6B7280;margin-top:4px}
+
+/* ── Top Bar ── */
+#main{transition:margin-left .25s ease;min-height:100vh;display:flex;flex-direction:column}
+#topbar{position:sticky;top:0;z-index:100;height:var(--topbar-h);background:#fff;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;padding:0 16px;box-shadow:var(--shadow);}
+#hbg{width:36px;height:36px;background:none;border:none;cursor:pointer;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:5px;border-radius:8px;transition:background .15s;flex-shrink:0;}
+#hbg:hover{background:#F3F4F6}
+#hbg span{display:block;width:18px;height:2px;background:var(--text);border-radius:2px;transition:all .2s}
+.tb-brand{display:flex;align-items:center;gap:6px;flex:1;min-width:0}
+.tb-logo{display:flex;align-items:center;gap:7px;font-size:.85rem;font-weight:800;color:var(--brand);letter-spacing:-.01em;white-space:nowrap;text-decoration:none}
+.tb-dot{width:26px;height:26px;background:var(--brand);border-radius:60% 40% 55% 45%/50% 60% 40% 50%;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:.55rem;color:#fff;flex-shrink:0;animation:morph 6s ease-in-out infinite}
+.tb-right{display:flex;align-items:center;gap:8px;margin-left:auto;flex-shrink:0}
+/* hamburger always visible */
+@media(max-width:767px){body.pinned #main{margin-left:0}body.pinned #sb{transform:translateX(0)}.pin-btn{display:none}}
+@media(min-width:768px){body.pinned #sb{transform:translateX(0)}}
+
+/* ── Map page specific ── */
+#map-wrap{flex:1;display:flex;flex-direction:column;min-height:0;}
+#map-topbar{background:#fff;border-bottom:1px solid var(--border);padding:8px 16px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+#map-topbar h2{font-size:.9rem;font-weight:800;color:#0F172A;white-space:nowrap}
+.count-pill{background:#FEF2F2;color:#E8191C;font-size:.75rem;font-weight:700;padding:3px 10px;border-radius:20px;border:1px solid #FECACA;white-space:nowrap}
+#updated-at{font-size:.7rem;color:var(--muted);margin-left:auto;white-space:nowrap}
+#search-input{border:1px solid var(--border);border-radius:8px;padding:5px 10px;font-size:.78rem;font-family:'Inter',sans-serif;outline:none;width:200px;transition:border-color .15s;}
+#search-input:focus{border-color:#E8191C;}
+#hub-filter{border:1px solid var(--border);border-radius:8px;padding:5px 8px;font-size:.78rem;font-family:'Inter',sans-serif;outline:none;background:#fff;cursor:pointer;color:var(--text);max-width:160px;}
+#hub-filter:focus{border-color:#E8191C;}
+.map-btn{background:#F3F4F6;border:1px solid var(--border);color:#374151;padding:5px 12px;border-radius:8px;font-size:.75rem;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;transition:all .15s;white-space:nowrap;}
+.map-btn:hover{background:#E5E7EB}
+.map-btn:disabled{opacity:.5;cursor:not-allowed}
+.map-btn.loading{position:relative;color:transparent!important;}
+.map-btn.loading::after{content:'';position:absolute;top:50%;left:50%;width:12px;height:12px;margin:-6px 0 0 -6px;border:2px solid #9CA3AF;border-top-color:#374151;border-radius:50%;animation:btn-spin .6s linear infinite;}
+@keyframes btn-spin{to{transform:rotate(360deg)}}
+#map-error{display:none;background:#FEF2F2;border:1px solid #FECACA;color:#DC2626;font-size:.78rem;padding:8px 14px;border-radius:8px;margin:0 16px 8px;}
+#map{flex:1;min-height:400px;}
+#map-loading{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(26,26,46,.9);color:#fff;padding:16px 24px;border-radius:10px;font-size:.85rem;z-index:450;display:none;align-items:center;gap:10px;pointer-events:none;}
+.spinner{width:18px;height:18px;border:2.5px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0;}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+/* ── Layers panel ── */
+#layers-panel{position:absolute;bottom:32px;right:12px;z-index:800;background:#fff;border-radius:12px;box-shadow:0 4px 20px rgba(0,0,0,.15);padding:12px 14px;min-width:200px;display:none;}
+#detail-panel-footer{padding:12px 16px;border-top:1px solid #F1F5F9;flex-shrink:0}
+#layers-panel.show{display:block}
+.layers-title{font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:#6B7280;margin-bottom:10px}
+.layer-row{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px;font-size:.8rem;color:#374151;}
+.layer-row:last-child{margin-bottom:0}
+.layer-row label{display:flex;align-items:center;gap:7px;cursor:pointer;flex:1}
+.layer-badge{font-size:.65rem;color:#9CA3AF;font-weight:500;}
+.layer-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+</style>
+</head>
+<body>
+
+<!-- Auth Screen -->
+<div id="auth-screen" class="hidden">
+  <div class="auth-card">
+    <div class="auth-logo">
+      <img id="auth-logo-img" src="logo.jpg" width="44" height="44" style="border-radius:10px;object-fit:cover;flex-shrink:0"/>
+      <div>
+        <div class="auth-logo-name">Bounce Daily</div>
+        <div class="auth-logo-sub">FleetPro</div>
+      </div>
+    </div>
+    <div class="auth-title">Welcome to FleetPro</div>
+    <div class="auth-sub">Enter your work email and we'll send you a one-click sign-in link.</div>
+    <div class="auth-domain">@bounceshare.com · approved users</div>
+    <div id="auth-form">
+      <input id="auth-email" class="auth-input" type="email" placeholder="your@email.com" autocomplete="email"/>
+      <button id="auth-submit" class="auth-btn" onclick="sendMagicLink()">Send Magic Link</button>
+      <div id="auth-msg" class="auth-msg"></div>
+    </div>
+    <div id="auth-sent" class="auth-sent">
+      <div class="big-icon">📬</div>
+      <h3>Check your inbox</h3>
+      <p>Magic link sent to<br/><b id="auth-sent-email"></b><br/>Click it to sign in — expires in 15 min.</p>
+      <button class="resend" onclick="showForm()">← Use a different email</button>
+    </div>
+  </div>
+</div>
+
+<div id="ov" onclick="closeSidebar()"></div>
+
+<!-- Sidebar -->
+<nav id="sb">
+  <div class="sb-header">
+    <a href="./index.html" class="sb-brand">
+      <img src="logo.jpg" width="44" height="44" style="border-radius:10px;object-fit:cover;flex-shrink:0"/>
+      <div class="sb-brand-text">
+        <div class="t1">Bounce Daily</div>
+        <div class="t2">FleetPro</div>
+      </div>
+    </a>
+    <button class="pin-btn" id="pinBtn" onclick="togglePin()" title="Pin sidebar">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2v10M8 6l4-4 4 4M8 18l4 4 4-4M12 12v10"/></svg>
+      Pin
+    </button>
+  </div>
+  <div class="sb-section">
+    <div class="sb-label">Fleet Tools</div>
+    <a href="./index.html" class="sb-item"><span class="si">🏠</span><span>Home</span></a>
+    <a href="./maintenance.html" class="sb-item"><span class="si">🔧</span><span>Preventive Maintenance</span></a>
+    <a href="./queue.html" class="sb-item"><span class="si">📋</span><span>OOS Queue</span></a>
+    <a href="./deployment.html" class="sb-item"><span class="si">🚲</span><span>Deployment Queue</span></a>
+    <a href="./fw-map.html" class="sb-item active"><span class="si">📍</span><span>FW Pending Map</span></a>
+    <a href="./rsa.html" class="sb-item"><span class="si">🦺</span><span>RSA Warroom</span></a>
+  </div>
+  <div class="sb-section" style="margin-top:8px">
+    <div class="sb-label">Coming Soon</div>
+    <div class="sb-item" style="opacity:.4;cursor:default"><span class="si">📊</span><span>Fleet Analytics</span></div>
+    <div class="sb-item" style="opacity:.4;cursor:default"><span class="si">🔔</span><span>Alert Centre</span></div>
+  </div>
+  <div class="sb-spacer"></div>
+  <div class="sb-section" style="margin-top:0;padding-top:4px">
+    <button class="sb-item" onclick="openSettings()" style="width:100%;background:none;border:none;cursor:pointer;text-align:left">
+      <span class="si">⚙️</span><span>Settings</span>
+    </button>
+  </div>
+  <div class="sb-footer"><div class="sb-ver">FleetPro v6 · Live map</div></div>
+</nav>
+
+<!-- Settings Modal -->
+<div id="settings-modal">
+  <div class="settings-card">
+    <div class="settings-header">
+      <h2>⚙️ Fleet Pro Settings</h2>
+      <button class="settings-close" onclick="closeSettings()">✕</button>
+    </div>
+    <div class="settings-body">
+      <div class="settings-row">
+        <div class="settings-label">Session Expiry</div>
+        <div class="settings-value">12 hours after login</div>
+      </div>
+      <div class="settings-row">
+        <div class="settings-label">Signed in as</div>
+        <div class="settings-value" id="settings-user-email">—</div>
+      </div>
+      <hr class="settings-divider" id="settings-danger-divider"/>
+      <div id="settings-danger-section"><div class="settings-danger-zone">
+        <div class="settings-danger-title">⚠️ Danger Zone</div>
+        <div class="settings-danger-desc">Force-signs out all active Fleet Pro sessions across all users and devices.</div>
+        <button class="settings-danger-btn" id="force-logout-btn" onclick="forceLogoutAll()">Force Logout All Sessions</button>
+        <div id="settings-last-logout"></div>
+      </div></div>
+    </div>
+  </div>
+</div>
+
+<!-- Main -->
+<div id="main">
+  <header id="topbar">
+    <button id="hbg" onclick="toggleSidebar()" aria-label="Menu">
+      <span></span><span></span><span></span>
+    </button>
+    <div class="tb-brand">
+      <a href="./index.html" class="tb-logo">
+        <img src="logo.jpg" width="30" height="30" style="border-radius:7px;object-fit:cover;flex-shrink:0"/>
+        FleetPro
+      </a>
+    </div>
+    <div class="tb-right">
+      <button id="logout-btn" onclick="signOut()" style="display:none;background:none;border:1px solid #E5E7EB;border-radius:8px;padding:5px 12px;font-size:.72rem;font-weight:600;color:#6B7280;cursor:pointer;font-family:'Inter',sans-serif;transition:all .15s" onmouseover="this.style.borderColor='#E8191C';this.style.color='#E8191C'" onmouseout="this.style.borderColor='#E5E7EB';this.style.color='#6B7280'">Sign out</button>
+    </div>
+  </header>
+
+  <div id="map-wrap">
+    <div id="map-topbar">
+      <h2>📍 FW Flash Pending — Live Map</h2>
+      <span class="count-pill" id="count-pill">Loading…</span>
+      <input id="search-input" type="text" placeholder="🔍 Search reg / phone…" oninput="renderFiltered()" autocomplete="off"/>
+      <select id="hub-filter" onchange="renderFiltered()">
+        <option value="">All Hubs</option>
+      </select>
+      <button class="map-btn" id="layers-btn" onclick="toggleLayersPanel()">🗂 Layers</button>
+      <span id="updated-at"></span>
+      <button class="map-btn" id="refresh-btn" onclick="loadMapData()">↻ Refresh</button>
+      <button id="clear-btn" onclick="clearFilters()" style="background:#FEF2F2;border:1px solid #FECACA;color:#DC2626;padding:5px 12px;border-radius:8px;font-size:.75rem;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;white-space:nowrap;display:none">✕ Clear</button>
+      <button onclick="showMyLocation()" style="background:#EFF6FF;border:1px solid #BFDBFE;color:#2563EB;padding:5px 12px;border-radius:8px;font-size:.75rem;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;white-space:nowrap;">📍 My Location</button>
+    </div>
+    <div id="map-error"></div>
+    <div id="map" style="position:relative;">
+      <div id="map-loading"><div class="spinner"></div> Fetching live data…</div>
+      <!-- Layers panel -->
+      <div id="layers-panel">
+        <div class="layers-title">Map Layers</div>
+        <div style="margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid #F1F5F9">
+          <div style="font-size:.7rem;font-weight:700;color:#6B7280;margin-bottom:5px;text-transform:uppercase;letter-spacing:.5px">Ping Age</div>
+          <div style="display:flex;flex-direction:column;gap:4px;font-size:.72rem;color:#374151">
+            <div style="display:flex;align-items:center;gap:6px"><span style="width:10px;height:10px;border-radius:50%;background:#22C55E;flex-shrink:0;display:inline-block"></span>&lt; 15 min</div>
+            <div style="display:flex;align-items:center;gap:6px"><span style="width:10px;height:10px;border-radius:50%;background:#F59E0B;flex-shrink:0;display:inline-block"></span>15 min – 1 hr</div>
+            <div style="display:flex;align-items:center;gap:6px"><span style="width:10px;height:10px;border-radius:50%;background:#EF4444;flex-shrink:0;display:inline-block"></span>1 hr – 3 hr</div>
+            <div style="display:flex;align-items:center;gap:6px"><span style="width:10px;height:10px;border-radius:50%;background:#94A3B8;flex-shrink:0;display:inline-block"></span>3 hr+</div>
+          </div>
+        </div>
+        <div class="layer-row"><label><input type="checkbox" id="lyr-rsa" onchange="toggleLayer('rsa')" checked/><div class="layer-dot" style="background:#1D4ED8;border-radius:50%"></div>RSA Team</label><span class="layer-badge">2</span></div>
+        <div class="layer-row"><label><input type="checkbox" id="lyr-hubs" onchange="toggleLayer('hubs')" checked/><div class="layer-dot" style="background:#E8191C;border-radius:3px"></div>Bounce Hubs</label></div>
+        <div class="layer-row"><label><input type="checkbox" id="lyr-sw" onchange="toggleLayer('sw')"/><div class="layer-dot" style="background:#FC8019"></div>Swiggy</label><span class="layer-badge">149</span></div>
+        <div class="layer-row"><label><input type="checkbox" id="lyr-fk" onchange="toggleLayer('fk')"/><div class="layer-dot" style="background:#2874F0"></div>FKM</label><span class="layer-badge">91</span></div>
+        <div class="layer-row"><label><input type="checkbox" id="lyr-ze" onchange="toggleLayer('ze')"/><div class="layer-dot" style="background:#850CA7"></div>Zepto</label><span class="layer-badge">196</span></div>
+        <div class="layer-row"><label><input type="checkbox" id="lyr-bl" onchange="toggleLayer('bl')"/><div class="layer-dot" style="background:#F0C000"></div>Blinkit</label><span class="layer-badge">104</span></div>
+        <div class="layer-row"><label><input type="checkbox" id="lyr-yu" onchange="toggleLayer('yu')"/><div class="layer-dot" style="background:#16a34a"></div>Yuma Charge</label><span class="layer-badge">113</span></div>
+        <div class="layer-row"><label><input type="checkbox" id="lyr-in" onchange="toggleLayer('in')"/><div class="layer-dot" style="background:#0891b2"></div>Indofast Charge</label><span class="layer-badge">423</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+var SB_URL='https://clkfvmmlgwcvntxnolsv.supabase.co';
+var ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNsa2Z2bW1sZ3djdm50eG5vbHN2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ1NDQ2NTgsImV4cCI6MjA5MDEyMDY1OH0.FA33GFQisWX_hDeGCWqL5yAZmPcuQRdxZX32I23lyoY';
+var K=ANON_KEY;
+var CURRENT_USER_EMAIL=null;
+var sbClient=supabase.createClient(SB_URL,ANON_KEY,{auth:{persistSession:true,storageKey:'fleetpro_session',autoRefreshToken:true}});
+
+// fw_bikes_live = fw_pending_cache ⨝ bike_location_cache ⨝ bike_rider_cache
+// Returns only FW-pending bikes (~1,366 rows) vs fetching all 3 tables (~20k rows)
+var FW_LIVE_URL='https://clkfvmmlgwcvntxnolsv.supabase.co/rest/v1/fw_bikes_live?select=chassis_number,reg_number,hub,lat,lng,loc_time,current_soc,vehicle_status,rider_name,rider_phone&limit=5000';
+var HUB_LOCATION_URL='https://clkfvmmlgwcvntxnolsv.supabase.co/rest/v1/rental_locations?select=id,location_name,lat,lng,short_address,status&status=eq.active&city_id=eq.1';
+
+// Darkstore/charge station data (embedded)
+var DS_DATA={"sw":[{"n":"BLR_Arekere","a":12.877897,"o":77.637238},{"n":"BLR_Arekere","a":12.904161227966792,"o":77.60063990096421},{"n":"BLR_Arekere","a":12.856550090931206,"o":77.59375954397252},{"n":"BLR_Arekere","a":12.858709,"o":77.611671},{"n":"BLR_Arekere","a":12.876722,"o":77.609472},{"n":"BLR_Arekere","a":12.888222,"o":77.5985},{"n":"BLR_Arekere","a":12.9022899,"o":77.5832106},{"n":"BLR_Arekere","a":12.875824,"o":77.591164},{"n":"BLR_Arekere","a":12.842334,"o":77.58992},{"n":"BLR_Arekere","a":12.863351,"o":77.569071},{"n":"BLR_Arekere","a":12.8687,"o":77.6161},{"n":"BLR_Attibele","a":12.784306,"o":77.660056},{"n":"BLR_Attibele","a":12.792444,"o":77.706833},{"n":"BLR_Attibele","a":12.808097,"o":77.676819},{"n":"BLR_BTM","a":12.927417,"o":77.609639},{"n":"BLR_BTM","a":12.909667,"o":77.602889},{"n":"BLR_BTM","a":12.901196,"o":77.623413},{"n":"BLR_Banashankari","a":12.9273438,"o":77.5475607},{"n":"BLR_Basavanagudi","a":12.952091,"o":77.594184},{"n":"BLR_Basaveshwara_Rajaji Nagar","a":12.99166,"o":77.538017},{"n":"BLR_Basaveshwara_Rajaji Nagar","a":12.991316,"o":77.498756},{"n":"BLR_Battarahalli","a":13.023334633566627,"o":77.70608358999996},{"n":"BLR_Battarahalli","a":13.0199,"o":77.7242},{"n":"BLR_Bellandur","a":12.927372,"o":77.670691},{"n":"BLR_Bellandur","a":12.930061193208351,"o":77.67924248758122},{"n":"BLR_Bellandur","a":12.907659,"o":77.675316},{"n":"BLR_Bellandur","a":12.921787,"o":77.677376},{"n":"BLR_Bellandur","a":12.905595,"o":77.684547},{"n":"BLR_Bellandur","a":12.92336,"o":77.695092},{"n":"BLR_Bellandur","a":12.927366,"o":77.6650431},{"n":"BLR_Bellandur","a":12.909483,"o":77.697731},{"n":"BLR_Bellandur","a":12.913961,"o":77.666466},{"n":"BLR_Bellandur","a":12.842996,"o":77.726624},{"n":"BLR_Bellandur","a":12.895498,"o":77.701214},{"n":"BLR_CV Raman Nagar_Kaggadasapura","a":12.9721,"o":77.6806},{"n":"BLR_CV Raman Nagar_Kaggadasapura","a":12.998405,"o":77.674232},{"n":"BLR_CV Raman Nagar_Kaggadasapura","a":12.9781191,"o":77.6759756},{"n":"BLR_CV Raman Nagar_Kaggadasapura","a":12.989306,"o":77.682028},{"n":"BLR_Central Bangalore","a":12.987999,"o":77.618539},{"n":"BLR_Central Bangalore","a":12.981516,"o":77.601807},{"n":"BLR_Central Bangalore","a":12.995928,"o":77.620428},{"n":"BLR_Central Bangalore","a":12.973482,"o":77.609406},{"n":"BLR_Central Bangalore","a":12.965969,"o":77.604449},{"n":"BLR_Devanahalli","a":13.239246,"o":77.723274},{"n":"BLR_Electronic City","a":12.84618903692565,"o":77.68438360894112},{"n":"BLR_Electronic City","a":12.818141329077713,"o":77.66399533106575},{"n":"BLR_Electronic City","a":12.849095,"o":77.654592},{"n":"BLR_Electronic City","a":12.8319844,"o":77.6906079},{"n":"BLR_Electronic City","a":12.834111,"o":77.666417},{"n":"BLR_Electronic City","a":12.840915330375966,"o":77.63964841192902},{"n":"BLR_Geddalahalli","a":13.062165,"o":77.667314},{"n":"BLR_Geddalahalli","a":13.057804,"o":77.63343},{"n":"BLR_Geddalahalli","a":13.067444,"o":77.620861},{"n":"BLR_Geddalahalli","a":13.057866,"o":77.64852},{"n":"BLR_Geddalahalli","a":13.087076,"o":77.654088},{"n":"BLR_HSR","a":12.91447708083533,"o":77.64477779736536},{"n":"BLR_HSR","a":12.904262,"o":77.642027},{"n":"BLR_HSR","a":12.912565,"o":77.636736},{"n":"BLR_HSR","a":12.91884972,"o":77.64762205},{"n":"BLR_HSR","a":12.899682,"o":77.636131},{"n":"BLR_Indiranagar","a":12.96546,"o":77.63825},{"n":"BLR_Indiranagar","a":12.9743252,"o":77.6408181},{"n":"BLR_Indiranagar","a":12.9624916,"o":77.6458945},{"n":"BLR_Indiranagar","a":12.957306,"o":77.662917},{"n":"BLR_Indiranagar","a":12.96886,"o":77.6634},{"n":"BLR_JP_Jaya_Nagar","a":12.9296793,"o":77.5738297},{"n":"BLR_Jalahalli","a":13.07836012956186,"o":77.52062339076602},{"n":"BLR_Jalahalli","a":13.042656,"o":77.507108},{"n":"BLR_Jalahalli","a":13.063778,"o":77.504806},{"n":"BLR_Jalahalli","a":13.037056,"o":77.530278},{"n":"BLR_Jalahalli","a":13.02885,"o":77.545227},{"n":"BLR_Kadugodi","a":13.000312053792829,"o":77.75112694839903},{"n":"BLR_Kadugodi","a":13.00845,"o":77.759705},{"n":"BLR_Kadugodi","a":13.028861,"o":77.762389},{"n":"BLR_Kamn_KLYN_Banaswadi","a":13.010016,"o":77.644208},{"n":"BLR_Kamn_KLYN_Banaswadi","a":13.023479,"o":77.639465},{"n":"BLR_Kamn_KLYN_Banaswadi","a":13.016234,"o":77.650452},{"n":"BLR_Kamn_KLYN_Banaswadi","a":13.002198,"o":77.663025},{"n":"BLR_Kanakapura Road","a":12.894056,"o":77.565621},{"n":"BLR_Kanakapura Road","a":12.884321,"o":77.559006},{"n":"BLR_Kanakapura Road","a":12.86057,"o":77.541535},{"n":"BLR_Kanakapura Road","a":12.89231,"o":77.542526},{"n":"BLR_Kanakapura Road","a":12.866308,"o":77.535332},{"n":"BLR_Kanakapura Road","a":12.892978,"o":77.574669},{"n":"BLR_Koramangala","a":12.937972,"o":77.626694},{"n":"BLR_Koramangala","a":12.935083,"o":77.608611},{"n":"BLR_Koramangala","a":12.937196,"o":77.614273},{"n":"BLR_Kudlu_Gate","a":12.892389,"o":77.649333},{"n":"BLR_Kudlu_Gate","a":12.9001419,"o":77.6600807},{"n":"BLR_Kudlu_Gate","a":12.882266,"o":77.676314},{"n":"BLR_Kudlu_Gate","a":12.868222,"o":77.657778},{"n":"BLR_Kudlu_Gate","a":12.8621571,"o":77.6840006},{"n":"BLR_Kumaraswamy Layout","a":12.914578,"o":77.559952},{"n":"BLR_Mahadevpura","a":12.97539272857814,"o":77.70557064269501},{"n":"BLR_Mahadevpura","a":12.990111,"o":77.712083},{"n":"BLR_Malleshwaram","a":12.999125,"o":77.578353},{"n":"BLR_Malleshwaram","a":13.0058017,"o":77.5784963},{"n":"BLR_Marathahalli","a":12.929097899042114,"o":77.70326501230915},{"n":"BLR_Marathahalli","a":12.951984365834273,"o":77.7010275061144},{"n":"BLR_Marathahalli","a":12.961962,"o":77.704895},{"n":"BLR_Marathahalli","a":12.950417,"o":77.690139},{"n":"BLR_Marathahalli","a":12.936308,"o":77.703369},{"n":"BLR_Nagasandra_Madavara","a":13.053649,"o":77.48471},{"n":"BLR_Nagasandra_Madavara","a":13.102744,"o":77.444717},{"n":"BLR_Nagavara_Hennur","a":13.04222,"o":77.612453},{"n":"BLR_Nagavara_Hennur","a":13.04868,"o":77.609108},{"n":"BLR_Nagavara_Hennur","a":13.036905115313509,"o":77.62797854232855},{"n":"BLR_Rajarajeshwari Nagar","a":12.92475,"o":77.514306},{"n":"BLR_Rajarajeshwari Nagar","a":12.913417,"o":77.485417},{"n":"BLR_Rajarajeshwari Nagar","a":12.887056,"o":77.458389},{"n":"BLR_Rajarajeshwari Nagar","a":12.958528,"o":77.480528},{"n":"BLR_Rajarajeshwari Nagar","a":12.93657,"o":77.484436},{"n":"BLR_Ramamurthy Nagar","a":13.0433,"o":77.68114},{"n":"BLR_Ramamurthy Nagar","a":13.01854,"o":77.68402},{"n":"BLR_Ramamurthy Nagar","a":13.025098,"o":77.668175},{"n":"BLR_Sahakara Nagar_Hebbal","a":13.05629,"o":77.576374},{"n":"BLR_Sahakara Nagar_Hebbal","a":13.067111,"o":77.597111},{"n":"BLR_Sanjay Nagar_New BEL Road_RT Nagar","a":13.022278,"o":77.607834},{"n":"BLR_Sanjay Nagar_New BEL Road_RT Nagar","a":13.026179,"o":77.588593},{"n":"BLR_Sanjay Nagar_New BEL Road_RT Nagar","a":13.004257983622901,"o":77.598836374492},{"n":"BLR_Sarjapur","a":12.901863873524025,"o":77.72350950736907},{"n":"BLR_Sarjapur","a":12.861425,"o":77.780746},{"n":"BLR_Vidyaranyapura","a":13.0690728,"o":77.5568697},{"n":"BLR_Vidyaranyapura","a":13.081264,"o":77.540016},{"n":"BLR_Vidyaranyapura","a":13.086134,"o":77.548491},{"n":"BLR_Vijayanagar","a":12.973853516216405,"o":77.54620300375257},{"n":"BLR_Vijayanagar","a":12.958886335992364,"o":77.5176215423516},{"n":"BLR_Vijayanagar","a":12.951867,"o":77.548943},{"n":"BLR_Vijayanagar","a":12.978532,"o":77.511703},{"n":"BLR_Vijayanagar","a":12.964695,"o":77.533346},{"n":"BLR_Whitefield","a":12.941094,"o":77.72747},{"n":"BLR_Whitefield","a":12.993544,"o":77.722766},{"n":"BLR_Whitefield","a":12.9745268,"o":77.7671685},{"n":"BLR_Whitefield","a":12.928417,"o":77.740528},{"n":"BLR_Whitefield","a":12.956667,"o":77.719778},{"n":"BLR_Whitefield","a":12.966528,"o":77.7425},{"n":"BLR_Whitefield","a":12.941389,"o":77.754111},{"n":"BLR_Whitefield","a":12.987618,"o":77.729741},{"n":"BLR_Whitefield","a":12.977218,"o":77.725749},{"n":"BLR_Whitefield","a":12.956434,"o":77.729695},{"n":"BLR_Whitefield","a":12.984131,"o":77.767464},{"n":"BLR_Yelahanka","a":13.114128,"o":77.571561},{"n":"BLR_Yelahanka","a":13.098619,"o":77.574441},{"n":"BLR_Yelahanka","a":13.088326,"o":77.634172},{"n":"BLR_Yelahanka","a":13.123083,"o":77.623694},{"n":"BLR_Yelahanka","a":13.091389,"o":77.601417},{"n":"BLR_Yelahanka","a":13.133806,"o":77.570667},{"n":"BLR_Yelahanka","a":13.103094,"o":77.629967},{"n":"BLR_Yeshwanthpur","a":13.018694,"o":77.558583}],"fk":[{"n":"APR","a":12.92866,"o":77.70336},{"n":"Hoodi","a":12.98982898,"o":77.70587092},{"n":"Kadubeesanahalli","a":12.9383312,"o":77.6947187},{"n":"Kadugodi Kannamangala","a":13.02868352,"o":77.76228799},{"n":"KR Puram","a":13.026532,"o":77.718403},{"n":"Kundanahalli Gate","a":12.95973691,"o":77.71533752},{"n":"Whitefield","a":12.980587,"o":77.749992},{"n":"Whitefield 2","a":12.964202,"o":77.733301},{"n":"Cox Town","a":13.00131831,"o":77.63080557},{"n":"Peenya","a":13.02111111,"o":77.52277778},{"n":"R T Nagar","a":13.035275,"o":77.606378},{"n":"Rajajinagar/Vijaynagar","a":12.97580671,"o":77.54787777},{"n":"Sanjay Nagar","a":13.047634,"o":77.575026},{"n":"Chikkabanavara","a":13.0599436,"o":77.5059844},{"n":"Banaswadi","a":13.0180799,"o":77.6589727},{"n":"Bhartiya City","a":13.102461,"o":77.628729},{"n":"Hennur Bagalur","a":13.06882404,"o":77.64720233},{"n":"Maruthi Layout Thanisandra","a":13.05878,"o":77.610939},{"n":"Seshadripuram","a":12.991314,"o":77.574789},{"n":"Yelahanka","a":13.10793,"o":77.57923},{"n":"JC Road","a":12.957899,"o":77.585244},{"n":"Kalyan Nagar 2","a":13.023135,"o":77.629454},{"n":"Budigere","a":13.06093585,"o":77.7449285},{"n":"Kalkere","a":13.036198,"o":77.665598},{"n":"Kodigehalli road","a":13.006819,"o":77.70946},{"n":"Kanakapura / BTM/MICO A","a":12.89119,"o":77.5626291},{"n":"Uttarahalli","a":12.889367,"o":77.541356},{"n":"RR Nagar","a":12.925061,"o":77.514225},{"n":"JP nagar","a":12.895192,"o":77.586411},{"n":"Bommanahalli","a":12.898186,"o":77.633753},{"n":"Electronics City","a":12.837683,"o":77.660964},{"n":"HSR","a":12.90409,"o":77.65056},{"n":"Bannerghata","a":12.87834,"o":77.607494},{"n":"Bommasandra","a":12.803309,"o":77.701262},{"n":"Hosa road","a":12.882149,"o":77.67636},{"n":"Gottigere","a":12.857084,"o":77.593721},{"n":"J P Nagar 9th Phase","a":12.86824,"o":77.569911},{"n":"Banashankari","a":12.926968,"o":77.547351},{"n":"Gunjur Balagere","a":12.939125,"o":77.728906},{"n":"Indiranagar","a":12.95697312,"o":77.66245512},{"n":"Koramangala","a":12.93298,"o":77.63135},{"n":"Sarjapura, Bellandur","a":12.920678,"o":77.66677},{"n":"BTM Layout","a":12.905442,"o":77.609199},{"n":"Padmanabhanagar","a":12.918305,"o":77.5686023},{"n":"Doddakannelli","a":12.907861,"o":77.689333},{"n":"Belathur","a":13.00851631,"o":77.75968221},{"n":"Thalagattpura","a":12.8606303,"o":77.5417067},{"n":"Doddanekkundi 1","a":12.975583,"o":77.705177},{"n":"Mailsandra","a":12.916917,"o":77.498667},{"n":"Nagarbhavi","a":12.9778611,"o":77.5165556},{"n":"HSR Layout Extension","a":12.9083069,"o":77.632475},{"n":"Nagasandra","a":13.029528,"o":77.498139},{"n":"BEL Road Option 2","a":13.03925875,"o":77.5525547},{"n":"E-city 2","a":12.842205,"o":77.683337},{"n":"kattigenahallli (Bagalur)","a":13.123313,"o":77.623851},{"n":"Maragondanahalli","a":13.03558756,"o":77.69581302},{"n":"Vidyaranyapura","a":13.063806,"o":77.552167},{"n":"Gopalan Mall, Mahadevapura","a":12.997194,"o":77.673389},{"n":"Marathalli Option 2","a":12.94835391,"o":77.6982448},{"n":"Bommasandra 2 (Jigani)","a":12.792004,"o":77.6552413},{"n":"Heganahalli","a":13.005556,"o":77.513},{"n":"Thanisandra","a":13.062445,"o":77.634432},{"n":"Yeshwanthpur","a":13.0186,"o":77.550503},{"n":"Manipal County Road","a":12.8745,"o":77.647111},{"n":"Devanahalli","a":13.235833,"o":77.712972},{"n":"Iggalur","a":12.768222,"o":77.700139},{"n":"Singasandra DSU (Dayananda Sagar University) Hosur Road","a":12.8882231,"o":77.6430373},{"n":"Royasandra Opti 2","a":12.946611,"o":77.487},{"n":"Abbigere","a":13.074056,"o":77.519889},{"n":"Jayanagar 1","a":12.925813,"o":77.593558},{"n":"APR Site 2","a":12.92032,"o":77.69632},{"n":"Mallathalli","a":12.968106,"o":77.500694},{"n":"AGS Layout","a":12.903398,"o":77.523796},{"n":"Adugodi","a":12.950556,"o":77.607389},{"n":"Jayanagar Option 5","a":12.938817,"o":77.579971},{"n":"Indiranagar ( Ambedkar College )","a":12.972583,"o":77.638077},{"n":"Frazer Town","a":12.996528,"o":77.619056},{"n":"Varthur","a":12.928218,"o":77.739097},{"n":"Nagavara HRB Layout","a":13.041425,"o":77.624175},{"n":"Richmond Town","a":12.9639524,"o":77.596307},{"n":"Malleshpalaya (Basavanagara) Kaggadasapura","a":12.980568,"o":77.681843},{"n":"Haralur","a":12.907528,"o":77.676132},{"n":"Kurudusonnenahalli","a":13.005575,"o":77.7262},{"n":"Azad Nagar","a":12.954988,"o":77.5449},{"n":"Chikkabellandur","a":12.9146178,"o":77.7162},{"n":"Yemlur","a":12.945572,"o":77.6856},{"n":"Begur","a":12.884206,"o":77.6254},{"n":"Basaveshwar Nagar","a":12.997777,"o":77.5441},{"n":"Hoskote","a":13.066642,"o":77.8012},{"n":"Shivaji Nagar","a":12.991842,"o":77.6039},{"n":"Attibele","a":12.7824,"o":77.765084}],"ze":[{"n":"BLR - Bhadrappa Layout","a":13.0475325758612,"o":77.5783734297132},{"n":"BLR- Brookefield SS","a":12.9957298,"o":77.7197488},{"n":"BLR- Sonnenahalli New","a":12.9617011886488,"o":77.4990148182513},{"n":"BLR-27th Main Road","a":12.92066697,"o":77.64927694},{"n":"BLR-Abbigere","a":13.074063,"o":77.519827},{"n":"BLR-Agrahara Road","a":12.931722,"o":77.682389},{"n":"BLR-Anjanapura","a":12.8603494805987,"o":77.5417184061378},{"n":"BLR-Anjanapura SS","a":12.860333,"o":77.542042},{"n":"BLR-Arekere","a":12.885917,"o":77.6083204},{"n":"BLR-Attibele","a":12.79413845,"o":77.77876448},{"n":"BLR-Avalahalli Main","a":12.946167,"o":77.549333},{"n":"BLR-Bagalakunte","a":13.06371941,"o":77.50432545},{"n":"BLR-Bagalur","a":13.12263575,"o":77.62344754},{"n":"BLR-Balagere SS","a":12.9395562222326,"o":77.723759325448},{"n":"BLR-Banashankari Network","a":12.9155216446346,"o":77.5456911994927},{"n":"BLR-Banashankari New","a":12.938726,"o":77.539149},{"n":"BLR-Banjara Layout","a":13.03608037,"o":77.66570773},{"n":"BLR-BANNERGHATTA","a":12.87747,"o":77.60264},{"n":"BLR-Bannerghatta Network","a":12.86591328782,"o":77.5962736090197},{"n":"BLR-Bannerghatta Network 2","a":12.86837,"o":77.61872},{"n":"BLR-Bannerghatta SS","a":12.868445,"o":77.618553},{"n":"BLR-BASAVANAPURA","a":13.015649,"o":77.70943},{"n":"BLR-Basavanapura Network","a":13.00442,"o":77.72122},{"n":"BLR-BASAVANAPURA NETWORK 2","a":13.0320666095437,"o":77.7080646856493},{"n":"BLR-BASAVANAPURA SS","a":13.0157507,"o":77.70927438},{"n":"BLR-Belathur","a":12.9996667,"o":77.7464722},{"n":"BLR-BELLANDUR - 2","a":12.9191059374536,"o":77.69695312},{"n":"BLR-Bellandur 6","a":12.92153068,"o":77.6778849},{"n":"BLR-Bellandur new","a":12.9285609759997,"o":77.6706643623103},{"n":"BLR-Bellandur SS","a":12.9217794,"o":77.6779325},{"n":"BLR-Bellandur-3","a":12.9382809698836,"o":77.6954676998295},{"n":"BLR-BELLANDUR-4","a":12.9488431153607,"o":77.6866971448767},{"n":"BLR-Bellandur-5","a":12.929433,"o":77.704772},{"n":"BLR-BEML Layout","a":12.91703243,"o":77.49891252},{"n":"BLR-BHADRAPPA LAYOUT NETWORK","a":13.05902074,"o":77.58133229},{"n":"BLR-Bommasandra","a":12.8321446,"o":77.69085963},{"n":"BLR-BROOKEFIELD","a":12.98497,"o":77.71066},{"n":"BLR-Brookfield Network","a":12.99616854,"o":77.69103524},{"n":"BLR-Brookfield Network-2","a":12.9951836,"o":77.7201213},{"n":"BLR-BTM Layout Network-3","a":12.92504226,"o":77.61740928},{"n":"BLR-BTM LAYOUT NEW","a":12.9266331,"o":77.60991496},{"n":"BLR-BTM-2","a":12.91177954,"o":77.60319877},{"n":"BLR-BTM-3","a":12.89932425,"o":77.60549641},{"n":"BLR-Budigere Cross","a":13.063784,"o":77.741966},{"n":"BLR-Carmelaram","a":12.908522,"o":77.71151},{"n":"BLR-Challakere","a":13.02629,"o":77.64364},{"n":"BLR-Chamrajpet","a":12.960098,"o":77.559489},{"n":"BLR-Chandapura","a":12.78979486,"o":77.70420581},{"n":"BLR-Chickpet New","a":12.95477912,"o":77.57899927},{"n":"BLR-Cholayanakanalli","a":13.02922,"o":77.59377},{"n":"BLR-Choodasandra","a":12.8821174,"o":77.6733285},{"n":"BLR-CV Raman Nagar Network","a":12.996864,"o":77.673218},{"n":"BLR-CV Raman Nagar Network-2","a":12.96657501,"o":77.67172065},{"n":"BLR-CV RAMAN NAGAR NEW","a":12.979059012726,"o":77.6783686576707},{"n":"BLR-CV Raman Nagar SS","a":12.9789178275491,"o":77.6783854380082},{"n":"BLR-Dasarahalli","a":13.051424,"o":77.607561},{"n":"BLR-Devanahalli","a":13.2388483069385,"o":77.7234767562108},{"n":"BLR-Doddakannelli","a":12.90605,"o":77.697337},{"n":"BLR-Doddakannelli SS","a":12.906049154663,"o":77.6973712708588},{"n":"BLR-Dooravani Nagar","a":13.01020348,"o":77.66771313},{"n":"BLR-Dooravani Nagar SS","a":13.0097891160375,"o":77.66760807},{"n":"BLR-ELECTRONIC CITY","a":12.84839,"o":77.662589},{"n":"BLR-Electronic city network","a":12.8373766,"o":77.64362247},{"n":"BLR-Electronic City Network-2","a":12.85202043,"o":77.65224877},{"n":"BLR-Electronic City New","a":12.8361002291505,"o":77.6649245326807},{"n":"BLR-Electronic City SS","a":12.8518764937601,"o":77.6522345367519},{"n":"BLR-Golahalli","a":12.864209,"o":77.569285},{"n":"BLR-Goraguntepalya","a":13.02475,"o":77.537306},{"n":"BLR-GUNJUR","a":12.9286633,"o":77.7380822},{"n":"BLR-GUNJUR Network","a":12.93949838,"o":77.72908936},{"n":"BLR-Gunjur New","a":12.92608,"o":77.738148},{"n":"BLR-HBR Layout","a":13.0366341856324,"o":77.6242587756346},{"n":"BLR-HeadOffice-Cafe","a":13.651164,"o":75.080837},{"n":"BLR-HEBBAL NEW","a":13.0324086,"o":77.61231342},{"n":"BLR-Hegganahalli","a":13.007886,"o":77.506191},{"n":"BLR-Hennur New","a":13.03859871,"o":77.64591263},{"n":"BLR-Hope Farm New","a":12.98416,"o":77.767},{"n":"BLR-Hope Farm SS","a":12.9840942691114,"o":77.7673816710621},{"n":"BLR-Hoskote","a":13.069382,"o":77.789462},{"n":"BLR-HSR Layout New","a":12.9118326596571,"o":77.64398388},{"n":"BLR-HSR SS","a":12.9060247122743,"o":77.6376552378758},{"n":"BLR-HSR-2","a":12.899316,"o":77.651296},{"n":"BLR-HSR-3","a":12.905778,"o":77.637514},{"n":"BLR-INDIRANAGAR NEW","a":12.962298,"o":77.645909},{"n":"BLR-ITPL Layout","a":12.96191262,"o":77.71678497},{"n":"BLR-Jakkur Network","a":13.059459,"o":77.622438},{"n":"BLR-Jakkur New","a":13.06662468,"o":77.6092697},{"n":"BLR-Jaya Nagar Network","a":12.9308856,"o":77.5982191},{"n":"BLR-JAYANAGAR New","a":12.941703,"o":77.580188},{"n":"BLR-JC Nagar","a":13.0031742,"o":77.5308889},{"n":"BLR-JP Nagar Network","a":12.9132264799805,"o":77.5730063365505},{"n":"BLR-JP Nagar Network-2","a":12.887526,"o":77.586572},{"n":"BLR-JP Nagar New","a":12.894204,"o":77.584495},{"n":"BLR-JP Nagar SS","a":12.8879957126133,"o":77.5867617288358},{"n":"BLR-Junnasandra","a":12.90252,"o":77.68669},{"n":"BLR-Kadarenahalli","a":12.914745,"o":77.559864},{"n":"BLR-Kadarenahalli SS","a":12.9145593359709,"o":77.5600206090105},{"n":"BLR-Kadugodi","a":12.98612069,"o":77.7450889},{"n":"BLR-Kalyan Nagar Network","a":13.01482,"o":77.62778},{"n":"BLR-KALYAN NAGAR NEW","a":13.006655,"o":77.641639},{"n":"BLR-Kambipura","a":12.8872429,"o":77.45868},{"n":"BLR-Kannamangala","a":13.01745885,"o":77.7593783},{"n":"BLR-Kannika Nagar","a":12.79803706,"o":77.66311187},{"n":"BLR-Kasturinagar","a":13.0047881,"o":77.6629972},{"n":"BLR-Kengeri","a":12.9235538722267,"o":77.4930673245148},{"n":"BLR-Kogilu Road","a":13.10307433,"o":77.63013442},{"n":"BLR-Koramangala Network","a":12.9444629,"o":77.6181869},{"n":"BLR-Koramangala new","a":12.9300411939893,"o":77.6389443288353},{"n":"BLR-Kothnur Network","a":12.8648941,"o":77.5703231},{"n":"BLR-Kothnur New","a":12.8700965660418,"o":77.58372383},{"n":"BLR-Kudlu","a":12.8906552,"o":77.6456667},{"n":"BLR-Kumaraswamy Layout","a":12.89481283,"o":77.56436304},{"n":"BLR-Magadi Road","a":12.99005606,"o":77.48523812},{"n":"BLR-Malagala","a":12.97812065,"o":77.51643345},{"n":"BLR-Malleshwaram new","a":12.987709,"o":77.561344},{"n":"BLR-Malleshwaram SS","a":12.9879180538495,"o":77.5613054144101},{"n":"BLR-Manjunatha layout","a":12.946874,"o":77.71504},{"n":"BLR-Marathahalli 2","a":12.974679980246,"o":77.6970017422899},{"n":"BLR-Marathahalli New","a":12.9518578610818,"o":77.7195682040138},{"n":"BLR-Marathahalli-3","a":12.96160746,"o":77.70483424},{"n":"BLR-Marathahalli-4","a":12.94915445,"o":77.70329588},{"n":"BLR-Marathalli SS","a":12.9514612,"o":77.7197012},{"n":"BLR-Margosa road","a":13.0059977,"o":77.5695793},{"n":"BLR-Mathikere","a":13.0265,"o":77.558028},{"n":"BLR-Michael Palaya","a":12.972597,"o":77.637048},{"n":"BLR-MICO LAYOUT","a":12.89027,"o":77.62579},{"n":"BLR-Mico Layout Network","a":12.87771825,"o":77.64508193},{"n":"BLR-Mico layout network-2","a":12.9036895968351,"o":77.628577654019},{"n":"BLR-Mico layout New","a":12.892833,"o":77.628083},{"n":"BLR-Nagavara","a":13.038049,"o":77.617309},{"n":"BLR-Nagondanahalli","a":12.97486139,"o":77.7718582},{"n":"BLR-Narayana reddy Layout","a":12.939045,"o":77.62645},{"n":"BLR-Narayanapura","a":13.06382134,"o":77.6492007},{"n":"BLR-Narayanapura Network","a":13.0627484570029,"o":77.6350034762388},{"n":"BLR-Nehru Nagar","a":13.09133919,"o":77.60125138},{"n":"BLR-Nehru Nagar SS","a":13.0913093,"o":77.601229},{"n":"BLR-Neo Town","a":12.81998463,"o":77.66277018},{"n":"BLR-New Gurappanya Palya","a":12.905922,"o":77.612674},{"n":"BLR-Nikoo Home New","a":13.0797707387616,"o":77.643755537733},{"n":"BLR-Nikoo home SS","a":13.0802550006712,"o":77.6441386742194},{"n":"BLR-Peenya Network","a":13.049816,"o":77.487928},{"n":"BLR-Peenya New","a":13.0454902421553,"o":77.5087738119661},{"n":"BLR-Peenya SS","a":13.0456365659437,"o":77.5093915682283},{"n":"BLR-Pipeline road new","a":13.04233,"o":77.54778},{"n":"BLR-RAGHAVENDRA LAYOUT","a":12.8843862201672,"o":77.5408447071139},{"n":"BLR-RAGHAVENDRA LAYOUT NETWORK","a":12.8845944,"o":77.55881835},{"n":"BLR-RAGHAVENDRA LAYOUT NETWORK 2","a":12.8666929,"o":77.5357013},{"n":"BLR-RAMAMURTHY NAGAR","a":13.0213,"o":77.67228},{"n":"BLR-Ramamurthy Nagar Network","a":13.01813845,"o":77.6597251},{"n":"BLR-RAMAMURTHY NAGAR NEW","a":13.0336210723245,"o":77.6859373693682},{"n":"BLR-RICHMOND TOWN","a":12.9663761755706,"o":77.606921117436},{"n":"BLR-Richmond Town Network","a":12.95642,"o":77.60566},{"n":"BLR-RICHMOND TOWN SS","a":12.956695,"o":77.605707},{"n":"BLR-RR Nagar Network","a":12.9031547,"o":77.51191762},{"n":"BLR-RR NAGAR New","a":12.920088,"o":77.522707},{"n":"BLR-RR Nagar SS","a":12.9027758815535,"o":77.5116320428872},{"n":"BLR-RWF Yelahanka","a":13.106778,"o":77.580361},{"n":"BLR-S G Palya","a":12.926878,"o":77.601011},{"n":"BLR-Sanjaynagar","a":13.03273924,"o":77.58054019},{"n":"BLR-Sarjapur New","a":12.90853465,"o":77.67692834},{"n":"BLR-Sarjapur-2","a":12.9026566,"o":77.6613229},{"n":"BLR-Sattava East","a":13.02716623,"o":77.74726407},{"n":"BLR-Sattava East SS","a":13.02716623,"o":77.74726407},{"n":"BLR-Seegehalli","a":13.0194302717603,"o":77.7241242414428},{"n":"BLR-SHIVAJI NAGAR Network","a":13.0026455793492,"o":77.5994614576701},{"n":"BLR-Shivaji nagar New","a":12.989395,"o":77.609946},{"n":"BLR-Shivaji Nagar New(deactivated)","a":12.989395,"o":77.609946},{"n":"BLR-Shivaji Nagar SS","a":13.002673,"o":77.599542},{"n":"BLR-Siddapura","a":12.957613961663,"o":77.72956081},{"n":"BLR-Silicon Town","a":12.852472,"o":77.675972},{"n":"BLR-Silver County","a":12.89366814,"o":77.66299978},{"n":"BLR-Silver County SS","a":12.8934294603247,"o":77.6631048662003},{"n":"BLR-Singapura","a":13.090409,"o":77.53952},{"n":"BLR-SINGASANDRA","a":12.870083,"o":77.659171},{"n":"BLR-Singasandra Network","a":12.86296,"o":77.67777},{"n":"BLR-Singasandra SS","a":12.8637128214326,"o":77.6759337955457},{"n":"BLR-Sompura","a":12.86423227,"o":77.77015527},{"n":"BLR-Sunrise Layout","a":12.84495985,"o":77.59398467},{"n":"BLR-TC Palaya","a":13.022656,"o":77.688133},{"n":"BLR-Teachers colony","a":12.925095,"o":77.637091},{"n":"BLR-Thyagaraja Nagar","a":12.930236,"o":77.56869},{"n":"BLR-TMC Layout","a":12.91025,"o":77.58977},{"n":"BLR-Ullal","a":12.958532,"o":77.479896},{"n":"BLR-Vidyaranyapura","a":13.0695733,"o":77.5589887},{"n":"BLR-Vidyaranyapura SS","a":13.06957334,"o":77.55898873},{"n":"BLR-VIJAY NAGAR","a":12.96845,"o":77.5381},{"n":"BLR-Vijay Nagar Network","a":12.960476,"o":77.519569},{"n":"BLR-Vijay Nagar SS","a":12.9606833374469,"o":77.5200213196277},{"n":"BLR-Whitefield Network-2","a":12.9718703611819,"o":77.7349202021193},{"n":"BLR-Whitefield New","a":12.96902,"o":77.75395},{"n":"BLR-Yallapa Garden","a":12.983662,"o":77.5487921},{"n":"BLR-Yelahanka Network","a":13.13749897,"o":77.56327961},{"n":"BLR-YELAHANKA NEW TOWN","a":13.09784,"o":77.56664},{"n":"BLR-Yelahanka new town New","a":13.101374,"o":77.562338},{"n":"BLR-Yelenahalli","a":12.86077262,"o":77.61333628},{"n":"BLR-YESHWANTPUR","a":13.010808,"o":77.540878}],"bl":[{"n":"JP Nagar","a":12.91465,"o":77.58593},{"n":"Koramangala","a":12.934,"o":77.62978},{"n":"Aavalahalli","a":13.06446,"o":77.74079},{"n":"Banashankari","a":12.91224,"o":77.55236},{"n":"Banashankari","a":12.93649,"o":77.54838},{"n":"Bannerghatta Road, Bangalore","a":12.88927,"o":77.62064},{"n":"Bannerghatta Road, Bangalore","a":12.87158,"o":77.61646},{"n":"Bannerghatta Road, Bangalore","a":12.89584,"o":77.63253},{"n":"Bannerghatta Road, Bangalore","a":12.88433,"o":77.59616},{"n":"Bannerghatta Road, Bangalore","a":12.87045,"o":77.57581},{"n":"Bannerghatta Road, Bangalore","a":12.86486,"o":77.60047},{"n":"Whitefield","a":12.97204,"o":77.75072},{"n":"Bellandur","a":12.92639,"o":77.66976},{"n":"JP Nagar","a":12.86674,"o":77.53522},{"n":"Bellandur","a":12.93167,"o":77.68343},{"n":"Bellandur","a":12.92913,"o":77.70375},{"n":"Rajajinagar","a":12.99958,"o":77.55255},{"n":"Kammanahalli","a":13.0236,"o":77.62986},{"n":"Brookefields","a":12.96689,"o":77.71883},{"n":"BTM Layout","a":12.92773,"o":77.60913},{"n":"BTM Layout","a":12.90587,"o":77.60877},{"n":"HSR Layout","a":12.9121,"o":77.6446},{"n":"Electronic City","a":12.83585,"o":77.66486},{"n":"Electronic City","a":12.86778,"o":77.66249},{"n":"Rajajinagar","a":12.97539,"o":77.55471},{"n":"BTM Layout","a":12.91947,"o":77.61498},{"n":"Bellandur","a":12.93162,"o":77.68351},{"n":"Electronic City","a":12.8511,"o":77.65181},{"n":"Electronic City","a":12.83624,"o":77.69905},{"n":"Electronic City","a":12.87484,"o":77.64849},{"n":"HSR Layout","a":12.88393,"o":77.67224},{"n":"JP Nagar","a":12.86518,"o":77.53478},{"n":"Makali, Bangalore","a":13.06458,"o":77.47266},{"n":"HSR Layout","a":12.91542,"o":77.63541},{"n":"HSR Layout","a":12.90324,"o":77.63872},{"n":"HSR Layout","a":12.89323,"o":77.64994},{"n":"Indiranagar","a":12.97722,"o":77.63898},{"n":"Indiranagar","a":12.9569,"o":77.66268},{"n":"Jalahalli","a":13.06283,"o":77.55202},{"n":"Jalahalli","a":13.06236,"o":77.50559},{"n":"Jalahalli","a":12.98571,"o":77.52019},{"n":"Jayanagar","a":12.93848,"o":77.57043},{"n":"Jayanagar","a":12.92607,"o":77.58952},{"n":"JP Nagar","a":12.90745,"o":77.546},{"n":"JP Nagar","a":12.89177,"o":77.57415},{"n":"Jalahalli","a":12.98566,"o":77.52022},{"n":"RT Nagar","a":13.02947,"o":77.59491},{"n":"Koramangala","a":12.94325,"o":77.61773},{"n":"Mahadevapura","a":12.97842,"o":77.67864},{"n":"Koramangala","a":12.934,"o":77.62978},{"n":"Kammanahalli","a":13.00635,"o":77.66702},{"n":"JP Nagar","a":12.89459,"o":77.56563},{"n":"Kadugodi","a":12.99945,"o":77.74432},{"n":"Yelahanka","a":13.08835,"o":77.54712},{"n":"Kadugodi","a":13.0292,"o":77.76253},{"n":"Kammanahalli","a":13.02272,"o":77.62927},{"n":"Yelahanka","a":13.10825,"o":77.57934},{"n":"Kammanahalli","a":13.02333,"o":77.67046},{"n":"Kammanahalli","a":13.01648,"o":77.65676},{"n":"Kadugodi","a":13.02905,"o":77.76248},{"n":"Whitefield","a":12.9832,"o":77.76746},{"n":"Koramangala","a":12.94324,"o":77.61771},{"n":"KR Puram","a":13.02868,"o":77.69287},{"n":"KR Puram","a":13.02631,"o":77.71799},{"n":"BTM Layout","a":12.90711,"o":77.6131},{"n":"Koramangala","a":12.94325,"o":77.61773},{"n":"Bellandur","a":12.92639,"o":77.66976},{"n":"Mahadevapura","a":12.97849,"o":77.6787},{"n":"Mahadevapura","a":12.98968,"o":77.71714},{"n":"Jayanagar","a":12.95073,"o":77.59715},{"n":"Koramangala","a":12.93166,"o":77.6353},{"n":"Mahadevapura","a":12.98981,"o":77.68812},{"n":"Mahadevapura","a":12.99504,"o":77.66673},{"n":"Mahadevapura","a":12.99917,"o":77.71442},{"n":"Banashankari","a":12.93276,"o":77.54042},{"n":"KR Puram","a":12.99917,"o":77.71442},{"n":"Marathahalli","a":12.95033,"o":77.69031},{"n":"Marathahalli","a":12.9461,"o":77.7121},{"n":"MG Road","a":13.00088,"o":77.61315},{"n":"MG Road","a":12.96587,"o":77.60281},{"n":"HSR Layout","a":12.91477,"o":77.64484},{"n":"Sarjapur road","a":12.90631,"o":77.69541},{"n":"Nagavara","a":13.08172,"o":77.63369},{"n":"Nagavara","a":13.04677,"o":77.62776},{"n":"Sahakaranagar","a":13.05806,"o":77.59764},{"n":"Nagavara","a":13.07027,"o":77.6526},{"n":"New BEL Road","a":13.03918,"o":77.57426},{"n":"New BEL Road","a":13.03223,"o":77.573},{"n":"Rajajinagar","a":13.02341,"o":77.53752},{"n":"Rajajinagar","a":12.97571,"o":77.55625},{"n":"Rajajinagar","a":12.9996,"o":77.55263},{"n":"Rajarajeshwari Nagar","a":12.91626,"o":77.51837},{"n":"Rajarajeshwari Nagar","a":12.91715,"o":77.49925},{"n":"Koramangala","a":12.934,"o":77.62978},{"n":"Rajarajeshwari Nagar","a":12.93307,"o":77.49141},{"n":"Indiranagar","a":12.97233,"o":77.64973},{"n":"Sahakaranagar","a":13.05272,"o":77.60137},{"n":"Sarjapur road","a":12.90842,"o":77.67662},{"n":"Rajajinagar","a":13.02178,"o":77.54365},{"n":"Sarjapur road","a":12.86064,"o":77.77741},{"n":"Varthur","a":12.92082,"o":77.73878},{"n":"Varthur","a":12.9389,"o":77.73654},{"n":"Vijayanagar","a":12.96205,"o":77.534},{"n":"Rajarajeshwari Nagar","a":12.92435,"o":77.51816}],"yu":[{"n":"Yuma BESS Testing","a":12.997082,"o":77.6962721},{"n":"Marenahalli Road SGM","a":12.916935,"o":77.5795},{"n":"Pattandur Agrahara","a":12.979794,"o":77.75407},{"n":"Yuma YCU Assembly","a":12.989611,"o":77.796434},{"n":"Mangammanapalya","a":12.905702,"o":77.637595},{"n":"Koramangala 7th Block","a":12.9362222,"o":77.6148333},{"n":"JP Nagar 1st Phase","a":12.90653,"o":77.585196},{"n":"PTP Office","a":12.9437638,"o":77.6912472},{"n":"Shree Raghavendra Fuels HPCL","a":13.033594,"o":77.530931},{"n":"Uttarahalli","a":12.906758,"o":77.546541},{"n":"Vijayanagar","a":12.96887878,"o":77.53795836},{"n":"New Bel Road","a":13.0308349,"o":77.5776101},{"n":"Mallappa Reddy Layout","a":12.94463179,"o":77.61823071},{"n":"LBS Nagar BKT","a":12.969197,"o":77.674756},{"n":"RR Nagar Kazam","a":12.919753,"o":77.50484},{"n":"BTM 1st Stage","a":12.92307,"o":77.615587},{"n":"Ejipura","a":12.9318935,"o":77.63340577},{"n":"HSR Max Cloud","a":12.910259,"o":77.628426},{"n":"Singayyanapalya Metro","a":12.9959558,"o":77.6922496},{"n":"Sanjay Nagar","a":12.958706,"o":77.70062},{"n":"AECS Layout","a":12.881042,"o":77.649354},{"n":"Kundalahalli","a":12.956623,"o":77.71499},{"n":"Kadugodi","a":12.993046,"o":77.75258555},{"n":"Ayyappanagar","a":13.00155093,"o":77.7118611},{"n":"Channasandra","a":12.98513702,"o":77.77159419},{"n":"Nallurahalli","a":12.96370277,"o":77.73175735},{"n":"Neeladri 10th Cross","a":12.8387133,"o":77.6474933},{"n":"Munnekollal","a":12.951013,"o":77.707863},{"n":"Gunjur Road","a":12.92111,"o":77.738183},{"n":"Ambalipura","a":12.8936399,"o":77.72746146},{"n":"Doddakannelli","a":12.91289815,"o":77.69860424},{"n":"Marathahalli Max Cloud","a":12.95610159,"o":77.69934621},{"n":"Iblur","a":12.9194088,"o":77.6686461},{"n":"Green Glen Layout","a":12.92614833,"o":77.67094},{"n":"Bangalore Central","a":12.924868,"o":77.674633},{"n":"Devarabisanahalli","a":12.931194,"o":77.686028},{"n":"Nagdevanahalli","a":12.9456477,"o":77.49488518},{"n":"RR Nagar","a":12.9176555,"o":77.5140177},{"n":"Jayanagar Cloud","a":12.89212278,"o":77.58584585},{"n":"Seshadripuram","a":12.997019,"o":77.578271},{"n":"Rajaji Nagar","a":12.9967716,"o":77.54664302},{"n":"Gopalan Grand Mall","a":12.9907254,"o":77.6639437},{"n":"Thanisandra","a":13.0497049,"o":77.6282042},{"n":"Jalahalli","a":13.039115,"o":77.520335},{"n":"SV Road Metro","a":12.98564733,"o":77.64430258},{"n":"Halasuru Metro","a":12.97637143,"o":77.62687158},{"n":"Cubbon Park Metro","a":12.98104863,"o":77.59666689},{"n":"Devarachikkanahalli BKT","a":12.88927,"o":77.62064},{"n":"KK Halli","a":13.020027,"o":77.630146},{"n":"Domlur","a":12.962665,"o":77.642232},{"n":"Johnson Market","a":12.9645,"o":77.606014},{"n":"Balaji Layout BKT","a":13.081719,"o":77.633693},{"n":"Nagenahalli BKT","a":13.08042,"o":77.644133},{"n":"Richmond Town","a":12.96449607,"o":77.60573074},{"n":"Kadubeesanahalli","a":12.9395316,"o":77.6955675},{"n":"Bellandur Lake Road","a":12.929823,"o":77.679347},{"n":"Ananthanagar","a":12.832333,"o":77.690904},{"n":"Seegehalli","a":13.016206,"o":77.766747},{"n":"Frazer Town","a":12.998199,"o":77.615575},{"n":"Tippasandra","a":12.9717619,"o":77.6536921},{"n":"Gollahalli","a":12.83180579,"o":77.66909963},{"n":"Seetharampalya","a":12.98425,"o":77.711431},{"n":"Naganathapura BKT","a":12.86759696,"o":77.66246139},{"n":"Hoodi","a":12.989626,"o":77.722194},{"n":"HSR 6th Sector","a":12.91207,"o":77.627623},{"n":"Somasundarapalya","a":12.898989,"o":77.651984},{"n":"Mahadevpura Flyover","a":12.9899895,"o":77.6880387},{"n":"Yemalur","a":12.944951,"o":77.67711},{"n":"Marathahalli Village","a":12.949466,"o":77.697684},{"n":"Balagere","a":12.939584,"o":77.736811},{"n":"Kasavanahalli Road","a":12.899045,"o":77.674495},{"n":"Thubarahalli","a":12.947202,"o":77.718151},{"n":"Madiwala","a":12.924112,"o":77.618813},{"n":"Kanakapura","a":12.931241,"o":77.576026},{"n":"Sony Signal","a":12.9414681,"o":77.6237964},{"n":"Harlur Road","a":12.901764,"o":77.66085},{"n":"Devasandra Industrial Estate","a":12.999307,"o":77.698822},{"n":"SLV Coffee Bar","a":12.9594863,"o":77.5592997},{"n":"Shanti Nagar","a":12.9551513,"o":77.5917555},{"n":"Malleshpalya","a":12.975398,"o":77.669494},{"n":"Manipal County","a":12.874206,"o":77.64607},{"n":"Doddathoguru","a":12.852694,"o":77.654929},{"n":"Bharatiya City","a":13.0732102,"o":77.6338391},{"n":"Hosa Road","a":12.884587,"o":77.672725},{"n":"Kasturi Nagar Mini Cloud","a":13.006408,"o":77.666962},{"n":"Thimma Reddy","a":12.958763,"o":77.654739},{"n":"GS Palya","a":12.852065,"o":77.673437},{"n":"Belthur YMS","a":12.99864109,"o":77.75532443},{"n":"Chinnapanahalli","a":12.97147,"o":77.70619957},{"n":"BTM 29th Main","a":12.905188,"o":77.612361},{"n":"Begur","a":12.87717649,"o":77.610939},{"n":"Agara","a":12.924096,"o":77.648538},{"n":"AET Junction","a":12.915076,"o":77.699875},{"n":"Sandal Soap Factory","a":13.01925647,"o":77.55153939},{"n":"SG Palya","a":12.931129,"o":77.609198},{"n":"Panathur","a":12.939963,"o":77.705687},{"n":"Bommasandra","a":12.814948,"o":77.671685},{"n":"PES Banashankari","a":12.9354914,"o":77.5366336},{"n":"test 1","a":12.94360443,"o":77.69122247},{"n":"Immadihalli","a":12.967945,"o":77.756303},{"n":"Hulimavu","a":12.866908,"o":77.59789},{"n":"Yelahanka New Town","a":13.097699,"o":77.576514},{"n":"Cambridge Layout","a":12.969731,"o":77.630663},{"n":"L N Pura","a":12.95899834,"o":77.71403885},{"n":"Horamavu","a":13.02270465,"o":77.65836375},{"n":"Sahakarnagar","a":13.05925073,"o":77.59264167},{"n":"Garden City","a":13.02743401,"o":77.70774461},{"n":"Pragathi Nagar Cloud","a":12.86238163,"o":77.65806111},{"n":"Bilekahalli","a":12.899618,"o":77.601109},{"n":"Bellandur Max Cloud","a":12.92288586,"o":77.67626043},{"n":"Chikka Banaswadi","a":13.006207,"o":77.64817},{"n":"test app","a":12.97415009,"o":77.69110009},{"n":"Kaggadasapura","a":12.98513538,"o":77.67920449}],"in":[{"n":"Bengaluru-Konanakunte","a":12.8868,"o":77.55774},{"n":"Bangalore-Nagavara-Junction","a":13.03786,"o":77.6141719},{"n":"Private (New Yelahanka)","a":13.097303,"o":77.576711},{"n":"Maysore Road_Relocation","a":12.918473,"o":77.509565},{"n":"Devraj Enterprises","a":12.923337,"o":77.669701},{"n":"Kalyanagar Pvt Hub","a":13.026237,"o":77.642209},{"n":"KR Puram","a":13.0220799,"o":77.7095966},{"n":"COCO KR Puram II 1","a":13.000115,"o":77.68708166},{"n":"SMPL Plant-2","a":12.977114,"o":77.70653},{"n":"IOCL-Bengaluru-HSR-2","a":12.9215,"o":77.64467},{"n":"Nandini Layout","a":13.014228,"o":77.533315},{"n":"Magadi Road","a":12.970399,"o":77.559193},{"n":"Konarkunte Cross","a":12.889313,"o":77.556311},{"n":"Arekere- Bangalore","a":12.8867344,"o":77.6085295},{"n":"Hegde Nagar","a":13.0726234,"o":77.636312},{"n":"JP Nagar_Pvt_1","a":12.89321982,"o":77.58404202},{"n":"SINGASANDRA","a":12.871638,"o":77.6610968},{"n":"Amar Service Station","a":12.9553566,"o":77.6911116},{"n":"NAGARBHAVI","a":12.970112,"o":77.498663},{"n":"Esteem Mall","a":13.047671,"o":77.597992},{"n":"Koramangala 5th Block","a":12.935309,"o":77.620449},{"n":"RAMAMURTHY NAGAR","a":13.0214215,"o":77.6721855},{"n":"Meenkashi Mall","a":12.86684,"o":77.597973},{"n":"BLR-Bhadrappa Layout","a":13.058677,"o":77.573386},{"n":"Chamarajapet","a":12.950808,"o":77.563748},{"n":"Bull Temple","a":12.942328,"o":77.564256},{"n":"HSR 1st Sector","a":12.91846,"o":77.648715},{"n":"BLR-KOTHNUR","a":12.870056,"o":77.583636},{"n":"BLR-Malleswaram","a":12.997546,"o":77.57583},{"n":"Huskur Gate","a":12.841683,"o":77.689436},{"n":"COCO KR Puram II 2","a":13.00012,"o":77.68708},{"n":"Budigere 2","a":13.0518137,"o":77.7595926},{"n":"Yashwanthapura","a":13.019003,"o":77.551716},{"n":"BLR-HEBBAL NEW","a":13.019229,"o":77.607822},{"n":"Kengeri Bus Terminal","a":12.914299,"o":77.48694},{"n":"Bommanahalli","a":12.906223,"o":77.628599},{"n":"HEBBAL Cholanayakanahalli","a":13.031634,"o":77.598871},{"n":"Jayanagar 4th T Block","a":12.9188373,"o":77.5908508},{"n":"Shivajinagar Jewellery Street","a":12.985451,"o":77.608708},{"n":"Yadiyur Lake","a":12.931012,"o":77.570162},{"n":"Mysore road","a":12.946048,"o":77.53035},{"n":"BMRCL-Attiguppe","a":12.96237,"o":77.53419},{"n":"Hosa Road","a":12.877896,"o":77.649372},{"n":"JP Nagar 1st Stage","a":12.913209,"o":77.592558},{"n":"Mangammanapalya","a":12.900781,"o":77.635794},{"n":"BMRCL-Vijaynagar","a":12.97028,"o":77.537275},{"n":"Sunkadakatte","a":12.992822,"o":77.50013},{"n":"RT Nagar Dinnur Road","a":13.024825,"o":77.598729},{"n":"National College","a":12.950165,"o":77.57404},{"n":"BMRCL-J P Nagar","a":12.907716,"o":77.573336},{"n":"OMBR Layout","a":13.01076,"o":77.65184},{"n":"Ganganagar","a":13.02393,"o":77.587967},{"n":"Majestic","a":12.97604,"o":77.571139},{"n":"MG Road","a":12.981848,"o":77.62463},{"n":"Yashwanthapura Goutam Nagar","a":13.023051,"o":77.544461},{"n":"Jakkur-Areodrum","a":13.072613,"o":77.599921},{"n":"SMPL Plant-3","a":12.977114,"o":77.70653},{"n":"Haralur","a":12.901109,"o":77.661746},{"n":"HSR Somasunder Palya","a":12.89799,"o":77.65262},{"n":"Marathahalli","a":12.954511,"o":77.69841},{"n":"HSR Agara","a":12.921405,"o":77.649975},{"n":"HEBBAL Baptist","a":13.036823,"o":77.593624},{"n":"HSR Somasunder Palya 2","a":12.898162,"o":77.651974},{"n":"Thanisandra","a":13.050146,"o":77.634154},{"n":"T-11-Jalahalli","a":13.04451,"o":77.5517992874182},{"n":"Iblur","a":12.922606,"o":77.662939},{"n":"Seegehalli","a":13.012193,"o":77.717852},{"n":"YELAHANKA Vishal Mart","a":13.108,"o":77.57751},{"n":"Devarabisanahalli","a":12.928271,"o":77.686014},{"n":"BLR-Domlur","a":12.959074,"o":77.641066},{"n":"E Chakra","a":12.9857,"o":77.745},{"n":"Sukhra Cars ","a":12.914589,"o":77.543948},{"n":"IOCL-Bengaluru-HAL-Madhu","a":12.95992,"o":77.64572},{"n":"IOCL-Bengaluru-Koramangala-Kaveri","a":12.94534,"o":77.61863},{"n":"Hulimavu","a":12.8611216,"o":77.6046119},{"n":"Kudlugate","a":12.8856652,"o":77.6472462},{"n":"IOCL-Bengaluru-HSR 1","a":12.9215,"o":77.64467},{"n":"Bangalore-Kaveri-Nagar, Yaswantpur 1","a":13.0186,"o":77.52297},{"n":"JP Nagar_Pvt_2","a":12.89321982,"o":77.58404202},{"n":"Annapurna Service Station","a":12.9420973517739,"o":77.5802960334375},{"n":"MP Fuels- Kudlu gate","a":12.8934,"o":77.6506},{"n":"Bangalore-Jakkur","a":13.077579,"o":77.606088},{"n":"Sri Krishna Enterprise - Hongasandra","a":12.8917499,"o":77.6288695},{"n":"Powerpod- Bellandur-1","a":12.9401747711242,"o":77.7056158288356},{"n":"Powerpod- Bellandur-2","a":12.9401747711242,"o":77.7056158288356},{"n":"Powerpod- Yeswantpur-1","a":13.02349547,"o":77.54125245},{"n":"Powerpod- Bellandur-3","a":12.9401747711242,"o":77.7056158288356},{"n":"Powerpod- Yeswantpur-2","a":13.0234954746626,"o":77.5412524460273},{"n":"Powerpod- Thannisandra-1","a":13.0607953924515,"o":77.6288544018538},{"n":"Powerpod- Thannisandra-2","a":13.0607953924515,"o":77.6288544018538},{"n":"ELECTRONIC CITY-Green Drive ","a":12.836549,"o":77.678243},{"n":"Powerpod- Thannisandra-3","a":13.0607953924515,"o":77.6288544018538},{"n":"Deepanjali Nagar Metro","a":12.9524165604715,"o":77.5369435078666},{"n":"Singayyana Palaya","a":12.99678,"o":77.69217},{"n":"Whitefield(Kadugodi)","a":12.99507,"o":77.75777},{"n":"Powerpod- Hoodi-1","a":12.9841608542246,"o":77.7114888846549},{"n":"Powerpod- Hoodi-2","a":12.9841608542246,"o":77.7114888846549},{"n":"Powerpod- Hoodi-3","a":12.9841608542246,"o":77.7114888846549},{"n":"Pattandur Aghrahara(ITPL)","a":12.987613,"o":77.738211},{"n":"Hope Farm Channasandra","a":12.98793,"o":77.75409},{"n":"Sri Sathya Sai Hospital ","a":12.98102,"o":77.72762},{"n":"Kundalahalli","a":12.977461,"o":77.715761},{"n":"Hoodi Junction","a":12.98873,"o":77.71127},{"n":"Garudhachar Palaya","a":12.99356,"o":77.70376},{"n":"Seethramplaya","a":12.98092,"o":77.70887},{"n":"KR Puram","a":12.99999,"o":77.67794},{"n":"Konankunte Cross","a":12.884722,"o":77.552778},{"n":"Dheeraj-Nagawara 1","a":13.036341,"o":77.618069},{"n":"Dheeraj-Nagawara 2","a":13.036341,"o":77.618069},{"n":"Dheeraj-Nagawara 3","a":13.036341,"o":77.618069},{"n":"Powerpod- Thannisandra-4","a":13.0607953924515,"o":77.6288544018538},{"n":"Powerpod- Thannisandra-5","a":13.0607953924515,"o":77.6288544018538},{"n":"Powerpod- Bellandur-4","a":12.9401747711242,"o":77.7056158288356},{"n":"Powerpod- Bellandur-5","a":12.9401747711242,"o":77.7056158288356},{"n":"Horamavu-Private Hub","a":13.039139,"o":77.67305},{"n":"Horamavu-Private Hub","a":13.039139,"o":77.67305},{"n":"Horamavu-Private Hub","a":13.039139,"o":77.67305},{"n":"Horamavu-Private Hub","a":13.039139,"o":77.67305},{"n":"SREE BHALAJIE ENTERPRISES","a":13.014797,"o":77.661934},{"n":"SREE BHALAJIE ENTERPRISES","a":13.014797,"o":77.661934},{"n":"HSR Industrial Area","a":12.892037,"o":77.647464},{"n":"HSR Industrial Area","a":12.892037,"o":77.647464},{"n":"HSR Industrial Area","a":12.892037,"o":77.647464},{"n":"HSR Industrial Area","a":12.892037,"o":77.647464},{"n":"AMCO Layout - Hebbal","a":13.05215,"o":77.579794},{"n":"AMCO Layout - Hebbal","a":13.05215,"o":77.579794},{"n":"AMCO Layout - Hebbal","a":13.05215,"o":77.579794},{"n":"AMCO Layout - Hebbal","a":13.05215,"o":77.579794},{"n":"AMCO Layout - Hebbal","a":13.05215,"o":77.579794},{"n":"AMCO Layout - Hebbal","a":13.05215,"o":77.579794},{"n":"AMCO Layout - Hebbal","a":13.05215,"o":77.579794},{"n":"AMCO Layout - Hebbal","a":13.05215,"o":77.579794},{"n":"Hosa Road Private Hub","a":12.882041,"o":77.673012},{"n":"Hosa Road Private Hub","a":12.882041,"o":77.673012},{"n":"Hosa Road Private Hub","a":12.882041,"o":77.673012},{"n":"Hosa Road Private Hub","a":12.882041,"o":77.673012},{"n":"Electronic City - Doddathugur","a":12.854919,"o":77.66078},{"n":"Electronic City - Doddathugur","a":12.854919,"o":77.66078},{"n":"Electronic City - Doddathugur","a":12.854919,"o":77.66078},{"n":"Electronic City - Doddathugur","a":12.854919,"o":77.66078},{"n":"Electronic City - Doddathugur","a":12.854919,"o":77.66078},{"n":"Electronic City - Doddathugur","a":12.854919,"o":77.66078},{"n":"Electronic City - Doddathugur","a":12.854919,"o":77.66078},{"n":"Electronic City - Doddathugur","a":12.854919,"o":77.66078},{"n":"Electronic City- GS Palya","a":12.853097,"o":77.67448},{"n":"Electronic City- GS Palya","a":12.853097,"o":77.67448},{"n":"Electronic City- GS Palya","a":12.853097,"o":77.67448},{"n":"Electronic City- GS Palya","a":12.853097,"o":77.67448},{"n":"Banaswadi Railway Station","a":13.006107598,"o":77.62820696},{"n":"Banaswadi Railway Station","a":13.006107598,"o":77.62820696},{"n":"Banaswadi Railway Station","a":13.006107598,"o":77.62820696},{"n":"Banaswadi Railway Station","a":13.006107598,"o":77.62820696},{"n":"CHIRANJEEVI SERVICE STN","a":12.98859,"o":77.50876},{"n":"CHIRANJEEVI SERVICE STN","a":12.98859,"o":77.50876},{"n":"Whitefield Hub - Bangalore","a":12.969104,"o":77.7508498},{"n":"Whitefield Hub - Bangalore","a":12.969104,"o":77.7508498},{"n":"Whitefield Hub - Bangalore","a":12.969104,"o":77.7508498},{"n":"Whitefield Hub - Bangalore","a":12.969104,"o":77.7508498},{"n":"Whitefield Hub - Bangalore","a":12.969104,"o":77.7508498},{"n":"Whitefield Hub - Bangalore","a":12.969104,"o":77.7508498},{"n":"Whitefield Hub - Bangalore","a":12.969104,"o":77.7508498},{"n":"Whitefield Hub - Bangalore","a":12.969104,"o":77.7508498},{"n":"KFCSC -BANGALORE 1","a":12.917118,"o":77.574135},{"n":"KFCSC -BANGALORE 2","a":12.917118,"o":77.574135},{"n":"GOKUL FUEL POINT","a":12.862369,"o":77.614726},{"n":"GOKUL FUEL POINT","a":12.862369,"o":77.614726},{"n":"Budigere 1","a":13.051814,"o":77.759593},{"n":"Electronic City- GS Palya","a":12.853097,"o":77.67448},{"n":"Electronic City- GS Palya","a":12.853097,"o":77.67448},{"n":"Electronic City- GS Palya","a":12.853097,"o":77.67448},{"n":"SREE SHAKTHI FILLING STATION","a":12.883914,"o":77.550896},{"n":"SRI RAJARAJESWARI FILLING STATION","a":12.93821,"o":77.52199},{"n":"Horamavu-Private Hub","a":13.039139,"o":77.67305},{"n":"Horamavu-Private Hub","a":13.039139,"o":77.67305},{"n":"Horamavu-Private Hub","a":13.039139,"o":77.67305},{"n":"Horamavu-Private Hub","a":13.039139,"o":77.67305},{"n":"Sudharshan fuel station,Electronic city","a":12.855515,"o":77.663508},{"n":"Sudharshan fuel station,Electronic city","a":12.855515,"o":77.663508},{"n":"Yelahanka Railway Station","a":13.1051369,"o":77.5918951},{"n":"Yelahanka Railway Station","a":13.1051369,"o":77.5918951},{"n":"Yelahanka Railway Station","a":13.1051369,"o":77.5918951},{"n":"Yelahanka Railway Station","a":13.1051369,"o":77.5918951},{"n":"BHAGIRATHI SERVICE STATION","a":13.019458,"o":77.708029},{"n":"SHREE HARI SERVICE STATION","a":13.06518,"o":77.57096167},{"n":"KSR Bengaluru city Railway station","a":12.976799,"o":77.57121268},{"n":"KSR Bengaluru city Railway station","a":12.976799,"o":77.57121268},{"n":"KSR Bengaluru city Railway station","a":12.976799,"o":77.57121268},{"n":"KSR Bengaluru city Railway station","a":12.976799,"o":77.57121268},{"n":"LATHA PRASAD FUEL STATION","a":12.93826568,"o":77.52127582},{"n":"LATHA PRASAD FUEL STATION","a":12.93826568,"o":77.52127582},{"n":"Bangalore-Kaveri-Nagar, Yaswantpur 2","a":13.0186,"o":77.52297},{"n":"Begur \u2013 Bangalore","a":12.8865,"o":77.63491},{"n":"Begur \u2013 Bangalore","a":12.8865,"o":77.63491},{"n":"Begur \u2013 Bangalore","a":12.8865,"o":77.63491},{"n":"Begur \u2013 Bangalore","a":12.8865,"o":77.63491},{"n":"HSR Division office- S 20","a":12.911433,"o":77.648817},{"n":"HSR Division office- S 20","a":12.911433,"o":77.648817},{"n":"Sir M. Visvesvaraya Terminal, Bengaluru railway station","a":13.00067048,"o":77.64185124},{"n":"Sir M. Visvesvaraya Terminal, Bengaluru railway station","a":13.00067048,"o":77.64185124},{"n":"Sir M. Visvesvaraya Terminal, Bengaluru railway station","a":13.00067048,"o":77.64185124},{"n":"RR Nagar PVT_ 8 QIS","a":12.924152,"o":77.502879},{"n":"RR Nagar PVT_ 8 QIS","a":12.924152,"o":77.502879},{"n":"RR Nagar PVT_ 8 QIS","a":12.924152,"o":77.502879},{"n":"RR Nagar PVT_ 8 QIS","a":12.924152,"o":77.502879},{"n":"RR Nagar PVT_ 8 QIS","a":12.924152,"o":77.502879},{"n":"RR Nagar PVT_ 8 QIS","a":12.924152,"o":77.502879},{"n":"RR Nagar PVT_ 8 QIS","a":12.924152,"o":77.502879},{"n":"Powerpod- Thannisandra-6","a":13.06079539,"o":77.6288544},{"n":"Powerpod- Thannisandra-7","a":13.06079539,"o":77.6288544},{"n":"Powerpod- Yeswantpur-3","a":13.0234954746626,"o":77.5412524460273},{"n":"Powerpod- Yeswantpur-4","a":13.0234954746626,"o":77.5412524460273},{"n":"Powerpod- Yeswantpur-5","a":13.0234954746626,"o":77.5412524460273},{"n":"Kengeri - K3 Kaggalipura","a":12.799945,"o":77.508927},{"n":"Kengeri - K3 Kaggalipura","a":12.799945,"o":77.508927},{"n":"Indiranagar HAL - BESCOM - E6","a":12.9649639217506,"o":77.64419333},{"n":"Yelankha Private Hub","a":13.09281682,"o":77.587102},{"n":"Yelankha Private Hub","a":13.09281682,"o":77.587102},{"n":"Yelankha Private Hub","a":13.09281682,"o":77.587102},{"n":"Yelankha Private Hub","a":13.09281682,"o":77.587102},{"n":"Yelankha Private Hub","a":13.09281682,"o":77.587102},{"n":"Yelankha Private Hub","a":13.09281682,"o":77.587102},{"n":"Yelankha Private Hub","a":13.09281682,"o":77.587102},{"n":"Yelankha Private Hub","a":13.09281682,"o":77.587102},{"n":"Powerpod- Bellandur-6","a":12.94017477,"o":77.70561583},{"n":"Powerpod- Bellandur-7","a":12.94017477,"o":77.70561583},{"n":"Powerpod- Bellandur-8","a":12.94017477,"o":77.70561583},{"n":"Marathahalli_Pvt_8 QIS","a":12.955365,"o":77.702537},{"n":"Marathahalli_Pvt_8 QIS","a":12.955365,"o":77.702537},{"n":"Marathahalli_Pvt_8 QIS","a":12.955365,"o":77.702537},{"n":"Marathahalli_Pvt_8 QIS","a":12.955365,"o":77.702537},{"n":"Marathahalli_Pvt_8 QIS","a":12.955365,"o":77.702537},{"n":"Marathahalli_Pvt_8 QIS","a":12.955365,"o":77.702537},{"n":"Marathahalli_Pvt_8 QIS","a":12.955365,"o":77.702537},{"n":"Marathahalli_Pvt_8 QIS","a":12.955365,"o":77.702537},{"n":"JP Nagar_Pvt_3","a":12.89321982,"o":77.58404202},{"n":"JP Nagar_Pvt_4","a":12.89321982,"o":77.58404202},{"n":"JP Nagar_Pvt_5","a":12.89321982,"o":77.58404202},{"n":"JP Nagar_Pvt_6","a":12.89321982,"o":77.58404202},{"n":"BESCOM Corporate Office - W4 Sub Division_2 QIS","a":12.9824407609323,"o":77.57533608},{"n":"BESCOM Corporate Office - W-4 Sub Division 2 QIS","a":12.9824407609323,"o":77.57533608},{"n":"BLR_COCO_SARJAPUR_6 QIS","a":12.901502,"o":77.724884},{"n":"BLR_COCO_SARJAPUR_6 QIS","a":12.901502,"o":77.724884},{"n":"BLR_COCO_SARJAPUR_6 QIS","a":12.901502,"o":77.724884},{"n":"BLR_COCO_SARJAPUR_6 QIS","a":12.901502,"o":77.724884},{"n":"BLR_COCO_SARJAPUR_6 QIS","a":12.901502,"o":77.724884},{"n":"BLR_COCO_SARJAPUR_6 QIS","a":12.901502,"o":77.724884},{"n":"COCO_Avalahalli","a":13.02615,"o":77.7180232},{"n":"COCO_Avalahalli","a":13.02615,"o":77.7180232},{"n":"COCO_Avalahalli","a":13.02615,"o":77.7180232},{"n":"COCO_Avalahalli","a":13.02615,"o":77.7180232},{"n":"COCO_Avalahalli","a":13.02615,"o":77.7180232},{"n":"COCO_Avalahalli","a":13.02615,"o":77.7180232},{"n":"COCO_Avalahalli","a":13.02615,"o":77.7180232},{"n":"COCO_Avalahalli","a":13.02615,"o":77.7180232},{"n":"Electronic City- GS Palya","a":12.853097,"o":77.67448},{"n":"Shivajinagar - E9 sub division Nagawara_2 QIS","a":13.03847,"o":77.62581},{"n":"Shivajinagar - E9 sub division Nagawara_2 QIS","a":13.03847,"o":77.62581},{"n":"Arekere_Pvt_6 QIS","a":12.89164969,"o":77.5917717},{"n":"Arekere_Pvt_6 QIS","a":12.89164969,"o":77.5917717},{"n":"Arekere_Pvt_6 QIS","a":12.89164969,"o":77.5917717},{"n":"Arekere_Pvt_6 QIS","a":12.89164969,"o":77.5917717},{"n":"Arekere_Pvt_6 QIS","a":12.89164969,"o":77.5917717},{"n":"Arekere_Pvt_6 QIS","a":12.89164969,"o":77.5917717},{"n":"Powerpod- Hoodi-4","a":12.98416085,"o":77.71148888},{"n":"COCO_Electronic city Phase 2_8 QIS","a":12.8287572,"o":77.667281},{"n":"COCO_Electronic city Phase 2_8 QIS","a":12.8287572,"o":77.667281},{"n":"COCO_Electronic city Phase 2_8 QIS","a":12.8287572,"o":77.667281},{"n":"COCO_Electronic city Phase 2_8 QIS","a":12.8287572,"o":77.667281},{"n":"COCO_Electronic city Phase 2_8 QIS","a":12.8287572,"o":77.667281},{"n":"COCO_Electronic city Phase 2_8 QIS","a":12.8287572,"o":77.667281},{"n":"COCO_Electronic city Phase 2_8 QIS","a":12.8287572,"o":77.667281},{"n":"COCO_Electronic city Phase 2_8 QIS","a":12.8287572,"o":77.667281},{"n":"SMPL Plant-4","a":12.977114,"o":77.70653},{"n":"RR Nagar PVT_ 8 QIS","a":12.924152,"o":77.502879},{"n":"Sir M. Visvesvaraya Terminal, Bengaluru railway station","a":13.00067048,"o":77.64185124},{"n":"Shivajinagar - E1 sub division - Pillanna Garden","a":13.01237041,"o":77.6169896923126},{"n":"Shivajinagar - E1 sub division - Pillanna Garden","a":13.01237041,"o":77.6169896923126},{"n":"S15- Besom -Katrikuppe Sub divison ","a":12.926085,"o":77.5479838},{"n":"S15- Besom -Katrikuppe Sub divison ","a":12.926085,"o":77.5479838},{"n":"Powerpod- Ecity","a":12.8423479,"o":77.68298544},{"n":"Powerpod- Ecity","a":12.8423479,"o":77.68298544},{"n":"Powerpod- Ecity","a":12.8423479,"o":77.68298544},{"n":"Shivajinagar - E5 sub division cooke town","a":13.003321,"o":77.6194479788197},{"n":"Shivajinagar - E5 sub division cooke town","a":13.003321,"o":77.6194479788197},{"n":"JP Nagar 1st Phase ","a":12.911071,"o":77.577518},{"n":"JP Nagar 1st Phase ","a":12.911071,"o":77.577518},{"n":"JP Nagar 1st Phase ","a":12.911071,"o":77.577518},{"n":"JP Nagar 1st Phase ","a":12.911071,"o":77.577518},{"n":"JP Nagar 1st Phase ","a":12.911071,"o":77.577518},{"n":"JP Nagar 1st Phase ","a":12.911071,"o":77.577518},{"n":"JP Nagar 1st Phase ","a":12.911071,"o":77.577518},{"n":"JP Nagar 1st Phase ","a":12.911071,"o":77.577518},{"n":"JP Nagar 1st Phase ","a":12.911071,"o":77.577518},{"n":"JP Nagar 1st Phase ","a":12.911071,"o":77.577518},{"n":"BLR_PVT_BTM 4th Stage _Mahesh kumar","a":12.887042,"o":77.61318},{"n":"BLR_PVT_BTM 4th Stage _Mahesh kumar","a":12.887042,"o":77.61318},{"n":"BLR_PVT_BTM 4th Stage _Mahesh kumar","a":12.887042,"o":77.61318},{"n":"BLR_PVT_BTM 4th Stage _Mahesh kumar","a":12.887042,"o":77.61318},{"n":"BLR_PVT_BTM 4th Stage _Mahesh kumar","a":12.887042,"o":77.61318},{"n":"BLR_PVT_BTM 4th Stage _Mahesh kumar","a":12.887042,"o":77.61318},{"n":"BLR_PVT_BTM 4th Stage _Mahesh kumar","a":12.887042,"o":77.61318},{"n":"BLR_PVT_BTM 4th Stage _Mahesh kumar","a":12.887042,"o":77.61318},{"n":"Kalyanagar Pvt Hub","a":13.026237,"o":77.642209},{"n":"Kalyanagar Pvt Hub","a":13.026237,"o":77.642209},{"n":"Kalyanagar Pvt Hub","a":13.026237,"o":77.642209},{"n":"Kalyanagar Pvt Hub","a":13.026237,"o":77.642209},{"n":"Kalyanagar Pvt Hub","a":13.026237,"o":77.642209},{"n":"Powerpod- Thannisandra-8","a":13.06079539,"o":77.6288544},{"n":"COCO_Mangammanapalya_Vijay","a":12.9013685,"o":77.6443418},{"n":"COCO_Mangammanapalya_Vijay","a":12.9013685,"o":77.6443418},{"n":"COCO_Mangammanapalya_Vijay","a":12.9013685,"o":77.6443418},{"n":"COCO_Mangammanapalya_Vijay","a":12.9013685,"o":77.6443418},{"n":"COCO_Mangammanapalya_Vijay","a":12.9013685,"o":77.6443418},{"n":"COCO_Mangammanapalya_Vijay","a":12.9013685,"o":77.6443418},{"n":"BLR_PVT_Bellandur_Pavan Reddy","a":12.928663,"o":77.687622},{"n":"BLR_PVT_Bellandur_Pavan Reddy","a":12.928663,"o":77.687622},{"n":"BLR_PVT_Bellandur_Pavan Reddy","a":12.928663,"o":77.687622},{"n":"BLR_PVT_Bellandur_Pavan Reddy","a":12.928663,"o":77.687622},{"n":"Nexus- Whitefield","a":12.973222,"o":77.751328},{"n":"Nexus- Whitefield","a":12.973222,"o":77.751328},{"n":"Nexus- Whitefield","a":12.973222,"o":77.751328},{"n":"Nexus- Shantiniketan","a":12.990007,"o":77.728323},{"n":"Nexus- Shantiniketan","a":12.990007,"o":77.728323},{"n":"Nexus- Shantiniketan","a":12.990007,"o":77.728323},{"n":"Bommanahalli_Mujeeb\u200b","a":12.902891,"o":77.632631},{"n":"Bommanahalli_Mujeeb\u200b","a":12.902891,"o":77.632631},{"n":"Bommanahalli_Mujeeb\u200b","a":12.902891,"o":77.632631},{"n":"Bommanahalli_Mujeeb\u200b","a":12.902891,"o":77.632631},{"n":"Bommanahalli_Mujeeb\u200b","a":12.902891,"o":77.632631},{"n":"Bommanahalli_Mujeeb\u200b","a":12.902891,"o":77.632631},{"n":"Seegahalli_Ashok","a":13.015896,"o":77.766816},{"n":"Seegahalli_Ashok","a":13.015896,"o":77.766816},{"n":"Seegahalli_Ashok","a":13.015896,"o":77.766816},{"n":"Seegahalli_Ashok","a":13.015896,"o":77.766816},{"n":"Seegahalli_Ashok","a":13.015896,"o":77.766816},{"n":"Seegahalli_Ashok","a":13.015896,"o":77.766816},{"n":"Seegahalli_Ashok","a":13.015896,"o":77.766816},{"n":"Seegahalli_Ashok","a":13.015896,"o":77.766816},{"n":"Doddanekundi_Kapil","a":12.970612,"o":77.6948695},{"n":"Doddanekundi_Kapil","a":12.970612,"o":77.6948695},{"n":"Doddanekundi_Kapil","a":12.970612,"o":77.6948695},{"n":"Doddanekundi_Kapil","a":12.970612,"o":77.6948695},{"n":"Doddanekundi_Kapil","a":12.970612,"o":77.6948695},{"n":"Doddanekundi_Kapil","a":12.970612,"o":77.6948695},{"n":"IOC - COCO ITI","a":13.0029609,"o":77.6821697},{"n":"IOC - COCO ITI","a":13.0029609,"o":77.6821697},{"n":"IOC - COCO ITI","a":13.0029609,"o":77.6821697},{"n":"CHINNASWAMY AMMANI TANEPETROLATUM","a":12.90481,"o":77.56125},{"n":"CHINNASWAMY AMMANI TANEPETROLATUM","a":12.90481,"o":77.56125},{"n":"BLR_FRN_AMRITHAHALLI_Mr. RAO\u200b","a":13.069947,"o":13.069947},{"n":"BLR_FRN_AMRITHAHALLI_Mr. RAO\u200b","a":13.069947,"o":13.069947},{"n":"BLR_FRN_AMRITHAHALLI_Mr. RAO\u200b","a":13.069947,"o":13.069947},{"n":"SMPL Plant-1","a":12.977114,"o":77.70653},{"n":"BTM 2nd Stage","a":12.909409,"o":77.610821},{"n":"BESCOM Office Bannerghatta","a":12.81444,"o":77.58021},{"n":"BESCOM Office Bannerghatta","a":12.81444,"o":77.58021},{"n":"BESCOM Jigani Subdivision","a":12.7800543,"o":77.641847},{"n":"BESCOM Jigani Subdivision","a":12.7800543,"o":77.641847},{"n":"BESCOM O&M Sarajapur","a":12.861132,"o":77.785714},{"n":"BESCOM O&M Sarajapur","a":12.861132,"o":77.785714},{"n":"Aeropark Thunderplus","a":13.182358,"o":77.671002},{"n":"Aeropark Thunderplus","a":13.182358,"o":77.671002},{"n":"Aeropark Thunderplus","a":13.182358,"o":77.671002},{"n":"Aeropark Thunderplus","a":13.182358,"o":77.671002},{"n":"Devanahalli (Near Airport)- Hosokate","a":13.246497,"o":77.7138},{"n":"Devanahalli (Near Airport)- Hosokate","a":13.246497,"o":77.7138},{"n":"BESCOM Panduranganagar","a":12.8938,"o":77.59499},{"n":"BESCOM Panduranganagar","a":12.8938,"o":77.59499},{"n":"COCO_Seegaalli_Kishore","a":13.014793,"o":77.7176589},{"n":"COCO_Seegaalli_Kishore","a":13.014793,"o":77.7176589},{"n":"COCO_Seegaalli_Kishore","a":13.014793,"o":77.7176589},{"n":"COCO_Seegaalli_Kishore","a":13.014793,"o":77.7176589},{"n":"COCO_Seegaalli_Kishore","a":13.014793,"o":77.7176589},{"n":"COCO_Seegaalli_Kishore","a":13.014793,"o":77.7176589},{"n":"BLR_COCO_Kattigenahalli","a":13.122343,"o":77.623467},{"n":"BLR_COCO_Kattigenahalli","a":13.122343,"o":77.623467},{"n":"BLR_COCO_Kattigenahalli","a":13.122343,"o":77.623467},{"n":"BLR_COCO_Kattigenahalli","a":13.122343,"o":77.623467},{"n":"BLR_COCO_Kattigenahalli","a":13.122343,"o":77.623467},{"n":"BLR_COCO_Kattigenahalli","a":13.122343,"o":77.623467},{"n":"BLR_COCO_Kattigenahalli","a":13.122343,"o":77.623467},{"n":"BLR_COCO_Kattigenahalli","a":13.122343,"o":77.623467},{"n":"TURHALLI_Kavitha","a":12.8910229824626,"o":77.534475390487},{"n":"TURHALLI_Kavitha","a":12.8910229824626,"o":77.534475390487},{"n":"TURHALLI_Kavitha","a":12.8910229824626,"o":77.534475390487},{"n":"TURHALLI_Kavitha","a":12.8910229824626,"o":77.534475390487},{"n":"Kodathi _S3 Atomz EV Charging Hub","a":12.876978,"o":77.7346897},{"n":"Kodathi _S3 Atomz EV Charging Hub","a":12.876978,"o":77.7346897},{"n":"Malleshwaram - Mattikere C6","a":13.04012173,"o":77.557273},{"n":"Malleshwaram - Mattikere C6","a":13.04012173,"o":77.557273},{"n":"Naveen Chillax -Gunjur","a":12.9186085,"o":77.7310276},{"n":"Naveen Chillax -Gunjur","a":12.9186085,"o":77.7310276},{"n":"Naveen Chillax -Gunjur","a":12.9186085,"o":77.7310276},{"n":"Naveen Chillax -Gunjur","a":12.9186085,"o":77.7310276},{"n":"Naveen Chillax -Gunjur","a":12.9186085,"o":77.7310276},{"n":"Naveen Chillax -Gunjur","a":12.9186085,"o":77.7310276},{"n":"Kaggadasapura","a":12.988999,"o":77.68101},{"n":"Kaggadasapura","a":12.988999,"o":77.68101},{"n":"Kaggadasapura","a":12.988999,"o":77.68101},{"n":"Kaggadasapura","a":12.988999,"o":77.68101},{"n":"Kaggadasapura","a":12.988999,"o":77.68101},{"n":"Nagasandra _ IKEA","a":13.0432089,"o":77.502801},{"n":"Nagasandra _ IKEA","a":13.0432089,"o":77.502801},{"n":"Nagasandra _ IKEA","a":13.0432089,"o":77.502801},{"n":"Nagasandra _ IKEA","a":13.0432089,"o":77.502801},{"n":"Nagasandra _ IKEA","a":13.0432089,"o":77.502801},{"n":"Nagasandra _ IKEA","a":13.0432089,"o":77.502801},{"n":"JIGANI_Dheeraj John ","a":12.79113647,"o":77.6549039},{"n":"JIGANI_Dheeraj John ","a":12.79113647,"o":77.6549039},{"n":"JIGANI_Dheeraj John ","a":12.79113647,"o":77.6549039},{"n":"JIGANI_Dheeraj John ","a":12.79113647,"o":77.6549039},{"n":"Powerpod- Yeswantpur-6","a":13.0234954746626,"o":77.5412524460273},{"n":"Powerpod- Yeswantpur-7","a":13.0234954746626,"o":77.5412524460273},{"n":"Powerpod- Yeswantpur-8","a":13.0234954746626,"o":77.5412524460273},{"n":"N1- Rajaji Nagar Bescom","a":13.003244,"o":77.5525491},{"n":"N1- Rajaji Nagar Bescom","a":13.003244,"o":77.5525491},{"n":"BESCOM Chandapura Sub Division ","a":12.802323,"o":77.703862},{"n":"BESCOM Chandapura Sub Division ","a":12.802323,"o":77.703862},{"n":"Powerpod- Thannisandra-9","a":13.0607953924515,"o":77.6288544018538},{"n":"Powerpod- Thannisandra-10","a":13.0607953924515,"o":77.6288544018538},{"n":"JP Nagar - S6 - BESCOM","a":12.9075,"o":77.57829},{"n":"Bescom Mahadevpura (Opp Net App)","a":12.992838,"o":77.709248},{"n":"Bescom Mahadevpura (Opp Net App)","a":12.992838,"o":77.709248}]};
+
+// ── Map init (CartoDB Positron — plain, no POI icons) ──
+var leafMap=L.map('map').setView([12.95,77.65],12);
+var _DEFAULT_LAT=12.95,_DEFAULT_LNG=77.65,_DEFAULT_ZOOM=12;
+function clearFilters(){
+  document.getElementById('search-input').value='';
+  document.getElementById('hub-filter').value='';
+  leafMap.setView([_DEFAULT_LAT,_DEFAULT_LNG],_DEFAULT_ZOOM,{animate:true});
+  renderFiltered();
+  document.getElementById('clear-btn').style.display='none';
+}
+function updateClearBtn(){
+  var hasSearch=(document.getElementById('search-input').value||'').trim();
+  var hasHub=document.getElementById('hub-filter').value;
+  var atDefault=leafMap.getZoom()===_DEFAULT_ZOOM;
+  var c=leafMap.getCenter();
+  var dist=Math.abs(c.lat-_DEFAULT_LAT)+Math.abs(c.lng-_DEFAULT_LNG);
+  var btn=document.getElementById('clear-btn');
+  if(btn)btn.style.display=(hasSearch||hasHub||!atDefault||dist>0.05)?'inline-block':'none';
+}
+leafMap.on('zoomend moveend',updateClearBtn);
+L.tileLayer('https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png',{attribution:'© OpenStreetMap © CARTO',maxZoom:19,subdomains:'abcd'}).addTo(leafMap);
+
+var markerGroup=L.layerGroup().addTo(leafMap);
+var hubMarkerGroup=L.layerGroup().addTo(leafMap);
+var rsaMarkerGroup=L.layerGroup().addTo(leafMap);
+var layerGroups={sw:L.layerGroup(),fk:L.layerGroup(),ze:L.layerGroup(),bl:L.layerGroup(),yu:L.layerGroup(),in:L.layerGroup()};
+
+// RSA team bikes — always shown on map, refreshed every 1 min
+var RSA_BIKES=[
+  {chassis:'P6EBE1JYK25000288',name:'Nishanth'},
+  {chassis:'P6EBE1JYK25000072',name:'Pavan'}
+];
+
+function makeRsaIcon(name,loc_time){
+  var c=pingColor(loc_time);
+  var initials=name.substring(0,1).toUpperCase();
+  var html='<div style="position:relative;display:flex;flex-direction:column;align-items:center">'
+    +'<div style="width:32px;height:32px;border-radius:50%;background:#1D4ED8;border:3px solid #fff;box-shadow:0 0 0 2px '+c+',0 2px 8px rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;font-family:Inter,sans-serif;font-size:13px;font-weight:800;color:#fff">'+initials+'</div>'
+    +'<div style="margin-top:3px;background:#1D4ED8;color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:4px;white-space:nowrap;box-shadow:0 1px 3px rgba(0,0,0,.3);font-family:Inter,sans-serif">'+name+'</div>'
+    +'</div>';
+  return L.divIcon({className:'',html:html,iconSize:[32,48],iconAnchor:[16,16]});
+}
+
+async function loadRsaLocations(){
+  if(!K||K===ANON_KEY)return;
+  try{
+    var chassis=RSA_BIKES.map(function(b){return b.chassis;});
+    var url=SB_URL+'/rest/v1/bike_location_cache?select=chassis_number,lat,lng,baas_location_time,current_soc&chassis_number=in.('+chassis.join(',')+')'
+    var res=await fetch(url,{headers:{apikey:ANON_KEY,Authorization:'Bearer '+K}});
+    if(!res.ok)return;
+    var rows=await res.json();
+    rsaMarkerGroup.clearLayers();
+    rows.forEach(function(b,idx){
+      if(!b.lat||!b.lng)return;
+      var info=RSA_BIKES.find(function(r){return r.chassis===b.chassis_number;})||{};
+      var name=info.name||b.chassis_number;
+      // Parse timestamp — strip any tz offset (including +00) then treat as UTC
+      var pingTs=b.baas_location_time?b.baas_location_time.replace(' ','T').replace(/(Z|[+-]\d{2}(:?\d{2})?)$/,'')+'Z':null;
+      var pingStr=pingTs?new Date(pingTs).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',hour12:true,timeZone:'Asia/Kolkata'}):'--';
+      var popup='<div style="font-family:Inter,sans-serif;font-size:13px;min-width:160px">'
+        +'<div style="font-weight:800;font-size:14px;color:#1D4ED8;margin-bottom:4px">🦺 RSA — '+name+'</div>'
+        +'<div style="font-size:11px;color:#6B7280;margin-bottom:6px">'+b.chassis_number+'</div>'
+        +'<div><b>SOC:</b> '+(b.current_soc!=null?b.current_soc+'%':'--')+'</div>'
+        +'<div><b>Last ping:</b> '+pingStr+' IST</div>'
+        +'</div>';
+      // Offset markers slightly if both bikes are at same location so P doesn't hide under N
+      var latOffset=idx*0.0003;
+      L.marker([b.lat+latOffset,b.lng],{icon:makeRsaIcon(name,b.baas_location_time),zIndexOffset:900})
+        .bindPopup(popup,{maxWidth:220})
+        .addTo(rsaMarkerGroup);
+    });
+  }catch(e){console.warn('[fw-map] RSA location error:',e);}
+}
+
+// Global state
+var _allPending=[];
+var _riderMap={};
+var _currentPanelBike=null;
+var _layerVisible={hubs:true,sw:false,fk:false,ze:false,bl:false,yu:false,in:false};
+
+// Layer dot colors for popup headers
+var LAYER_COLORS={sw:'#FC8019',fk:'#2874F0',ze:'#850CA7',bl:'#F0C000',yu:'#16a34a',in:'#0891b2'};
+var LAYER_NAMES={sw:'Swiggy',fk:'Flipkart Minutes',ze:'Zepto',bl:'Blinkit',yu:'Yuma Charge',in:'Indofast Charge'};
+
+// ── My Location ──
+var _myLocMarker=null,_myLocCircle=null;
+function showMyLocation(){
+  var btn=document.querySelector('button[onclick="showMyLocation()"]');
+  if(!navigator.geolocation){alert('Geolocation not supported.');return;}
+  if(btn){btn.textContent='📍 Locating…';btn.disabled=true;}
+  navigator.geolocation.getCurrentPosition(function(pos){
+    var lat=pos.coords.latitude,lng=pos.coords.longitude,acc=pos.coords.accuracy;
+    if(_myLocMarker)leafMap.removeLayer(_myLocMarker);
+    if(_myLocCircle)leafMap.removeLayer(_myLocCircle);
+    var icon=L.divIcon({className:'',html:'<div style="width:16px;height:16px;background:#2563EB;border:3px solid #fff;border-radius:50%;box-shadow:0 0 0 4px rgba(37,99,235,0.3)"></div>',iconSize:[16,16],iconAnchor:[8,8]});
+    _myLocMarker=L.marker([lat,lng],{icon:icon,zIndexOffset:1000}).addTo(leafMap).bindPopup('<b>📍 You are here</b><br>Accuracy: ~'+Math.round(acc)+'m').openPopup();
+    _myLocCircle=L.circle([lat,lng],{radius:acc,color:'#2563EB',fillColor:'#2563EB',fillOpacity:0.1,weight:1}).addTo(leafMap);
+    leafMap.setView([lat,lng],14);
+    if(btn){btn.textContent='📍 My Location';btn.disabled=false;}
+  },function(err){
+    if(btn){btn.textContent='📍 My Location';btn.disabled=false;}
+    var msg={1:'Location permission denied.',2:'Location unavailable.',3:'Request timed out.'};
+    alert(msg[err.code]||'Could not get location: '+err.message);
+  },{enableHighAccuracy:true,timeout:15000,maximumAge:0});
+}
+
+function socColor(s){return s>=60?'#16a34a':s>=30?'#d97706':'#dc2626';}
+
+function pingColor(loc_time){
+  if(!loc_time)return '#94A3B8';
+  // Strip ALL timezone info (Z, +05:30, +0530, +00, -00:00, etc.) then treat as UTC
+  var ts=loc_time.toString().trim().replace(' ','T').replace(/(Z|[+-]\d{2}(:?\d{2})?)$/,'');
+  var d=new Date(ts+'Z');
+  if(isNaN(d.getTime()))return '#94A3B8';
+  var mins=(Date.now()-d.getTime())/60000;
+  if(mins<15)return '#22C55E';
+  if(mins<60)return '#F59E0B';
+  if(mins<180)return '#EF4444';
+  return '#94A3B8';
+}
+function makeBikeIcon(loc_time){
+  var c=pingColor(loc_time);
+  return L.divIcon({className:'',html:'<div style="width:10px;height:10px;border-radius:50%;background:'+c+';border:1.5px solid rgba(255,255,255,.9);box-shadow:0 1px 3px rgba(0,0,0,.3)"></div>',iconSize:[10,10],iconAnchor:[5,5]});
+}
+
+function makeHubIcon(){
+  return L.icon({iconUrl:'logo.jpg',iconSize:[20,20],iconAnchor:[10,10],popupAnchor:[0,-10],className:'hub-icon'});
+}
+
+// Brand icons via Clearbit Logo API (128px square logos)
+// Brand icons — inline SVG, no external deps
+var DS_BRANDS={
+  sw:{label:'S',color:'#FC8019',text:'#fff'},
+  fk:{label:'F',color:'#2874F0',text:'#fff'},
+  ze:{label:'Z',color:'#850CA7',text:'#fff'},
+  bl:{label:'B',color:'#E8B000',text:'#fff'},
+  yu:{label:'Y',color:'#16a34a',text:'#fff'},
+  in:{label:'I',color:'#0891b2',text:'#fff'}
+};
+function makeDsIcon(key){
+  var b=DS_BRANDS[key]||{label:key.toUpperCase(),color:'#888',text:'#fff'};
+  var html='<div style="width:22px;height:22px;border-radius:6px;background:'+b.color+';border:1.5px solid rgba(0,0,0,.18);display:flex;align-items:center;justify-content:center;font-family:Inter,sans-serif;font-size:11px;font-weight:800;color:'+b.text+';box-shadow:0 1px 3px rgba(0,0,0,.25)">'+b.label+'</div>';
+  return L.divIcon({className:'',html:html,iconSize:[22,22],iconAnchor:[11,11]});
+}
+
+function parseCSV(text){
+  var lines=text.split('\n');
+  return lines.slice(1).map(function(l){
+    var cols=[],cur='',inQ=false;
+    for(var i=0;i<l.length;i++){
+      var ch=l[i];
+      if(ch==='"'){ inQ=!inQ;}
+      else if(ch===','&&!inQ){cols.push(cur);cur='';}
+      else{cur+=ch;}
+    }
+    cols.push(cur);
+    return cols;
+  });
+}
+
+// Build popup for a bike
+function bikePopup(b){
+  var soc=b.soc||0;
+  var locTime='—';
+  if(b.loc_time){
+    var lt=new Date(b.loc_time.endsWith('Z')||b.loc_time.includes('+')?b.loc_time:b.loc_time+'Z');
+    locTime=lt.toLocaleString('en-IN',{timeZone:'Asia/Kolkata',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit',hour12:true});
+  }
+  var gmapsUrl='https://www.google.com/maps/dir/?api=1&destination='+b.lat+','+b.lng;
+  var rows='<tr><td style="color:#6B7280;padding:2px 0;white-space:nowrap">Chassis</td><td style="text-align:right;font-weight:500;padding-left:8px">'+b.chassis+'</td></tr>'+
+    '<tr><td style="color:#6B7280;padding:2px 0">Hub</td><td style="text-align:right;font-weight:500;padding-left:8px">'+b.hub+'</td></tr>'+
+    '<tr><td style="color:#6B7280;padding:2px 0">SOC</td><td style="text-align:right;font-weight:700;color:'+socColor(soc)+';padding-left:8px">'+soc+'%</td></tr>'+
+    '<tr><td style="color:#6B7280;padding:2px 0">Location at</td><td style="text-align:right;font-weight:500;padding-left:8px">'+locTime+'</td></tr>';
+  var _rd=_riderMap[b.chassis]||{};
+  var _rname=_rd.rider_name||b.rider_name||'';
+  var _rphone=_rd.rider_phone||b.rider_phone||'';
+  if(_rname)rows+='<tr><td style="color:#6B7280;padding:2px 0">Rider</td><td style="text-align:right;font-weight:500;padding-left:8px">'+_rname+'</td></tr>';
+  if(_rphone){var ph=normPhone(_rphone);rows+='<tr><td style="color:#6B7280;padding:2px 0">Phone</td><td style="text-align:right;font-weight:500;padding-left:8px"><a href="tel:'+ph+'" style="color:#E8191C;text-decoration:none">'+_rphone+'</a></td></tr>';}
+  return '<div style="min-width:190px;font-family:Inter,sans-serif;">'+
+    '<div style="font-size:14px;font-weight:700;margin-bottom:5px;">'+b.reg+'</div>'+
+    '<table style="font-size:12px;width:100%;border-collapse:collapse;">'+rows+'</table>'+
+    '<div style="height:4px;background:#eee;border-radius:2px;margin-top:8px;"><div style="height:100%;width:'+soc+'%;background:'+socColor(soc)+';border-radius:2px;"></div></div>'+
+    '<a href="'+gmapsUrl+'" target="_blank" style="display:block;margin-top:10px;text-align:center;background:#1A73E8;color:#fff;padding:6px 0;border-radius:8px;font-size:12px;font-weight:700;text-decoration:none;">🗺️ Get Directions</a>'+
+    '</div>';
+}
+
+// Normalize helpers
+function normReg(s){return (s||'').replace(/[\s\-\.]/g,'').toUpperCase();}
+function normPhone(s){
+  var d=(s||'').replace(/[\s\-\(\)\.]/g,'');
+  if(d.startsWith('+91'))d=d.substring(3);
+  else if(d.startsWith('91')&&d.length===12)d=d.substring(2);
+  else if(d.startsWith('0')&&d.length===11)d=d.substring(1);
+  return d;
+}
+// Render filtered bikes
+function makeHighlightIcon(loc_time){
+  var c=pingColor(loc_time);
+  return L.divIcon({className:'',html:'<div style="width:16px;height:16px;border-radius:50%;background:'+c+';border:3px solid #fff;box-shadow:0 0 0 3px '+c+',0 2px 8px rgba(0,0,0,.4)"></div>',iconSize:[16,16],iconAnchor:[8,8]});
+}
+
+function renderFiltered(){
+  var raw=(document.getElementById('search-input').value||'').trim();
+  var q=normReg(raw);
+  var qPhone=normPhone(raw);
+  var hub=document.getElementById('hub-filter').value;
+  markerGroup.clearLayers();
+  var filtered=_allPending.filter(function(b){
+    if(hub&&b.hub!==hub)return false;
+    if(raw){
+      var reg=normReg(b.reg);
+      var ch=normReg(b.chassis);
+      var ph=normPhone(b.rider_phone||'');
+      var nameMatch=(b.rider_name||'').toLowerCase().indexOf(raw.toLowerCase())>-1;
+      if(reg.indexOf(q)<0&&ch.indexOf(q)<0&&(ph===''||ph.indexOf(qPhone)<0)&&!nameMatch)return false;
+    }
+    return true;
+  });
+  var focusMarker=null;
+  filtered.forEach(function(b){
+    var isOnly=(filtered.length===1&&raw);
+    (function(bike){
+      var m=L.marker([bike.lat,bike.lng],{icon:isOnly?makeHighlightIcon(bike.loc_time):makeBikeIcon(bike.loc_time)})
+        .bindPopup(function(){return bikePopup(bike);},{maxWidth:280})
+        .addTo(markerGroup);
+      if(isOnly)focusMarker=m;
+    })(b);
+  });
+  document.getElementById('count-pill').textContent=filtered.length+(raw||hub?' filtered':' bikes pending');
+  if(typeof updateClearBtn==='function')updateClearBtn();
+  // Zoom and open popup for unique result
+  if(focusMarker){
+    var b=filtered[0];
+    leafMap.setView([b.lat,b.lng],17,{animate:true});
+    setTimeout(function(){focusMarker.openPopup();},350);
+  }
+}
+
+// Load hub markers from Supabase
+async function loadHubMarkers(){
+  try{
+    var res=await fetch(HUB_LOCATION_URL,{headers:{apikey:ANON_KEY,Authorization:'Bearer '+K}});
+    if(!res.ok)return;
+    var hubs=await res.json();
+    hubMarkerGroup.clearLayers();
+    hubs.forEach(function(h){
+      if(!h.lat||!h.lng)return;
+      L.marker([h.lat,h.lng],{icon:makeHubIcon(),zIndexOffset:500})
+        .bindPopup('<div style="font-family:Inter,sans-serif;font-size:13px;"><b>'+h.location_name+'</b><br><span style="font-size:11px;color:#6B7280">'+h.short_address+'</span></div>')
+        .addTo(hubMarkerGroup);
+    });
+  }catch(e){}
+}
+
+// Load darkstore/charge layers from embedded data
+function loadDarkstoreLayers(){
+  Object.keys(DS_DATA).forEach(function(key){
+    var color=LAYER_COLORS[key]||'#888';
+    var name=LAYER_NAMES[key]||key;
+    DS_DATA[key].forEach(function(p){
+      L.marker([p.a,p.o],{icon:makeDsIcon(key)})
+        .bindPopup('<div style="font-family:Inter,sans-serif;font-size:13px;"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:'+color+';margin-right:5px"></span><b>'+name+'</b><br><span style="font-size:11px;color:#6B7280">'+p.n+'</span></div>')
+        .addTo(layerGroups[key]);
+    });
+  });
+}
+
+// Toggle layer visibility
+function toggleLayer(key){
+  var chk=document.getElementById('lyr-'+key);
+  _layerVisible[key]=chk.checked;
+  if(key==='rsa'){
+    if(chk.checked)leafMap.addLayer(rsaMarkerGroup);
+    else leafMap.removeLayer(rsaMarkerGroup);
+  }else if(key==='hubs'){
+    if(chk.checked)leafMap.addLayer(hubMarkerGroup);
+    else leafMap.removeLayer(hubMarkerGroup);
+  }else{
+    if(chk.checked)leafMap.addLayer(layerGroups[key]);
+    else leafMap.removeLayer(layerGroups[key]);
+  }
+}
+
+function toggleLayersPanel(){
+  document.getElementById('layers-panel').classList.toggle('show');
+}
+
+// Close layers panel when clicking outside
+document.addEventListener('click',function(e){
+  var panel=document.getElementById('layers-panel');
+  var btn=document.getElementById('layers-btn');
+  if(panel.classList.contains('show')&&!panel.contains(e.target)&&e.target!==btn){
+    panel.classList.remove('show');
+  }
+});
+
+var FW_CACHE_KEY='fw_map_pending_v8';
+
+function applyPending(pending,fromCache,cacheTs){
+  _allPending=pending;
+  var hubs={};
+  pending.forEach(function(b){hubs[b.hub]=1;});
+  var sel=document.getElementById('hub-filter');
+  var cur=sel.value;
+  sel.innerHTML='<option value="">All Hubs</option>';
+  Object.keys(hubs).sort().forEach(function(h){
+    var opt=document.createElement('option');
+    opt.value=h;opt.textContent=h;
+    if(h===cur)opt.selected=true;
+    sel.appendChild(opt);
+  });
+  renderFiltered();
+  var withRider=pending.filter(function(b){return b.rider_phone;}).length;
+  if(fromCache&&cacheTs){
+    var age=Math.round((Date.now()-cacheTs)/60000);
+    document.getElementById('updated-at').textContent='Cached '+(age<1?'just now':age+'m ago');
+  }else{
+    var now=new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',hour12:true});
+    document.getElementById('updated-at').textContent='Updated '+now+(withRider?' ('+withRider+' with rider)':'');
+  }
+}
+
+// fetchRiderData no longer needed — rider data included in fw_bikes_live view
+async function fetchRiderData(){/* no-op: rider data now in fw_bikes_live */}
+
+async function fetchFreshData(){
+  // Single query to fw_bikes_live view: replaces 3 separate table fetches
+  var res=await fetch(FW_LIVE_URL,{headers:{apikey:ANON_KEY,Authorization:'Bearer '+K}});
+  if(!res.ok)throw new Error('Supabase error '+res.status);
+  var rows=await res.json();
+  var pending=rows.map(function(b){
+    return {
+      chassis:b.chassis_number,
+      reg:b.reg_number,
+      lat:b.lat,
+      lng:b.lng,
+      soc:b.current_soc,
+      loc_time:b.loc_time,
+      hub:b.hub,
+      rider_name:b.rider_name||'',
+      rider_phone:b.rider_phone||''
+    };
+  });
+  // Also update rider map for popup lookups
+  var map={};
+  rows.forEach(function(r){if(r.chassis_number)map[r.chassis_number]={rider_name:r.rider_name,rider_phone:r.rider_phone};});
+  _riderMap=map;
+  return pending;
+}
+
+async function loadMapData(){
+  // Guard: never show map loading over the auth screen
+  var authScreen=document.getElementById('auth-screen');
+  if(authScreen&&!authScreen.classList.contains('hidden'))return;
+
+  var btn=document.getElementById('refresh-btn');
+  var loading=document.getElementById('map-loading');
+  var errEl=document.getElementById('map-error');
+  errEl.style.display='none';
+  btn.disabled=true;btn.classList.add('loading');btn.dataset.orig=btn.textContent;
+
+  // Step 1: Show stale Supabase data immediately (fast ~200ms)
+  var cached=null;
+  try{var c=localStorage.getItem(FW_CACHE_KEY);if(c)cached=JSON.parse(c);}catch(e){}
+  if(cached&&cached.pending&&cached.pending.length){
+    loading.style.display='none';
+    applyPending(cached.pending,true,cached.ts);
+    fetchRiderData();
+  }else{
+    loading.style.display='flex';
+  }
+
+  // Step 2: Fetch current Supabase data (no sync yet — show fast)
+  try{
+    var[pending]=await Promise.all([fetchFreshData(),fetchRiderData()]);
+    try{localStorage.setItem(FW_CACHE_KEY,JSON.stringify({pending:pending,ts:Date.now()}));}catch(e){}
+    applyPending(pending,false,null);
+  }catch(e){
+    if(!cached||!cached.pending||!cached.pending.length){
+      errEl.textContent='Error loading data: '+e.message;
+      errEl.style.display='block';
+    }else{
+      document.getElementById('updated-at').textContent+=' (refresh failed)';
+    }
+  }finally{
+    loading.style.display='none';
+    btn.disabled=false;btn.classList.remove('loading');
+  }
+}
+
+// ── Auth ──
+function showAuthScreen(){document.getElementById('auth-screen').classList.remove('hidden');showForm();}
+function hideAuthScreen(){document.getElementById('auth-screen').classList.add('hidden');}
+function showForm(){
+  document.getElementById('auth-form').style.display='block';
+  document.getElementById('auth-sent').style.display='none';
+  document.getElementById('auth-msg').textContent='';
+  document.getElementById('auth-email').value='';
+}
+async function sendMagicLink(){
+  var email=document.getElementById('auth-email').value.trim().toLowerCase();
+  var msg=document.getElementById('auth-msg'),btn=document.getElementById('auth-submit');
+  if(!email){msg.textContent='Please enter your email.';return;}
+  var ALLOWED_DOMAINS=['bounceshare.com'];
+  var ALLOWED_EMAILS=['vamsee@scalability.club','sreeranga100@gmail.com','nishanthshetty2024@gmail.com','pavanmahesh120@gmail.com']; // add technician emails here
+  var domainOk=ALLOWED_DOMAINS.some(function(d){return email.endsWith('@'+d);});
+  var emailOk=ALLOWED_EMAILS.indexOf(email)>-1;
+  if(!domainOk&&!emailOk){msg.textContent='Access restricted. Contact your manager to get added.';return;}
+  btn.disabled=true;btn.textContent='Sending…';msg.textContent='';
+  var res=await sbClient.auth.signInWithOtp({email:email,options:{emailRedirectTo:window.location.origin+window.location.pathname}});
+  btn.disabled=false;btn.textContent='Send Magic Link';
+  if(res.error){msg.textContent=res.error.message;}
+  else{document.getElementById('auth-form').style.display='none';document.getElementById('auth-sent').style.display='block';document.getElementById('auth-sent-email').textContent=email;}
+}
+document.getElementById('auth-email').addEventListener('keydown',function(e){if(e.key==='Enter')sendMagicLink();});
+async function signOut(){await sbClient.auth.signOut();document.getElementById('logout-btn').style.display='none';showAuthScreen();}
+
+// RSA technicians get 7-day session; all other users get 12h
+var RSA_EMAILS=['nishanthshetty2024@gmail.com','pavanmahesh120@gmail.com'];
+async function enforce12hReauth(userId){
+  try{
+    if(RSA_EMAILS.indexOf(CURRENT_USER_EMAIL)>-1)return; // 7-day window — skip 12h check
+    var{data}=await sbClient.from('user_last_login').select('last_login_at').eq('user_id',userId).single();
+    if(!data)return;
+    var hoursElapsed=(Date.now()-new Date(data.last_login_at))/36e5;
+    if(hoursElapsed>12){await sbClient.auth.signOut();}
+  }catch(e){}
+}
+async function checkGlobalLogout(userId){
+  try{
+    var[r1,r2]=await Promise.all([
+      sbClient.from('user_last_login').select('last_login_at').eq('user_id',userId).single(),
+      sbClient.from('app_settings').select('value').eq('key','global_logout_at').single()
+    ]);
+    if(r1.data&&r2.data&&new Date(r1.data.last_login_at)<new Date(r2.data.value))await sbClient.auth.signOut();
+  }catch(e){}
+}
+
+// Settings
+var ADMIN_EMAILS=['vamsee@bounceshare.com'];
+function openSettings(){
+  document.getElementById('settings-user-email').textContent=CURRENT_USER_EMAIL||'—';
+  document.getElementById('settings-modal').classList.add('show');
+  var isAdmin=ADMIN_EMAILS.includes(CURRENT_USER_EMAIL);
+  document.getElementById('settings-danger-section').style.display=isAdmin?'block':'none';
+  document.getElementById('settings-danger-divider').style.display=isAdmin?'block':'none';
+}
+function closeSettings(){document.getElementById('settings-modal').classList.remove('show');}
+document.getElementById('settings-modal').addEventListener('click',function(e){if(e.target===this)closeSettings();});
+async function forceLogoutAll(){
+  if(!confirm('Force-sign out all sessions?'))return;
+  var btn=document.getElementById('force-logout-btn');
+  btn.disabled=true;
+  var now=new Date().toISOString();
+  var{error}=await sbClient.from('app_settings').update({value:now,updated_at:now}).eq('key','global_logout_at');
+  if(error){btn.disabled=false;alert('Error: '+error.message);return;}
+  await signOut();
+}
+
+// Sidebar
+function toggleSidebar(){var sb=document.getElementById('sb'),ov=document.getElementById('ov');sb.classList.toggle('open');ov.classList.toggle('show');setTimeout(function(){leafMap.invalidateSize();},260);}
+function closeSidebar(){document.getElementById('sb').classList.remove('open');document.getElementById('ov').classList.remove('show');setTimeout(function(){leafMap.invalidateSize();},260);}
+function togglePin(){
+  var pinned=document.body.classList.toggle('pinned');
+  document.getElementById('pinBtn').classList.toggle('pinned',pinned);
+  localStorage.setItem('sb_pinned',pinned?'1':'');
+  // Always reset hamburger state so toggleSidebar works cleanly after unpin
+  document.getElementById('sb').classList.remove('open');
+  document.getElementById('ov').classList.remove('show');
+  setTimeout(function(){setMapHeight();leafMap.invalidateSize();},280);
+}
+if(localStorage.getItem('sb_pinned')==='1'){document.body.classList.add('pinned');document.getElementById('pinBtn').classList.add('pinned');}
+
+// Map height
+function setMapHeight(){
+  var topbar=document.getElementById('topbar').offsetHeight;
+  var mapTopbar=document.getElementById('map-topbar').offsetHeight;
+  var errEl=document.getElementById('map-error');
+  var errH=errEl.style.display!=='none'?errEl.offsetHeight:0;
+  var h=window.innerHeight-topbar-mapTopbar-errH;
+  document.getElementById('map').style.height=Math.max(h,300)+'px';
+  leafMap.invalidateSize();
+}
+window.addEventListener('resize',setMapHeight);
+
+// ── Boot ──
+var _authReady=false;
+(async function(){
+  // Pre-load darkstore layers (no auth needed)
+  loadDarkstoreLayers();
+
+  var{data:{session}}=await sbClient.auth.getSession();
+  if(session){
+    // Show map immediately — check session expiry in background
+    K=session.access_token;CURRENT_USER_EMAIL=session.user.email;
+    hideAuthScreen();
+    document.getElementById('logout-btn').style.display='block';
+    _authReady=true;
+    setTimeout(function(){setMapHeight();loadMapData();loadHubMarkers();loadRsaLocations();triggerSyncFireAndForget();},100);
+    enforce12hReauth(session.user.id).then(function(){checkGlobalLogout(session.user.id);});
+  }else{_authReady=true;showAuthScreen();}
+
+  sbClient.auth.onAuthStateChange(async function(event,session){
+    if((event==='SIGNED_IN')&&session){
+      // Fresh sign-in (magic link click)
+      K=session.access_token;CURRENT_USER_EMAIL=session.user.email;
+      hideAuthScreen();
+      document.getElementById('logout-btn').style.display='block';
+      document.getElementById('logout-btn').title='Signed in as '+CURRENT_USER_EMAIL;
+      setTimeout(function(){setMapHeight();loadMapData();loadHubMarkers();loadRsaLocations();triggerSyncFireAndForget();},100);
+    }else if(event==='SIGNED_OUT'){K=ANON_KEY;document.getElementById('logout-btn').style.display='none';if(_authReady)showAuthScreen();}
+    else if(event==='TOKEN_REFRESHED'&&session){K=session.access_token;}
+  });
+
+  // Idle logout 8h
+  var _idleTimer;
+  var _idleMs=RSA_EMAILS.indexOf(CURRENT_USER_EMAIL)>-1?7*24*60*60*1000:8*60*60*1000;
+  function _resetIdle(){clearTimeout(_idleTimer);_idleTimer=setTimeout(async function(){await sbClient.auth.signOut();},_idleMs);}
+  ['click','keydown','mousemove','touchstart'].forEach(function(ev){document.addEventListener(ev,_resetIdle,{passive:true});});
+  _resetIdle();
+
+  // Global logout check every 5 min
+  setInterval(async function(){
+    var{data:{session:s}}=await sbClient.auth.getSession();
+    if(s)await checkGlobalLogout(s.user.id);
+  },5*60*1000);
+
+  // When tab becomes visible again, sync + refresh
+  document.addEventListener('visibilitychange',function(){
+    if(document.visibilityState==='visible'&&_authReady&&K&&K!==ANON_KEY){
+      sbClient.auth.getSession().then(function(r){
+        if(!r.data||!r.data.session)return;
+        triggerSyncFireAndForget();
+        loadMapData();
+      });
+    }
+  });
+
+  // Fire-and-forget sync with lock — prevents concurrent calls if edge fn is slow
+  var _syncLock=false;
+  function triggerSyncFireAndForget(){
+    if(!K||K===ANON_KEY||_syncLock)return;
+    _syncLock=true;
+    fetch('https://clkfvmmlgwcvntxnolsv.supabase.co/functions/v1/bike-location-sync',{
+      method:'POST',
+      headers:{apikey:ANON_KEY,Authorization:'Bearer '+K,'Content-Type':'application/json'},
+      body:'{}'
+    }).catch(function(){}).finally(function(){_syncLock=false;});
+  }
+
+  // Tab visible + session → sync every 1 min; tab hidden → cron handles it (5 min)
+  // 5-min auto-refresh (reduced from 1-min to cut egress ~80%)
+  // Manual refresh button still triggers immediately on demand
+  setInterval(function(){
+    if(!_authReady||!K||K===ANON_KEY)return;
+    sbClient.auth.getSession().then(function(r){
+      if(!r.data||!r.data.session)return;
+      if(!document.hidden)triggerSyncFireAndForget();
+      loadMapData();
+    });
+  },5*60*1000);
+
+  // RSA team location — 1-min refresh (only 2 rows, negligible egress)
+  setInterval(function(){
+    if(!_authReady||!K||K===ANON_KEY||document.hidden)return;
+    loadRsaLocations();
+  },60*1000);
+
+})();
+</script>
+
+</body>
+</html>

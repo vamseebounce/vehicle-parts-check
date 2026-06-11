@@ -1,0 +1,1122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<meta name="theme-color" content="#1e3a5f"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-title" content="RSA Warroom"/>
+<link rel="manifest" href="rsa-manifest.json"/>
+<title>RSA Warroom — FleetPro</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',sans-serif;background:#F8FAFC;color:#1E293B;height:100vh;display:flex;flex-direction:column;overflow:hidden}
+:root{--brand:#E8191C;--border:#E5E7EB;--shadow:0 1px 4px rgba(0,0,0,.08)}
+
+/* Topbar */
+#topbar{display:flex;align-items:center;gap:10px;padding:0 14px;height:50px;background:#fff;border-bottom:1px solid var(--border);flex-shrink:0;z-index:500}
+.tb-brand{display:flex;align-items:center;gap:6px;font-size:.82rem;font-weight:800;color:var(--brand);text-decoration:none;white-space:nowrap}
+.tb-title{font-size:.88rem;font-weight:800;color:#0F172A;white-space:nowrap}
+.tb-sep{color:#D1D5DB}
+.tb-right{display:flex;align-items:center;gap:8px;margin-left:auto}
+.tb-btn{background:#fff;border:1.5px solid var(--border);border-radius:8px;padding:5px 11px;font-size:.73rem;font-weight:600;color:#374151;cursor:pointer;font-family:'Inter',sans-serif;transition:all .15s;white-space:nowrap}
+.tb-btn:hover{border-color:var(--brand);color:var(--brand)}
+#sync-time{font-size:.68rem;color:#9CA3AF;white-space:nowrap}
+.date-input{border:1.5px solid var(--border);border-radius:8px;padding:4px 8px;font-size:.72rem;font-family:'Inter',sans-serif;color:#374151;outline:none;cursor:pointer}
+.date-input:focus{border-color:#6366F1}
+
+/* Summary tiles */
+#summary-bar{display:flex;align-items:stretch;gap:8px;padding:8px 14px;background:#fff;border-bottom:1px solid var(--border);flex-shrink:0;overflow-x:auto}
+.sum-tile{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:8px 16px;border-radius:12px;border:1.5px solid;font-size:.7rem;font-weight:600;white-space:nowrap;min-width:90px;min-height:64px;gap:2px}
+.sum-tile.new{background:#FEF2F2;border-color:#FCA5A5;color:#DC2626}
+.sum-tile.ip{background:#FFF7ED;border-color:#FDB272;color:#EA580C}
+.sum-tile.done{background:#F0FDF4;border-color:#86EFAC;color:#16A34A}
+.sum-tile.avg-c{background:#F0F9FF;border-color:#BAE6FD;color:#0369A1}
+.sum-tile.avg-r{background:#FFF1F2;border-color:#FDA4AF;color:#BE123C}
+.sum-tile.over{background:#FDF4FF;border-color:#E9D5FF;color:#7E22CE}
+.sum-tile .num{font-size:1.5rem;font-weight:900;line-height:1}
+.sum-tile .lbl{font-size:.62rem;font-weight:700;text-align:center;line-height:1.2}
+.sum-sep{width:1px;background:var(--border);align-self:stretch;margin:4px 0}
+/* Select All/Clear in dropdowns */
+.ms-actions{display:flex;gap:4px;padding:4px 4px 6px;border-bottom:1px solid #F3F4F6;margin-bottom:4px}
+.ms-action-btn{flex:1;padding:3px 0;border-radius:5px;font-size:.68rem;font-weight:600;border:1px solid var(--border);background:#F8FAFC;color:#374151;cursor:pointer;font-family:'Inter',sans-serif;transition:background .1s}
+.ms-action-btn:hover{background:#E5E7EB}
+.sum-sep{color:#D1D5DB;font-size:.8rem}
+#search-wrap{position:relative;margin-left:auto}
+#search-input{border:1.5px solid var(--border);border-radius:8px;padding:5px 10px 5px 28px;font-size:.78rem;font-family:'Inter',sans-serif;outline:none;width:200px;transition:border-color .15s;background:#fff}
+#search-input:focus{border-color:#6366F1}
+#search-input::placeholder{color:#9CA3AF}
+.search-icon{position:absolute;left:9px;top:50%;transform:translateY(-50%);font-size:.72rem;pointer-events:none;color:#9CA3AF}
+
+/* Filter bar */
+#global-bar{display:flex;align-items:center;gap:6px;padding:7px 14px;background:#EEF2FF;border-bottom:1.5px solid #C7D2FE;flex-shrink:0;flex-wrap:wrap}
+#filter-bar{display:flex;align-items:center;gap:6px;padding:6px 14px;background:#F8FAFC;border-bottom:1px solid var(--border);flex-shrink:0;flex-wrap:wrap}
+.filter-label{font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:#9CA3AF}
+/* Multi-select dropdown */
+.ms-wrap{position:relative;display:inline-block}
+.ms-btn{display:flex;align-items:center;gap:5px;padding:4px 10px;border-radius:8px;font-size:.74rem;font-weight:600;border:1.5px solid var(--border);background:#fff;color:#374151;cursor:pointer;white-space:nowrap;font-family:'Inter',sans-serif;transition:border-color .15s;user-select:none}
+.ms-btn:hover,.ms-btn.open{border-color:#6366F1;color:#4F46E5}
+.ms-btn .arrow{font-size:.6rem;margin-left:2px}
+.ms-dropdown{display:none;position:absolute;top:calc(100% + 4px);left:0;background:#fff;border:1.5px solid var(--border);border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,.12);z-index:600;min-width:150px;padding:6px}
+.ms-dropdown.open{display:block}
+.ms-opt{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:6px;cursor:pointer;font-size:.78rem;color:#374151;transition:background .1s}
+.ms-opt:hover{background:#F1F5F9}
+.ms-opt input[type=checkbox]{accent-color:#6366F1;width:14px;height:14px;cursor:pointer;flex-shrink:0}
+.ms-opt label{cursor:pointer;flex:1}
+/* Zone buttons */
+.z-btn{padding:4px 11px;border-radius:8px;font-size:.74rem;font-weight:600;border:1.5px solid var(--border);background:#fff;color:#374151;cursor:pointer;font-family:'Inter',sans-serif;transition:all .15s}
+.z-btn.active{background:#EEF2FF;border-color:#6366F1;color:#4F46E5}
+.divider{width:1px;height:18px;background:var(--border)}
+
+/* Map */
+#map-wrap{flex:1;position:relative;overflow:hidden}
+#map{width:100%;height:100%}
+
+/* Layers panel */
+#layers-panel{position:absolute;top:48px;right:12px;z-index:400;background:#fff;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,.12);padding:12px 14px;min-width:170px;display:none}
+#layers-panel.show{display:block}
+.lp-title{font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:#9CA3AF;margin-bottom:8px}
+.lp-row{display:flex;align-items:center;gap:7px;margin-bottom:7px;font-size:.78rem;color:#374151}
+.lp-row:last-child{margin-bottom:0}
+.lp-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+
+/* Legend */
+#legend{position:absolute;bottom:24px;left:12px;z-index:400;background:#fff;border-radius:10px;box-shadow:0 2px 12px rgba(0,0,0,.1);padding:10px 14px;font-size:.75rem}
+.leg-title{font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:#9CA3AF;margin-bottom:7px}
+.leg-row{display:flex;align-items:center;gap:7px;margin-bottom:4px;color:#374151}
+.leg-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.map-ctrl{position:absolute;top:12px;right:12px;z-index:400;display:flex;flex-direction:column;align-items:flex-end;gap:6px}
+.layers-toggle{background:#fff;border:1.5px solid var(--border);border-radius:8px;padding:6px 12px;font-size:.74rem;font-weight:600;color:#374151;cursor:pointer;font-family:'Inter',sans-serif;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+.layers-toggle:hover{border-color:#6366F1;color:#4F46E5}
+
+/* Popup */
+.rsa-popup{font-family:'Inter',sans-serif;font-size:12.5px;min-width:210px}
+.rsa-popup .p-ticket{font-size:.62rem;font-weight:700;color:#9CA3AF;text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px}
+.rsa-popup .p-status{display:inline-block;font-size:.68rem;font-weight:700;padding:2px 8px;border-radius:20px;margin-bottom:7px}
+.p-status.NEW{background:#FEF2F2;color:#DC2626}
+.p-status.IN_PROGRESS{background:#FFF7ED;color:#EA580C}
+.p-status.DONE{background:#F0FDF4;color:#16A34A}
+.rsa-popup .p-row{margin-bottom:3px}
+.rsa-popup .p-row b{color:#0F172A}
+.rsa-popup .p-tat{margin-top:7px;font-size:.7rem;color:#6B7280;border-top:1px solid #F3F4F6;padding-top:5px}
+.rsa-popup .p-actions{display:flex;gap:6px;margin-top:8px}
+.p-btn{flex:1;padding:5px 0;border-radius:7px;font-size:.7rem;font-weight:700;border:1.5px solid;cursor:pointer;font-family:'Inter',sans-serif;text-align:center;transition:all .15s}
+.p-btn.dir{background:#EFF6FF;border-color:#BFDBFE;color:#1D4ED8}.p-btn.dir:hover{background:#DBEAFE}
+.p-btn.cpy{background:#F8FAFC;border-color:#E2E8F0;color:#374151}.p-btn.cpy:hover{background:#F1F5F9}
+.p-btn.trk{background:#FDF4FF;border-color:#E9D5FF;color:#7E22CE}.p-btn.trk:hover{background:#F3E8FF}
+#track-panel{position:absolute;top:0;right:0;bottom:0;width:300px;background:#fff;border-left:1px solid var(--border);z-index:500;display:none;flex-direction:column;box-shadow:-4px 0 16px rgba(0,0,0,.08)}
+#track-panel.open{display:flex}
+.tp-header{padding:12px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.tp-title{font-size:.85rem;font-weight:800;color:#0F172A}
+.tp-close{background:none;border:none;font-size:1.1rem;cursor:pointer;color:#6B7280;padding:2px 6px}
+.tp-tabs{display:flex;border-bottom:1px solid var(--border);flex-shrink:0}
+.tp-tab{flex:1;padding:8px 0;font-size:.74rem;font-weight:700;text-align:center;cursor:pointer;color:#6B7280;border-bottom:2px solid transparent;transition:all .15s}
+.tp-tab.active{color:#6366F1;border-bottom-color:#6366F1}
+.tp-body{padding:12px 14px;overflow-y:auto;flex:1;display:flex;flex-direction:column;gap:10px}
+.tp-label{font-size:.68rem;font-weight:700;color:#9CA3AF;text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px}
+.tp-input{width:100%;border:1.5px solid var(--border);border-radius:8px;padding:6px 10px;font-size:.8rem;font-family:'Inter',sans-serif;outline:none;box-sizing:border-box}
+.tp-input:focus{border-color:#6366F1}
+.tp-btn{width:100%;padding:8px 0;border-radius:8px;background:#6366F1;color:#fff;font-weight:700;font-size:.8rem;border:none;cursor:pointer;font-family:'Inter',sans-serif}
+.tp-btn:hover{background:#4F46E5}.tp-btn:disabled{background:#C7D2FE;cursor:not-allowed}
+.tp-info{font-size:.75rem;color:#6B7280;line-height:1.6}
+.tp-leg-row{display:flex;align-items:center;gap:7px;font-size:.73rem;color:#374151;margin-bottom:4px}
+.tp-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+
+/* Auth */
+#auth-screen{position:fixed;inset:0;background:#fff;z-index:9999;display:flex;align-items:center;justify-content:center}
+#auth-screen.hidden{display:none}
+.auth-card{background:#fff;border:1px solid var(--border);border-radius:16px;padding:36px;width:100%;max-width:360px;text-align:center;box-shadow:0 4px 24px rgba(0,0,0,.08)}
+.auth-title{font-size:1.05rem;font-weight:800;color:#0F172A;margin-bottom:6px}
+.auth-sub{font-size:.78rem;color:#6B7280;margin-bottom:22px}
+.auth-input{width:100%;padding:10px 14px;border:1.5px solid var(--border);border-radius:10px;font-size:.84rem;font-family:'Inter',sans-serif;outline:none;margin-bottom:10px;transition:border-color .15s}
+.auth-input:focus{border-color:var(--brand)}
+.auth-btn{width:100%;padding:10px;background:var(--brand);color:#fff;border:none;border-radius:10px;font-size:.86rem;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif}
+.auth-msg{font-size:.75rem;color:#DC2626;margin-top:7px;min-height:18px}
+</style>
+</head>
+<body>
+
+<!-- Auth -->
+<div id="auth-screen">
+  <div class="auth-card">
+    <img src="logo.jpg" width="52" height="52" style="border-radius:12px;object-fit:cover;margin:0 auto 14px;display:block" onerror="this.style.display='none'"/>
+    <div class="auth-title">RSA Warroom</div>
+    <div class="auth-sub">Sign in with your Bounce email</div>
+    <div id="auth-form">
+      <input id="auth-email" class="auth-input" type="email" placeholder="you@bounceshare.com" autocomplete="email"/>
+      <button class="auth-btn" id="auth-submit" onclick="sendMagicLink()">Send Magic Link</button>
+      <div class="auth-msg" id="auth-msg"></div>
+    </div>
+    <div id="auth-sent" style="display:none">
+      <div style="font-size:2rem;margin-bottom:10px">📬</div>
+      <div style="font-weight:700;margin-bottom:5px">Check your inbox</div>
+      <div style="font-size:.78rem;color:#6B7280">Magic link sent to <b id="auth-sent-email"></b></div>
+    </div>
+  </div>
+</div>
+
+<!-- Topbar -->
+<div id="topbar">
+  <a href="./index.html" class="tb-brand">
+    <img src="logo.jpg" width="24" height="24" style="border-radius:5px;object-fit:cover" onerror="this.style.display='none'"/>
+    FleetPro
+  </a>
+  <span class="tb-sep">·</span>
+  <span class="tb-title">🦺 RSA Warroom</span>
+  <div class="tb-right">
+    <button class="tb-btn" id="logout-btn" style="display:none" onclick="signOut()">Sign out</button>
+  </div>
+</div>
+
+<!-- Global filters: City + Date -->
+<div id="global-bar">
+  <span class="filter-label">City</span>
+  <div class="ms-wrap" id="ms-city">
+    <div class="ms-btn" onclick="toggleDropdown('ms-city')">All <span class="arrow">▾</span></div>
+    <div class="ms-dropdown">
+      <div class="ms-actions"><button class="ms-action-btn" onclick="msSelectAll('ms-city')">All</button><button class="ms-action-btn" onclick="msClear('ms-city')">Clear</button></div>
+      <div class="ms-opt"><input type="checkbox" id="c-blr" value="BLR" onchange="renderTickets()"/><label for="c-blr">🏙 Bangalore (BLR)</label></div>
+      <div class="ms-opt"><input type="checkbox" id="c-ncr" value="NCR" onchange="renderTickets()"/><label for="c-ncr">🏙 Delhi (NCR)</label></div>
+      <div class="ms-opt"><input type="checkbox" id="c-hyd" value="HYD" onchange="renderTickets()"/><label for="c-hyd">🏙 Hyderabad (HYD)</label></div>
+    </div>
+  </div>
+  <div class="divider"></div>
+  <span class="filter-label">From</span>
+  <input type="date" id="date-from" class="date-input" onchange="onDateChange()"/>
+  <span class="filter-label">To</span>
+  <input type="date" id="date-to" class="date-input" onchange="onDateChange()"/>
+  <button class="tb-btn" onclick="fetchAndLoad(true)" style="margin-left:4px">↻ Refresh</button>
+  <span id="sync-time" style="font-size:.7rem;color:#6B7280;white-space:nowrap;margin-left:4px"></span>
+</div>
+
+<!-- Tiles (global filter scope) -->
+<div id="summary-bar">
+  <div class="sum-tile new" onclick="flashStatus('NEW','#DC2626')" style="cursor:pointer" title="Click to highlight on map"><div class="num" id="cnt-new">—</div><div class="lbl">NEW</div></div>
+  <div class="sum-tile ip" onclick="flashStatus('IN_PROGRESS','#EA580C')" style="cursor:pointer" title="Click to highlight on map"><div class="num" id="cnt-ip">—</div><div class="lbl">IN PROGRESS</div></div>
+  <div class="sum-tile done" onclick="flashStatus('DONE','#16A34A')" style="cursor:pointer" title="Click to highlight on map"><div class="num" id="cnt-done">—</div><div class="lbl">DONE</div></div>
+  <div class="sum-sep"></div>
+  <div class="sum-tile avg-c"><div class="num" id="cnt-avg-closure">—</div><div class="lbl">Avg Closure TAT</div></div>
+  <div class="sum-tile avg-r"><div class="num" id="cnt-avg-response">—</div><div class="lbl">Avg Response TAT</div></div>
+  <div class="sum-tile over"><div class="num" id="cnt-over1hr">—</div><div class="lbl">RSA &gt; 1hr %</div></div>
+</div>
+
+<!-- Map filters -->
+<div id="filter-bar">
+  <span class="filter-label" title="Applies to selected city">Zone</span>
+  <button class="z-btn active" id="z-all" onclick="setZone('ALL',this)">All</button>
+  <button class="z-btn" id="z-n" onclick="setZone('NORTH',this)">North</button>
+  <button class="z-btn" id="z-s" onclick="setZone('SOUTH',this)">South</button>
+  <div class="divider"></div>
+  <span class="filter-label">Status</span>
+  <div class="ms-wrap" id="ms-status">
+    <div class="ms-btn" onclick="toggleDropdown('ms-status')">All <span class="arrow">▾</span></div>
+    <div class="ms-dropdown">
+      <div class="ms-actions"><button class="ms-action-btn" onclick="msSelectAll('ms-status')">All</button><button class="ms-action-btn" onclick="msClear('ms-status')">Clear</button></div>
+      <div class="ms-opt"><input type="checkbox" id="s-new" value="NEW" onchange="renderTickets()"/><label for="s-new">🔴 NEW</label></div>
+      <div class="ms-opt"><input type="checkbox" id="s-ip" value="IN_PROGRESS" onchange="renderTickets()"/><label for="s-ip">🟠 IN PROGRESS</label></div>
+      <div class="ms-opt"><input type="checkbox" id="s-done" value="DONE" onchange="renderTickets()"/><label for="s-done">🟢 DONE</label></div>
+    </div>
+  </div>
+  <div class="divider"></div>
+  <span class="filter-label">TAT</span>
+  <div class="ms-wrap" id="ms-tat">
+    <div class="ms-btn" onclick="toggleDropdown('ms-tat')">All <span class="arrow">▾</span></div>
+    <div class="ms-dropdown">
+      <div class="ms-actions"><button class="ms-action-btn" onclick="msSelectAll('ms-tat')">All</button><button class="ms-action-btn" onclick="msClear('ms-tat')">Clear</button></div>
+      <div class="ms-opt"><input type="checkbox" id="t-5" value="5" onchange="renderTickets()"/><label for="t-5">&lt; 5 min</label></div>
+      <div class="ms-opt"><input type="checkbox" id="t-30" value="30" onchange="renderTickets()"/><label for="t-30">5 – 30 min</label></div>
+      <div class="ms-opt"><input type="checkbox" id="t-over" value="OVER" onchange="renderTickets()"/><label for="t-over">30+ min</label></div>
+    </div>
+  </div>
+  <div class="divider"></div>
+  <span class="filter-label">Assigned</span>
+  <div class="ms-wrap" id="ms-tech">
+    <div class="ms-btn" onclick="toggleDropdown('ms-tech')">All <span class="arrow">▾</span></div>
+    <div class="ms-dropdown">
+      <div class="ms-actions"><button class="ms-action-btn" onclick="msSelectAll('ms-tech')">All</button><button class="ms-action-btn" onclick="msClear('ms-tech')">Clear</button></div>
+      <div class="ms-opt"><input type="checkbox" id="a-none" value="NONE" onchange="renderTickets()"/><label for="a-none">Unassigned</label></div>
+      <div class="ms-opt"><input type="checkbox" id="a-n" value="Nishanth" onchange="renderTickets()"/><label for="a-n">Nishanth</label></div>
+      <div class="ms-opt"><input type="checkbox" id="a-p" value="Pavan" onchange="renderTickets()"/><label for="a-p">Pavan</label></div>
+    </div>
+  </div>
+  <div id="search-wrap" style="margin-left:auto">
+    <span class="search-icon">🔍</span>
+    <input id="search-input" type="text" placeholder="Search reg / ticket…" oninput="searchZoom()" autocomplete="off"/>
+  </div>
+</div>
+
+<!-- Map -->
+<div id="map-wrap">
+  <div id="map"></div>
+  <div class="map-ctrl">
+    <button class="layers-toggle" onclick="recenterMap()" title="Recenter map">⊙ Recenter</button>
+    <button class="layers-toggle" onclick="openTrackPanel()">🛤 Track</button>
+    <button class="layers-toggle" onclick="toggleLayersPanel()">🗂 Layers</button>
+  </div>
+  <div id="layers-panel">
+    <div class="lp-title">Map Layers</div>
+    <div class="lp-row"><label style="display:flex;align-items:center;gap:7px;cursor:pointer"><input type="checkbox" id="lyr-hubs" checked onchange="toggleLayer('hubs')" style="accent-color:#E8191C"/><div class="lp-dot" style="background:#E8191C;border-radius:3px"></div>Bounce Hubs</label></div>
+    <div class="lp-row"><label style="display:flex;align-items:center;gap:7px;cursor:pointer"><input type="checkbox" id="lyr-rsa" checked onchange="toggleLayer('rsa')" style="accent-color:#1D4ED8"/><div class="lp-dot" style="background:#1D4ED8"></div>RSA Team</label></div>
+  </div>
+  <div id="legend">
+    <div class="leg-title">Ticket Status</div>
+    <div class="leg-row"><div class="leg-dot" style="background:#DC2626"></div>NEW</div>
+    <div class="leg-row"><div class="leg-dot" style="background:#EA580C"></div>IN PROGRESS</div>
+    <div class="leg-row"><div class="leg-dot" style="background:#16A34A"></div>DONE</div>
+    <div class="leg-title" style="margin-top:8px">Team</div>
+    <div class="leg-row"><div class="leg-dot" style="background:#1D4ED8"></div>RSA Technician</div>
+    <div class="leg-row"><div class="leg-dot" style="background:#E8191C;border-radius:3px"></div>Bounce Hub</div>
+  </div>
+
+  <!-- Track Panel -->
+  <div id="track-panel">
+    <div class="tp-header">
+      <span class="tp-title">🛤 Track</span>
+      <button class="tp-close" onclick="closeTrackPanel()">✕</button>
+    </div>
+    <div class="tp-tabs">
+      <div class="tp-tab active" id="tp-tab-team" onclick="switchTrackTab('team')">RSA Team</div>
+      <div class="tp-tab" id="tp-tab-ticket" onclick="switchTrackTab('ticket')">Ticket Trail</div>
+    </div>
+    <div class="tp-body" id="tp-body-team">
+      <div>
+        <div class="tp-label">Person</div>
+        <select id="tp-person" class="tp-input">
+          <option value="Nishanth">Nishanth</option>
+          <option value="Pavan">Pavan</option>
+        </select>
+      </div>
+      <div>
+        <div class="tp-label">From</div>
+        <input type="date" id="tp-from" class="tp-input"/>
+      </div>
+      <div>
+        <div class="tp-label">To</div>
+        <input type="date" id="tp-to" class="tp-input"/>
+      </div>
+      <button class="tp-btn" id="tp-team-btn" onclick="loadTeamTrack()">Show Trail</button>
+      <div class="tp-info" id="tp-team-info"></div>
+      <div id="tp-team-legend" style="display:none">
+        <div class="tp-leg-row"><div class="tp-dot" style="background:#22C55E"></div>Start</div>
+        <div class="tp-leg-row"><div class="tp-dot" style="background:#1D4ED8"></div>Movement</div>
+        <div class="tp-leg-row"><div class="tp-dot" style="background:#EF4444"></div>Latest</div>
+      </div>
+    </div>
+    <div class="tp-body" id="tp-body-ticket" style="display:none">
+      <div>
+        <div class="tp-label">Ticket Number</div>
+        <input type="text" id="tp-ticket-num" class="tp-input" placeholder="e.g. 12345"/>
+      </div>
+      <button class="tp-btn" id="tp-ticket-btn" onclick="loadTicketTrack()">Show Trail</button>
+      <div class="tp-info" id="tp-ticket-info"></div>
+      <div id="tp-ticket-legend" style="display:none">
+        <div class="tp-leg-row"><div class="tp-dot" style="background:#EF4444"></div>NEW</div>
+        <div class="tp-leg-row"><div class="tp-dot" style="background:#F97316"></div>IN PROGRESS</div>
+        <div class="tp-leg-row"><div class="tp-dot" style="background:#6B7280"></div>Movement snapshots</div>
+        <div class="tp-leg-row"><div class="tp-dot" style="background:#22C55E"></div>DONE / Last point</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+var SB_URL='https://clkfvmmlgwcvntxnolsv.supabase.co';
+var ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNsa2Z2bW1sZ3djdm50eG5vbHN2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ1NDQ2NTgsImV4cCI6MjA5MDEyMDY1OH0.FA33GFQisWX_hDeGCWqL5yAZmPcuQRdxZX32I23lyoY';
+var METABASE_CARD='f79c5050-213f-4a6e-962f-1369de907cdb';
+var K=ANON_KEY,CURRENT_USER_EMAIL='',_authReady=false;
+var sbClient=supabase.createClient(SB_URL,ANON_KEY,{auth:{persistSession:true,storageKey:'fleetpro_session',autoRefreshToken:true}});
+
+// Map
+var leafMap=L.map('map',{zoomControl:true}).setView([12.97,77.59],11);
+L.tileLayer('https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png',{attribution:'© OpenStreetMap © CARTO',maxZoom:19,subdomains:'abcd'}).addTo(leafMap);
+var ticketGroup=L.layerGroup().addTo(leafMap);
+var hubGroup=L.layerGroup().addTo(leafMap);
+var rsaGroup=L.layerGroup().addTo(leafMap);
+
+// Per-city config: [centerLat, centerLng, zoom, divLat, lngMin, lngMax, lngLabel, city bounds]
+var CITY_CONFIG={
+  'BLR':{divLat:12.97,lngMin:77.38,lngMax:77.82,lngLabel:77.58,name:'BLR',center:[12.97,77.59],zoom:11,bounds:[[12.75,77.28],[13.25,77.88]]},
+  'NCR':{divLat:28.62,lngMin:76.85,lngMax:77.60,lngLabel:77.22,name:'NCR',center:[28.62,77.22],zoom:12,bounds:[[28.38,76.80],[28.90,77.65]]},
+  'HYD':{divLat:17.38,lngMin:78.20,lngMax:78.75,lngLabel:78.48,name:'HYD',center:[17.38,78.48],zoom:12,bounds:[[17.15,78.20],[17.62,78.80]]}
+};
+// Dynamic divider layer group — redrawn when city selection changes
+var dividerGroup=L.layerGroup().addTo(leafMap);
+// Zone shade layer — shaded rectangle for North/South selection
+var zoneShadeGroup=L.layerGroup().addTo(leafMap);
+
+function updateDividers(){
+  dividerGroup.clearLayers();
+  var citySel=getChecked('ms-city');
+  if(!citySel.length)return; // no city selected = no dividers
+  citySel.forEach(function(code){
+    var c=CITY_CONFIG[code];if(!c)return;
+    L.polyline([[c.divLat,c.lngMin],[c.divLat,c.lngMax]],{color:'#6366F1',weight:2,dashArray:'8,5',opacity:0.55}).addTo(dividerGroup);
+    L.marker([c.divLat,c.lngLabel],{icon:L.divIcon({className:'',html:'<div style="font-family:Inter,sans-serif;font-size:10px;font-weight:700;color:#4F46E5;background:rgba(255,255,255,.9);padding:2px 8px;border-radius:4px;border:1px solid #C7D2FE;white-space:nowrap;box-shadow:0 1px 3px rgba(0,0,0,.1)">▲ North '+c.name+'</div>',iconAnchor:[40,14]})}).addTo(dividerGroup);
+    L.marker([c.divLat,c.lngLabel],{icon:L.divIcon({className:'',html:'<div style="font-family:Inter,sans-serif;font-size:10px;font-weight:700;color:#4F46E5;background:rgba(255,255,255,.9);padding:2px 8px;border-radius:4px;border:1px solid #C7D2FE;white-space:nowrap;box-shadow:0 1px 3px rgba(0,0,0,.1)">▼ South '+c.name+'</div>',iconAnchor:[40,-4]})}).addTo(dividerGroup);
+  });
+}
+
+// State
+// Infer city from lat/lng when ticket.city is null; default to BLR if unknown
+function inferCity(t){
+  if(t.city)return t.city.toUpperCase();
+  if(t.lat&&t.lng){
+    for(var code in CITY_CONFIG){
+      var c=CITY_CONFIG[code];
+      if(t.lat>=c.bounds[0][0]&&t.lat<=c.bounds[1][0]&&
+         t.lng>=c.bounds[0][1]&&t.lng<=c.bounds[1][1])return code;
+    }
+  }
+  return 'BLR'; // default: RSA currently BLR-only; re-sync will populate city properly
+}
+
+var _all=[];
+var _filtered=[];
+var _zoneFilter='ALL';
+var _isToday=true;
+var _lastCitySel=null;
+
+// RSA team
+var RSA_BIKES=[
+  {chassis:'P6EBE1JYK25000288',name:'Nishanth'},
+  {chassis:'P6EBE1JYK25000072',name:'Pavan'}
+];
+
+// ── Helpers ──
+function todayStr(){return new Date().toLocaleDateString('en-CA');}
+function statusColor(s){return s==='NEW'?'#DC2626':s==='IN_PROGRESS'?'#EA580C':s==='DONE'?'#16A34A':'#94A3B8';}
+function makeTicketIcon(status){
+  var c=statusColor(status),sz=status==='NEW'?14:12;
+  return L.divIcon({className:'',html:'<div style="width:'+sz+'px;height:'+sz+'px;border-radius:50%;background:'+c+';border:2.5px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.35)"></div>',iconSize:[sz,sz],iconAnchor:[sz/2,sz/2]});
+}
+function makeHubIcon(){
+  return L.icon({iconUrl:'logo.jpg',iconSize:[20,20],iconAnchor:[10,10],popupAnchor:[0,-10],className:'hub-icon'});
+}
+function pingColor(t){
+  if(!t)return '#94A3B8';
+  var ts=t.toString().trim().replace(' ','T').replace(/(Z|[+-]\d{2}(:?\d{2})?)$/,'');
+  var d=new Date(ts+'Z');if(isNaN(d.getTime()))return '#94A3B8';
+  var m=(Date.now()-d.getTime())/60000;
+  return m<15?'#22C55E':m<60?'#F59E0B':m<180?'#EF4444':'#94A3B8';
+}
+function makeRsaIcon(name,loc){
+  var c=pingColor(loc);
+  return L.divIcon({className:'',html:'<div style="display:flex;flex-direction:column;align-items:center"><div style="width:28px;height:28px;border-radius:50%;background:#1D4ED8;border:2.5px solid #fff;box-shadow:0 0 0 2px '+c+',0 2px 6px rgba(0,0,0,.3);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#fff;font-family:Inter,sans-serif">'+name[0]+'</div><div style="margin-top:2px;background:#1D4ED8;color:#fff;font-size:8px;font-weight:700;padding:1px 4px;border-radius:3px;white-space:nowrap;font-family:Inter,sans-serif">'+name+'</div></div>',iconSize:[28,44],iconAnchor:[14,14]});
+}
+function parseUtcTs(ts){if(!ts)return null;var s=ts.toString().trim().replace(' ','T').replace(/(Z|[+-]\d{2}(?::?\d{2})?)$/,'');var d=new Date(s+'Z');return isNaN(d.getTime())?null:d;}
+function fmtTime(ts){var d=parseUtcTs(ts);return d?d.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',hour12:true,timeZone:'Asia/Kolkata'}):'--';}
+function fmtTat(m){if(m==null||m<0)return '--';return m<60?Math.round(m)+' min':(m/60).toFixed(1)+' hr';}
+function tatMins(t){
+  if(t.status==='DONE'&&t.tat_minutes!=null)return t.tat_minutes;
+  if(t.created_at_ist){var d=parseUtcTs(t.created_at_ist);if(d)return(Date.now()-d)/60000;}
+  return null;
+}
+
+function ticketPopup(t){
+  var tat=tatMins(t);
+  var lat=t.display_lat||t.lat;var lng=t.display_lng||t.lng;
+  var mapsUrl=lat&&lng?'https://www.google.com/maps/dir/?api=1&destination='+lat+','+lng:'';
+  var coordStr=lat&&lng?(lat.toFixed(5)+', '+lng.toFixed(5)):'';
+  return '<div class="rsa-popup">'
+    +'<div class="p-ticket">'+t.ticket_number+'</div>'
+    +'<span class="p-status '+t.status+'">'+t.status.replace('_',' ')+'</span>'
+    +'<div class="p-row"><b>Reg:</b> '+(t.reg_number||'--')+(t.city?' · <span style="background:#EEF2FF;color:#4F46E5;font-size:.65rem;font-weight:700;padding:1px 5px;border-radius:4px">'+t.city+'</span>':'')+'</div>'
+    +'<div class="p-row"><b>Category:</b> '+(t.category||'--')+'</div>'
+    +'<div class="p-row"><b>Fault:</b> '+(t.fault_details||'--')+'</div>'
+    +'<div class="p-row"><b>Technician:</b> '+(t.technician_name||'Not assigned')+'</div>'
+    +'<div class="p-tat">'
+    +'Created: '+fmtTime(t.created_at_ist)
+    +(t.inprogress_at_ist?' · In-progress: '+fmtTime(t.inprogress_at_ist):'')
+    +(t.resolved_at_ist?' · Resolved: '+fmtTime(t.resolved_at_ist):'')
+    +'<br><b>TAT: '+fmtTat(tat)+'</b>'
+    +'</div>'
+    +'<div class="p-actions">'
+    +(lat&&lng?'<button class="p-btn dir" onclick="copyMapLink('+lat+','+lng+',this)">📍 Copy map link</button>':'')
+    +'<button class="p-btn trk" onclick="openTicketTrack(\''+t.ticket_number+'\')">🛤 Track</button>'
+    +'</div>'
+    +'</div>';
+}
+
+function copyMapLink(lat,lng,btn){
+  var url='https://maps.google.com/?q='+lat+','+lng;
+  navigator.clipboard.writeText(url).then(function(){
+    var orig=btn.textContent;btn.textContent='✓ Copied!';
+    setTimeout(function(){btn.textContent=orig;},2000);
+  });
+}
+
+// ── Filter helpers ──
+function getChecked(wrapId){
+  var all=[].slice.call(document.querySelectorAll('#'+wrapId+' input[type=checkbox]'));
+  var checked=all.filter(function(c){return c.checked;});
+  // If all options selected → treat as "no filter" (same as All)
+  if(checked.length===all.length)return [];
+  return checked.map(function(c){return c.value;});
+}
+function updateDropdownLabel(wrapId,allLabel){
+  var checked=getChecked(wrapId);
+  var btn=document.querySelector('#'+wrapId+' .ms-btn');
+  btn.childNodes[0].textContent=checked.length===0?allLabel:checked.length+' selected ';
+}
+
+function renderTickets(){
+  drawZoneShade();
+  updateDropdownLabel('ms-status','All ');
+  updateDropdownLabel('ms-tat','All ');
+  updateDropdownLabel('ms-tech','All ');
+  updateDropdownLabel('ms-city','All ');
+  var statusSel=getChecked('ms-status');
+  var tatSel=getChecked('ms-tat');
+  var techSel=getChecked('ms-tech');
+  var q='';
+
+  ticketGroup.clearLayers();
+  var filtered=_all.filter(function(t){
+    if(statusSel.length&&statusSel.indexOf(t.status)<0)return false;
+    if(tatSel.length){
+      var m=tatMins(t);
+      var tatMatch=tatSel.some(function(v){
+        if(v==='5')return m!=null&&m<5;
+        if(v==='30')return m!=null&&m>=5&&m<30;
+        if(v==='OVER')return m!=null&&m>=30;
+        return false;
+      });
+      if(!tatMatch)return false;
+    }
+    if(techSel.length){
+      var techMatch=techSel.some(function(v){
+        if(v==='NONE')return !t.technician_name;
+        return (t.technician_name||'').toLowerCase().includes(v.toLowerCase());
+      });
+      if(!techMatch)return false;
+    }
+    // Zone filter: N/S relative to each city's own center lat (applies to all cities)
+    if(_zoneFilter!=='ALL'){
+      var dispLat=t.display_lat||t.lat;
+      if(dispLat){
+        var tCC=CITY_CONFIG[inferCity(t)||''];
+        if(tCC){
+          if(_zoneFilter==='NORTH'&&dispLat<tCC.divLat)return false;
+          if(_zoneFilter==='SOUTH'&&dispLat>=tCC.divLat)return false;
+        }
+      }
+    }
+    var citySel=getChecked('ms-city');
+    if(citySel.length){
+      if(citySel.indexOf(inferCity(t)||'')<0)return false;
+    }
+    return true;
+  });
+
+  _filtered=filtered;
+  var bounds=[];
+  filtered.forEach(function(t){
+    if(!t.display_lat||!t.display_lng)return;
+    L.marker([t.display_lat,t.display_lng],{icon:makeTicketIcon(t.status),zIndexOffset:t.status==='NEW'?200:t.status==='IN_PROGRESS'?100:0})
+      .bindPopup(ticketPopup(t),{maxWidth:260})
+      .addTo(ticketGroup);
+    bounds.push([t.display_lat,t.display_lng]);
+  });
+
+  // Update divider lines for selected cities
+  updateDividers();
+
+  // Map fit: only refit when city selection changes
+  var citySel=getChecked('ms-city');
+  var cityKey=citySel.slice().sort().join(',');
+  if(cityKey!==_lastCitySel){
+    _lastCitySel=cityKey;
+    if(citySel.length===1){
+      // Single city: zoom to city center
+      var cc=CITY_CONFIG[citySel[0]];
+      if(cc)leafMap.setView(cc.center,cc.zoom,{animate:true});
+    }else if(citySel.length>1){
+      // Multiple cities: fit to combined bounds
+      var mb=[];
+      citySel.forEach(function(code){var c=CITY_CONFIG[code];if(c)mb=mb.concat(c.bounds);});
+      if(mb.length)leafMap.fitBounds(L.latLngBounds(mb).pad(0.05),{animate:true,maxZoom:11});
+    }else if(bounds.length>1){
+      leafMap.fitBounds(L.latLngBounds(bounds).pad(0.2),{animate:true,maxZoom:12});
+    }else if(bounds.length===1){
+      leafMap.setView(bounds[0],13,{animate:true});
+    }
+  }
+
+  // Tiles reflect current filter selection
+  // Tiles: city-scoped only (global filter — ignore Zone/Status/TAT/Assigned)
+  var citySel=getChecked('ms-city');
+  var globalFiltered=_all.filter(function(t){
+    if(citySel.length&&citySel.indexOf(inferCity(t)||'')<0)return false;
+    return true;
+  });
+  document.getElementById('cnt-new').textContent=globalFiltered.filter(function(t){return t.status==='NEW';}).length;
+  document.getElementById('cnt-ip').textContent=globalFiltered.filter(function(t){return t.status==='IN_PROGRESS';}).length;
+  document.getElementById('cnt-done').textContent=globalFiltered.filter(function(t){return t.status==='DONE';}).length;
+  computeMetrics(globalFiltered);
+  // Note: tickets without lat/lng won't show on map (Bass_Lat/Bass_Lng missing from Metabase)
+  var noLoc=filtered.filter(function(t){return !t.display_lat||!t.display_lng;}).length;
+  if(noLoc>0){
+    document.getElementById('sync-time').textContent=(document.getElementById('sync-time').textContent||'')
+      .replace(/ · \d+ no GPS/,'')+' · '+noLoc+' no GPS';
+  }
+}
+
+// ── Computed metrics — always from current dataset (matches map exactly) ──
+function fmtMin(m){if(m==null||isNaN(m)||!isFinite(m))return '—';return m<60?Math.round(m)+'m':(m/60).toFixed(1)+'h';}
+function computeMetrics(data){
+  // Avg Closure TAT — DONE tickets with tat_minutes
+  var done=data.filter(function(t){return t.status==='DONE'&&t.tat_minutes!=null;});
+  var avgClosure=done.length?done.reduce(function(s,t){return s+parseFloat(t.tat_minutes);},0)/done.length:null;
+
+  // Avg Response TAT — time from created → inprogress (positive diffs only)
+  var respDiffs=data.reduce(function(arr,t){
+    if(!t.inprogress_at_ist||!t.created_at_ist)return arr;
+    var diff=(parseUtcTs(t.inprogress_at_ist)-parseUtcTs(t.created_at_ist))/60000;
+    if(diff>0&&diff<600)arr.push(diff); // ignore negatives and outliers >10h
+    return arr;
+  },[]);
+  var avgResp=respDiffs.length?respDiffs.reduce(function(s,v){return s+v;},0)/respDiffs.length:null;
+
+  // RSA >1hr% — % of DONE tickets that took >60 min (not all tickets)
+  var over1hr=done.length?Math.round(done.filter(function(t){return parseFloat(t.tat_minutes)>60;}).length/done.length*100):null;
+
+  document.getElementById('cnt-avg-closure').textContent=fmtMin(avgClosure);
+  document.getElementById('cnt-avg-response').textContent=fmtMin(avgResp);
+  document.getElementById('cnt-over1hr').textContent=over1hr!=null?over1hr+'%':'—';
+}
+
+// ── Dropdown Select All / Clear ──
+function msSelectAll(wrapId){
+  document.querySelectorAll('#'+wrapId+' input[type=checkbox]').forEach(function(c){c.checked=true;});
+  renderTickets();
+}
+function msClear(wrapId){
+  document.querySelectorAll('#'+wrapId+' input[type=checkbox]').forEach(function(c){c.checked=false;});
+  renderTickets();
+}
+
+function recenterMap(){
+  _lastCitySel=null; // force refit
+  renderTickets();
+}
+
+function flashStatus(status, color){
+  // Respect city filter — only flash tickets visible in current city selection
+  var citySel=getChecked('ms-city');
+  var matches=_all.filter(function(t){
+    if(t.status!==status)return false;
+    if(!(t.display_lat||t.lat)||!(t.display_lng||t.lng))return false;
+    if(citySel.length&&citySel.indexOf(inferCity(t)||'')<0)return false;
+    return true;
+  });
+  if(!matches.length)return;
+  var flashGroup=L.layerGroup().addTo(leafMap);
+  var bounds=[];
+  matches.forEach(function(t){
+    var lat=t.display_lat||t.lat, lng=t.display_lng||t.lng;
+    L.circleMarker([lat,lng],{radius:20,color:color,weight:3,fillOpacity:0,opacity:0.85,className:'flash-ring'})
+      .addTo(flashGroup);
+    bounds.push([lat,lng]);
+  });
+  // Fit map to show all matching tickets
+  if(bounds.length===1)leafMap.setView(bounds[0],15,{animate:true});
+  else if(bounds.length>1)leafMap.fitBounds(L.latLngBounds(bounds).pad(0.25),{animate:true,maxZoom:14});
+  // Remove after 5s
+  setTimeout(function(){leafMap.removeLayer(flashGroup);},5000);
+}
+
+function searchZoom(){
+  var q=(document.getElementById('search-input').value||'').trim().toLowerCase();
+  if(!q)return;
+  var match=(_filtered.length?_filtered:_all).find(function(t){
+    return (t.reg_number||'').toLowerCase().includes(q)||
+           (t.ticket_number||'').toLowerCase().includes(q);
+  });
+  if(!match||!match.lat||!match.lng)return;
+  leafMap.setView([match.lat,match.lng],16,{animate:true});
+  // Flash a highlight marker briefly
+  var hl=L.circleMarker([match.lat,match.lng],{radius:22,color:'#F59E0B',weight:3,fillOpacity:0,opacity:0.9}).addTo(leafMap);
+  setTimeout(function(){leafMap.removeLayer(hl);},2000);
+}
+
+function setZone(v,el){
+  _zoneFilter=v;
+  document.querySelectorAll('.z-btn').forEach(function(b){b.classList.remove('active');});
+  el.classList.add('active');
+  drawZoneShade();
+  renderTickets();
+}
+
+function drawZoneShade(){
+  zoneShadeGroup.clearLayers();
+  if(_zoneFilter==='ALL')return;
+  // Shade applies per selected city
+  var cities=getChecked('ms-city');
+  var toShade=cities.length?cities:Object.keys(CITY_CONFIG);
+  toShade.forEach(function(cityKey){
+    var c=CITY_CONFIG[cityKey];if(!c)return;
+    var latMin=c.bounds[0][0],latMax=c.bounds[1][0];
+    var lngMin=c.bounds[0][1],lngMax=c.bounds[1][1];
+    var shadeBounds;
+    if(_zoneFilter==='NORTH'){
+      shadeBounds=[[c.divLat,lngMin],[latMax,lngMax]];
+    } else {
+      shadeBounds=[[latMin,lngMin],[c.divLat,lngMax]];
+    }
+    L.rectangle(shadeBounds,{
+      color:'#6366F1',weight:0,
+      fillColor:'#6366F1',fillOpacity:0.10,
+      interactive:false
+    }).addTo(zoneShadeGroup);
+  });
+}
+
+// ── Dropdown toggle ──
+function toggleDropdown(id){
+  var wrap=document.getElementById(id);
+  var btn=wrap.querySelector('.ms-btn');
+  var dd=wrap.querySelector('.ms-dropdown');
+  var isOpen=dd.classList.contains('open');
+  // Close all
+  document.querySelectorAll('.ms-dropdown.open').forEach(function(d){d.classList.remove('open');});
+  document.querySelectorAll('.ms-btn.open').forEach(function(b){b.classList.remove('open');});
+  if(!isOpen){dd.classList.add('open');btn.classList.add('open');}
+}
+document.addEventListener('click',function(e){
+  if(!e.target.closest('.ms-wrap')){
+    document.querySelectorAll('.ms-dropdown.open').forEach(function(d){d.classList.remove('open');});
+    document.querySelectorAll('.ms-btn.open').forEach(function(b){b.classList.remove('open');});
+  }
+});
+
+// ── Data loading ──
+// Sync only triggered on manual Refresh — cron handles background sync every 2 min
+async function triggerSync(){
+  try{
+    fetch(SB_URL+'/functions/v1/rsa-ticket-sync',{
+      method:'POST',headers:{apikey:ANON_KEY,'Content-Type':'application/json'},body:'{}'
+    }).catch(function(){});
+  }catch(e){}
+}
+
+async function fetchFromMetabase(fromDate,toDate){
+  var params=JSON.stringify([
+    {type:'date/single',target:['variable',['template-tag','start_date']],value:fromDate},
+    {type:'date/single',target:['variable',['template-tag','end_date']],value:toDate}
+  ]);
+  var url='http://metabaselatest-dy7gqwqrma-el.a.run.app/api/public/card/'+METABASE_CARD+'/query/json?parameters='+encodeURIComponent(params);
+  var res=await fetch(url);
+  if(!res.ok)throw new Error('Metabase error '+res.status);
+  var rows=await res.json();
+  return rows.map(function(r){return{
+    ticket_number:String(r.ticketNumber||''),
+    status:r.status||null,
+    category:r.category||null,
+    reg_number:r['Reg Number']||null,
+    technician_name:r['Technician Name']||null,
+    fault_details:r.faultDetails||null,
+    created_at_ist:r.Created_at_IST||null,
+    inprogress_at_ist:r.InProgress_at_IST||null,
+    resolved_at_ist:r.Resolved_at_IST||null,
+    tat_minutes:r.TAT_Minutes||null,
+    lat:r.Bass_Lat||null,lng:r.Bass_Lng||null,
+    display_lat:r.Bass_Lat||null,display_lng:r.Bass_Lng||null
+  };}).filter(function(r){return r.ticket_number;});
+}
+
+
+var RSA_CACHE_KEY='rsa_tickets_v1';
+var RSA_CACHE_TTL=60*1000; // 1 min
+
+var _syncTimer=null;
+
+async function readFromSupabase(from,to){
+  var url=SB_URL+'/rest/v1/rsa_tickets_live'
+    +'?select=ticket_number,status,category,reg_number,technician_name,fault_details,created_at_ist,inprogress_at_ist,resolved_at_ist,tat_minutes,city,lat,lng,display_lat,display_lng'
+    +'&created_at_ist=gte.'+from
+    +'&created_at_ist=lte.'+to+'T23%3A59%3A59'
+    +'&limit=5000&order=created_at_ist.desc';
+  var res=await fetch(url,{headers:{apikey:ANON_KEY,Authorization:'Bearer '+K}});
+  return res.ok?await res.json():[];
+}
+
+function resetTiles(){
+  ['cnt-new','cnt-ip','cnt-done','cnt-avg-closure','cnt-avg-response','cnt-over1hr'].forEach(function(id){
+    document.getElementById(id).textContent='—';
+  });
+  ticketGroup.clearLayers();
+}
+
+async function fetchAndLoad(forceSync){
+  if(!K||K===ANON_KEY)return;
+  var from=document.getElementById('date-from').value;
+  var to=document.getElementById('date-to').value;
+  if(!from||!to)return;
+  _isToday=(from===todayStr()&&to===todayStr());
+
+  // Today + cache fresh + not forced → serve from localStorage
+  if(_isToday&&!forceSync){
+    try{
+      var c=JSON.parse(localStorage.getItem(RSA_CACHE_KEY)||'null');
+      if(c&&c.ts&&(Date.now()-c.ts)<RSA_CACHE_TTL){
+        _all=c.data;_lastCitySel=null;renderTickets();
+        document.getElementById('sync-time').textContent='Cached '+Math.round((Date.now()-c.ts)/1000)+'s ago';
+        return;
+      }
+    }catch(e){}
+  }
+
+  // Clear stale tiles immediately — don't show numbers from previous date range
+  resetTiles();
+  _all=[];
+
+  // Fire sync fire-and-forget (don't block the UI)
+  if(forceSync||!_isToday){
+    localStorage.removeItem(RSA_CACHE_KEY);
+    if(_syncTimer)clearInterval(_syncTimer);
+
+    // Show existing Supabase data for this exact date range (not stale from different range)
+    readFromSupabase(from,to).then(function(existing){
+      if(existing.length>0){_all=existing;_lastCitySel=null;renderTickets();document.getElementById('sync-time').textContent='Showing cached data — refreshing…';}
+    }).catch(function(){});
+
+    // Fire sync in background — Metabase takes ~60s
+    fetch(SB_URL+'/functions/v1/rsa-ticket-sync',{
+      method:'POST',
+      headers:{apikey:ANON_KEY,'Content-Type':'application/json'},
+      body:JSON.stringify({start_date:from,end_date:to})
+    }).then(function(r){if(!r.ok)r.text().then(function(t){console.error('Sync error',r.status,t);document.getElementById('sync-time').textContent='Sync error: '+r.status+' — check console';});})
+    .catch(function(e){console.error('Sync fetch failed',e);document.getElementById('sync-time').textContent='Sync failed — network error';});
+
+    // Poll Supabase every 5s until fresh data appears (max 120s)
+    var pollCount=0,maxPolls=24,lastCount=-1;
+    document.getElementById('sync-time').textContent='Syncing from Metabase (~60s)…';
+    _syncTimer=setInterval(async function(){
+      pollCount++;
+      try{
+        var tickets=await readFromSupabase(from,to);
+        if(tickets.length>0&&tickets.length!==lastCount){
+          lastCount=tickets.length;
+          if(_isToday){try{localStorage.setItem(RSA_CACHE_KEY,JSON.stringify({data:tickets,ts:Date.now()}));}catch(e){}}
+          _all=tickets;_lastCitySel=null;renderTickets();
+          var now=new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',hour12:true});
+          document.getElementById('sync-time').textContent='Updated '+now+' · '+tickets.length+' tickets';
+        }
+      }catch(e){}
+      if(pollCount>=maxPolls){
+        clearInterval(_syncTimer);_syncTimer=null;
+        if(lastCount<0)document.getElementById('sync-time').textContent='Sync timed out — try Refresh';
+      }
+    },5000);
+    return; // don't block, poll will update UI
+  }
+
+  // Today (no cache) — direct fetch from Supabase
+  try{
+    var tickets=await readFromSupabase(from,to);
+    if(_isToday){try{localStorage.setItem(RSA_CACHE_KEY,JSON.stringify({data:tickets,ts:Date.now()}));}catch(e){}}
+    _all=tickets;_lastCitySel=null;renderTickets();
+    var now=new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',hour12:true});
+    document.getElementById('sync-time').textContent='Updated '+now+' · '+tickets.length+' tickets';
+  }catch(e){console.error(e);}
+}
+
+function onDateChange(){
+  var fromEl=document.getElementById('date-from');
+  var toEl=document.getElementById('date-to');
+  var from=fromEl.value,to=toEl.value;
+  if(!from||!to)return;
+  var fromD=new Date(from),toD=new Date(to);
+  // Enforce: to >= from
+  if(toD<fromD){toEl.value=from;toD=fromD;}
+  // Enforce: max 30 days range
+  var maxTo=new Date(fromD);maxTo.setDate(maxTo.getDate()+29);
+  if(toD>maxTo){
+    toEl.value=maxTo.toLocaleDateString('en-CA');
+    alert('Maximum date range is 30 days.');
+  }
+  // Update date-to min so picker prevents selecting before from
+  toEl.min=from;
+  // Update date-to max to from+29d
+  toEl.max=maxTo.toLocaleDateString('en-CA');
+  if(_syncTimer){clearInterval(_syncTimer);_syncTimer=null;}
+  _lastCitySel=null;
+  resetTiles();
+  fetchAndLoad(false);
+}
+
+// ── Hub markers ──
+async function loadHubs(){
+  try{
+    var res=await fetch(SB_URL+'/rest/v1/rental_locations?select=location_name,lat,lng,short_address&status=eq.active&city_id=eq.1',
+      {headers:{apikey:ANON_KEY,Authorization:'Bearer '+K}});
+    var hubs=res.ok?await res.json():[];
+    hubGroup.clearLayers();
+    hubs.forEach(function(h){
+      if(!h.lat||!h.lng)return;
+      L.marker([h.lat,h.lng],{icon:makeHubIcon(),zIndexOffset:300})
+        .bindPopup('<div style="font-family:Inter,sans-serif;font-size:13px"><b>'+h.location_name+'</b>'+(h.short_address?'<br><span style="font-size:11px;color:#6B7280">'+h.short_address+'</span>':'')+'</div>')
+        .addTo(hubGroup);
+    });
+  }catch(e){}
+}
+
+// ── RSA team locations ──
+async function loadRsaLocations(){
+  if(!K||K===ANON_KEY)return;
+  try{
+    var chassis=RSA_BIKES.map(function(b){return b.chassis;});
+    var res=await fetch(SB_URL+'/rest/v1/bike_location_cache?select=chassis_number,lat,lng,baas_location_time,current_soc&chassis_number=in.('+chassis.join(',')+')',
+      {headers:{apikey:ANON_KEY,Authorization:'Bearer '+K}});
+    if(!res.ok)return;
+    var rows=await res.json();
+    rsaGroup.clearLayers();
+    rows.forEach(function(b,idx){
+      if(!b.lat||!b.lng)return;
+      var info=RSA_BIKES.find(function(r){return r.chassis===b.chassis_number;})||{};
+      var name=info.name||b.chassis_number;
+      var pingTs=b.baas_location_time?b.baas_location_time.replace(' ','T').replace(/(Z|[+-]\d{2}(:?\d{2})?)$/,'')+'Z':null;
+      var pingStr=pingTs?new Date(pingTs).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',hour12:true,timeZone:'Asia/Kolkata'}):'--';
+      var popup='<div style="font-family:Inter,sans-serif;font-size:13px;min-width:150px">'
+        +'<div style="font-weight:800;color:#1D4ED8;margin-bottom:4px">🦺 RSA — '+name+'</div>'
+        +'<div><b>SOC:</b> '+(b.current_soc!=null?b.current_soc+'%':'--')+'</div>'
+        +'<div><b>Last ping:</b> '+pingStr+' IST</div>'
+        +'</div>';
+      L.marker([b.lat+idx*0.0003,b.lng],{icon:makeRsaIcon(name,b.baas_location_time),zIndexOffset:1000})
+        .bindPopup(popup,{maxWidth:200}).addTo(rsaGroup);
+    });
+  }catch(e){}
+}
+
+// ── Layers panel ──
+function toggleLayersPanel(){document.getElementById('layers-panel').classList.toggle('show');}
+
+// ── Track panel ──
+var _trackLayer=L.layerGroup().addTo(leafMap);
+
+function openTrackPanel(){
+  document.getElementById('track-panel').classList.add('open');
+  // Default dates to today
+  var t=todayStr();
+  if(!document.getElementById('tp-from').value)document.getElementById('tp-from').value=t;
+  if(!document.getElementById('tp-to').value)document.getElementById('tp-to').value=t;
+}
+function closeTrackPanel(){
+  document.getElementById('track-panel').classList.remove('open');
+  _trackLayer.clearLayers();
+}
+function switchTrackTab(tab){
+  document.getElementById('tp-body-team').style.display=tab==='team'?'flex':'none';
+  document.getElementById('tp-body-ticket').style.display=tab==='ticket'?'flex':'none';
+  document.getElementById('tp-tab-team').classList.toggle('active',tab==='team');
+  document.getElementById('tp-tab-ticket').classList.toggle('active',tab==='ticket');
+  _trackLayer.clearLayers();
+}
+function openTicketTrack(ticketNum){
+  document.getElementById('track-panel').classList.add('open');
+  switchTrackTab('ticket');
+  document.getElementById('tp-ticket-num').value=ticketNum;
+  loadTicketTrack();
+}
+
+async function loadTeamTrack(){
+  var person=document.getElementById('tp-person').value;
+  var from=document.getElementById('tp-from').value;
+  var to=document.getElementById('tp-to').value;
+  if(!from||!to)return;
+  var btn=document.getElementById('tp-team-btn');
+  btn.disabled=true;btn.textContent='Loading…';
+  _trackLayer.clearLayers();
+  document.getElementById('tp-team-info').textContent='';
+  document.getElementById('tp-team-legend').style.display='none';
+  try{
+    var url=SB_URL+'/rest/v1/rsa_team_locations'
+      +'?select=lat,lng,synced_at'
+      +'&name=eq.'+encodeURIComponent(person)
+      +'&synced_at=gte.'+from
+      +'&synced_at=lte.'+to+'T23:59:59'
+      +'&order=synced_at.asc&limit=2000';
+    var res=await fetch(url,{headers:{apikey:ANON_KEY,Authorization:'Bearer '+K}});
+    var rows=res.ok?await res.json():[];
+    if(!rows.length){document.getElementById('tp-team-info').textContent='No data for this range.';btn.disabled=false;btn.textContent='Show Trail';return;}
+    var pts=rows.map(function(r){return[r.lat,r.lng];});
+    // Polyline
+    L.polyline(pts,{color:'#1D4ED8',weight:2.5,opacity:0.7}).addTo(_trackLayer);
+    // Start pin (green)
+    L.circleMarker(pts[0],{radius:7,color:'#22C55E',fillColor:'#22C55E',fillOpacity:1,weight:2}).bindPopup('<b>Start</b><br>'+fmtTime(rows[0].synced_at)).addTo(_trackLayer);
+    // End pin (red)
+    L.circleMarker(pts[pts.length-1],{radius:7,color:'#EF4444',fillColor:'#EF4444',fillOpacity:1,weight:2}).bindPopup('<b>Latest</b><br>'+fmtTime(rows[rows.length-1].synced_at)).addTo(_trackLayer);
+    leafMap.fitBounds(L.latLngBounds(pts).pad(0.15),{animate:true});
+    document.getElementById('tp-team-info').textContent=rows.length+' points · '+from+(from!==to?' → '+to:'');
+    document.getElementById('tp-team-legend').style.display='block';
+  }catch(e){document.getElementById('tp-team-info').textContent='Error loading track.';}
+  btn.disabled=false;btn.textContent='Show Trail';
+}
+
+async function loadTicketTrack(){
+  var ticketNum=(document.getElementById('tp-ticket-num').value||'').trim();
+  if(!ticketNum)return;
+  var btn=document.getElementById('tp-ticket-btn');
+  btn.disabled=true;btn.textContent='Loading…';
+  _trackLayer.clearLayers();
+  document.getElementById('tp-ticket-info').textContent='';
+  document.getElementById('tp-ticket-legend').style.display='none';
+  try{
+    // Fetch movement trail
+    var url=SB_URL+'/rest/v1/rsa_ticket_locations'
+      +'?select=lat,lng,status,synced_at'
+      +'&ticket_number=eq.'+encodeURIComponent(ticketNum)
+      +'&order=synced_at.asc&limit=2000';
+    var res=await fetch(url,{headers:{apikey:ANON_KEY,Authorization:'Bearer '+K}});
+    var rows=res.ok?await res.json():[];
+    // Fetch ticket info for status change timestamps
+    var tRes=await fetch(SB_URL+'/rest/v1/rsa_tickets_live?select=ticket_number,status,created_at_ist,inprogress_at_ist,resolved_at_ist,lat,lng,display_lat,display_lng&ticket_number=eq.'+encodeURIComponent(ticketNum),{headers:{apikey:ANON_KEY,Authorization:'Bearer '+K}});
+    var tData=tRes.ok?await tRes.json():[];
+    var ticket=tData[0];
+    if(!ticket){document.getElementById('tp-ticket-info').textContent='Ticket not found.';btn.disabled=false;btn.textContent='Show Trail';return;}
+    if(!rows.length&&!ticket.display_lat&&!ticket.lat){document.getElementById('tp-ticket-info').textContent='No location data yet — trail builds as cron runs every 2 min.';btn.disabled=false;btn.textContent='Show Trail';return;}
+    var pts=rows.map(function(r){return[r.lat,r.lng];});
+    if(pts.length>1)L.polyline(pts,{color:'#6B7280',weight:2,opacity:0.6,dashArray:'4,4'}).addTo(_trackLayer);
+    // Grey movement pins with timestamp
+    rows.forEach(function(r,i){
+      var isFirst=i===0,isLast=i===rows.length-1;
+      var color=isFirst?'#EF4444':isLast?'#22C55E':'#6B7280';
+      var radius=isFirst||isLast?8:5;
+      L.circleMarker([r.lat,r.lng],{radius:radius,color:color,fillColor:color,fillOpacity:isFirst||isLast?1:0.55,weight:2})
+        .bindPopup('<b>'+r.status.replace('_',' ')+'</b><br>'+fmtTime(r.synced_at))
+        .addTo(_trackLayer);
+    });
+    // Status change markers from ticket data
+    if(ticket){
+      if(ticket.inprogress_at_ist&&ticket.display_lat)
+        L.marker([ticket.display_lat,ticket.display_lng],{icon:L.divIcon({className:'',html:'<div style="background:#F97316;color:#fff;font-size:9px;font-weight:800;padding:2px 5px;border-radius:4px;white-space:nowrap">IN PROGRESS</div>',iconAnchor:[30,10]})}).addTo(_trackLayer);
+      if(ticket.resolved_at_ist&&ticket.lat)
+        L.marker([ticket.lat,ticket.lng],{icon:L.divIcon({className:'',html:'<div style="background:#22C55E;color:#fff;font-size:9px;font-weight:800;padding:2px 5px;border-radius:4px;white-space:nowrap">DONE</div>',iconAnchor:[20,10]})}).addTo(_trackLayer);
+    }
+    var allPts=pts.length?pts:(ticket&&(ticket.display_lat||ticket.lat)?[[ticket.display_lat||ticket.lat,ticket.display_lng||ticket.lng]]:[]);
+    if(allPts.length>1)leafMap.fitBounds(L.latLngBounds(allPts).pad(0.2),{animate:true,maxZoom:15});
+    else if(allPts.length===1)leafMap.setView(allPts[0],15,{animate:true});
+    var msg=(ticket?'Status: '+ticket.status:'');
+    msg+=rows.length?' · '+rows.length+' movement points':' · No trail yet (builds every 2 min for open tickets)';
+    document.getElementById('tp-ticket-info').textContent=msg;
+    document.getElementById('tp-ticket-legend').style.display='block';
+  }catch(e){document.getElementById('tp-ticket-info').textContent='Error loading track.';}
+  btn.disabled=false;btn.textContent='Show Trail';
+}
+function toggleLayer(key){
+  var chk=document.getElementById('lyr-'+key);
+  if(key==='hubs'){chk.checked?leafMap.addLayer(hubGroup):leafMap.removeLayer(hubGroup);}
+  else if(key==='rsa'){chk.checked?leafMap.addLayer(rsaGroup):leafMap.removeLayer(rsaGroup);}
+}
+document.addEventListener('click',function(e){
+  var panel=document.getElementById('layers-panel');
+  if(panel.classList.contains('show')&&!panel.contains(e.target)&&!e.target.closest('.layers-toggle'))panel.classList.remove('show');
+});
+
+// ── Auth ──
+function showAuthScreen(){document.getElementById('auth-screen').classList.remove('hidden');}
+function hideAuthScreen(){document.getElementById('auth-screen').classList.add('hidden');}
+async function sendMagicLink(){
+  var email=document.getElementById('auth-email').value.trim().toLowerCase();
+  var msg=document.getElementById('auth-msg'),btn=document.getElementById('auth-submit');
+  if(!email){msg.textContent='Please enter your email.';return;}
+  if(!email.endsWith('@bounceshare.com')&&email!=='vamsee@scalability.club'){msg.textContent='Access restricted to Bounce team.';return;}
+  btn.disabled=true;btn.textContent='Sending…';msg.textContent='';
+  var{error}=await sbClient.auth.signInWithOtp({email,options:{shouldCreateUser:false}});
+  btn.disabled=false;btn.textContent='Send Magic Link';
+  if(error){msg.textContent=error.message;return;}
+  document.getElementById('auth-sent-email').textContent=email;
+  document.getElementById('auth-form').style.display='none';
+  document.getElementById('auth-sent').style.display='block';
+}
+async function signOut(){await sbClient.auth.signOut();}
+
+// ── Boot ──
+(function(){
+  // Set default date = today; clamp date-to to max 30 days from date-from
+  var t=todayStr();
+  var maxTo30=new Date(t);maxTo30.setDate(maxTo30.getDate()+29);
+  document.getElementById('date-from').value=t;
+  document.getElementById('date-to').value=t;
+  document.getElementById('date-to').min=t;
+  document.getElementById('date-to').max=maxTo30.toLocaleDateString('en-CA');
+  // Default city = BLR
+  var blrChk=document.getElementById('c-blr');
+  if(blrChk){blrChk.checked=true;updateDropdownLabel('ms-city','All ');updateDividers();}
+  // Default status = NEW + IN_PROGRESS (hide DONE)
+  document.getElementById('s-new').checked=true;
+  document.getElementById('s-ip').checked=true;
+  document.getElementById('s-done').checked=false;
+  updateDropdownLabel('ms-status','All ');
+})();
+
+(async function(){
+  var{data:{session}}=await sbClient.auth.getSession();
+  if(session){
+    K=session.access_token;CURRENT_USER_EMAIL=session.user.email;
+    hideAuthScreen();
+    document.getElementById('logout-btn').style.display='block';
+    _authReady=true;
+    // No triggerSync on load — cron handles every 2 min; only manual Refresh triggers sync
+    setTimeout(function(){fetchAndLoad(false);loadRsaLocations();loadHubs();subscribeRealtime();},800);
+  }else{_authReady=true;showAuthScreen();}
+
+  sbClient.auth.onAuthStateChange(async function(event,session){
+    if(event==='SIGNED_IN'&&session){
+      K=session.access_token;CURRENT_USER_EMAIL=session.user.email;
+      hideAuthScreen();
+      document.getElementById('logout-btn').style.display='block';
+      _authReady=true;
+      setTimeout(function(){fetchAndLoad(false);loadRsaLocations();loadHubs();subscribeRealtime();},800);
+    }else if(event==='SIGNED_OUT'){K=ANON_KEY;if(_realtimeChannel){sbClient.removeChannel(_realtimeChannel);_realtimeChannel=null;}showAuthScreen();}
+    else if(event==='TOKEN_REFRESHED'&&session){K=session.access_token;}
+  });
+
+  // Realtime subscription — instant update when cron writes to rsa_tickets_cache
+  var _realtimeChannel=null;
+  function subscribeRealtime(){
+    if(_realtimeChannel)return;
+    _realtimeChannel=sbClient.channel('rsa_tickets_cache')
+      .on('postgres_changes',{event:'*',schema:'public',table:'rsa_tickets_cache'},function(){
+        if(!_isToday||document.hidden)return;
+        // Debounce: cron does delete+insert in batch, wait for it to settle then do a clean re-fetch
+        clearTimeout(window._rtDebounce);
+        window._rtDebounce=setTimeout(function(){
+          _lastRealtimeUpdate=Date.now();
+          var from=document.getElementById('date-from').value;
+          var to=document.getElementById('date-to').value;
+          readFromSupabase(from,to).then(function(tickets){
+            if(!tickets.length)return;
+            _all=tickets;_lastCitySel=null;renderTickets();
+            var now=new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',hour12:true});
+            document.getElementById('sync-time').textContent='Live · '+now+' · '+tickets.length+' tickets';
+            try{localStorage.setItem(RSA_CACHE_KEY,JSON.stringify({data:tickets,ts:Date.now()}));}catch(e){}
+          });
+        },3000); // 3s debounce — waits for full batch insert to complete
+      })
+      .subscribe();
+  }
+
+  // Fallback poll — only fires if Realtime hasn't updated in 5 min
+  var _lastRealtimeUpdate=Date.now();
+  setInterval(function(){
+    if(!_authReady||!K||K===ANON_KEY||document.hidden||!_isToday)return;
+    if(Date.now()-_lastRealtimeUpdate>5*60*1000)fetchAndLoad(false);
+  },5*60*1000);
+
+  // RSA team location refresh — every 2 min (matches cron cadence)
+  setInterval(function(){
+    if(!_authReady||!K||K===ANON_KEY||document.hidden)return;
+    loadRsaLocations();
+  },2*60*1000);
+})();
+if('serviceWorker' in navigator){navigator.serviceWorker.register('rsa-sw.js').catch(()=>{});}
+</script>
+</body>
+</html>
