@@ -58,9 +58,9 @@ Legend: ⬜ TODO · 🔄 IN PROGRESS · ✅ DONE · ⏸ BLOCKED
 
 | # | Task | Status | Notes |
 |---|------|--------|-------|
-| 2½.1 | Create `vehicles` dimension table (`chassis_number` PK, reg, model, city) | ⬜ | Additive, safe now |
+| 2½.1 | Create `vehicles` dimension table (`chassis_number` PK, reg, model, city) | ✅ | Applied to DB + migration file |
 | 2½.2 | Create `ticket_status_history` table + trigger on `rsa_tickets_cache` upsert | ⬜ | Additive, safe now |
-| 2½.3 | Create `fw_pending_history` table + daily pg_cron snapshot | ⬜ | Additive, safe now |
+| 2½.3 | Create `fw_pending_history` table + daily pg_cron snapshot | ✅ | Applied to DB + migration file |
 | 2½.4 | Create `bike_telemetry_history` table (partitioned) + hourly insert in bike-location-sync | ⬜ | High volume — design partitioning first |
 | 2½.5 | Enforce `resolution_type` as constrained enum on ticket_events | ⬜ | Label quality for ML |
 | 2½.6 | Add `synced_at` + raw-payload JSONB column to `rsa_tickets` upserts | ⬜ | Cheap insurance for re-featurization |
@@ -101,7 +101,7 @@ Legend: ⬜ TODO · 🔄 IN PROGRESS · ✅ DONE · ⏸ BLOCKED
 
 | # | Task | Status | Notes |
 |---|------|--------|-------|
-| 5.1 | Create `sync_heartbeats` table | ⬜ | Additive, safe now |
+| 5.1 | Create `sync_heartbeats` table | ✅ | Applied to DB + migration file |
 | 5.2 | Update each edge fn to write to `sync_heartbeats` | ⬜ | |
 | 5.3 | Update Cowork 8 AM health check to read `sync_heartbeats` | ⬜ | |
 | 5.4 | Add Sentry (free tier) to shared lib | ⬜ | All pages get error reporting |

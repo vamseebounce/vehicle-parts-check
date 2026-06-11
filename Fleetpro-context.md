@@ -1,5 +1,5 @@
 # Fleetpro — Context File
-*Last updated: 2026-06-11 (session 5 — architecture review)*
+*Last updated: 2026-06-11 (session 6 — Phase 0 complete + 2½ additive tables)*
 
 ## 🏗 Architecture Roadmap (session 5)
 - `ARCHITECTURE-PROPOSAL.md` created at repo root — 6-phase productization roadmap (PROPOSAL ONLY, nothing executed)
@@ -9,8 +9,31 @@
 - Verified this session: fw_bikes_live exposes rider_phone via anon REST; tech.html line 673 updates rsa_tickets_cache directly from client; RSA_EMAILS allowlist client-side at fw-map.html:736; admin secret NOT hardcoded in admin-techs.html (user-entered) but is plaintext in this file
 - Added §7 "Phase 2½ ML data foundation" to proposal: bike_telemetry_history, ticket_status_history, fw_pending_history, vehicles dim table, Parquet archival tiering — because Vamsee wants predictive systems later and current pipeline overwrites all history (bike_location_cache latest-only every 5 min)
 
-> **Session rules:** Use grep/sed instead of reading full files. Keep bash output minimal. All changes go in v8. RRR is a separate project — ignore it in this window.
+> **Session rules:** Use grep/sed instead of reading full files. Keep bash output minimal. All changes go in `/Bounce/fleetpro/`. RRR is a separate project — ignore it in this window.
 > **At session end: update this file with any changes.**
+
+---
+
+## Git / GitHub (set up session 6)
+
+- **Repo:** https://github.com/vamseebounce/vehicle-parts-check
+- **Branch:** `main` → GitHub Pages → bounceops.online
+- **PAT:** embedded in remote URL for sandbox-autonomous pushes. ⚠️ Token `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` was shared in chat — **regenerate it**.
+- **Lock file gotcha:** Sandbox creates `.git/index.lock` and `refs/remotes/origin/main.lock` on macOS FUSE mount but cannot delete them. Workaround: `git add` + `git commit` must run from user's **Terminal**; sandbox handles `git push` and `git tag`.
+- **Rollback tags:** `phase-0.0`, `v8-final`, `phase-0.3`, `phase-0.4`, `phase-0.5`, `phase-0.6`, `phase-2half-additive` (vehicles, sync_heartbeats, fw_pending_history)
+- **Task tracker:** `PRODUCTIZATION-TASKS.md` in repo root — 47 tasks across Phase 0–6 + Phase 2½
+- **.gitignore:** excludes `.DS_Store`, `v6/`, `v7/`, `archive/`, `*.lock`
+
+### Phase 0 status (paused here)
+| Task | Status |
+|------|--------|
+| 0.0 Push v8 to GitHub | ✅ `phase-0.0` |
+| 0.1 Tag v8-final | ✅ `v8-final` |
+| 0.2 Move v6/v7 to archive/ | ✅ gitignored |
+| 0.3 Capture all 13 edge fns → supabase/functions/ | ✅ `phase-0.3` |
+| 0.4 DB dump → baseline migration | ✅ `phase-0.4` |
+| 0.5 Cron job definitions → supabase/cron-jobs.sql | ✅ `phase-0.5` |
+| 0.6 README | ✅ `phase-0.6` |
 
 ## Window Split
 - **RRR window** → Analysis, SQL queries, RRR project work
@@ -25,6 +48,14 @@
 ---
 
 ## 🟡 Pending Issues
+
+### 0. 🔴 URGENT (found session 5): rsa-ticket-sync cron dead since June 9 ~17:34 UTC
+- pg_cron job 13 (`rsa-ticket-sync-2min`): 1,299 consecutive failures, "job startup timeout", 0 successes
+- rsa.html data only fresh via users clicking Refresh (manual edge fn calls work fine — Metabase card f79c5050 alive, 45 tickets synced 12:48 UTC June 11)
+- Suspected cause: job 13 command has over-escaped headers JSON (`\\\"` doubled) vs working job 11 — likely bad edit during June 9 fw-sheet-sync 401 fix session
+- Fix (execute in Sonnet window): `cron.unschedule(13)` + re-`cron.schedule` with clean escaping modeled on job 11; rsa-ticket-sync is verify_jwt=false so no auth headers needed
+- Side effects while down: rsa_ticket_locations trails + edge-fn team tracking not appending (rsa-team-track-2min SQL job unaffected, healthy)
+- Also confirmed: Supabase/Fleetpro CANNOT delete Metabase tables — edge fn only GETs a public card URL, holds no Metabase credentials (Vamsee saw a Tickets table removed in Metabase; cause is upstream, not this project)
 
 ### 1. Historical data null lat/lng + null city
 - Tickets synced before edge fn v9 (old card 6f11e26e) have null city/GPS
@@ -141,6 +172,16 @@ Metabase (card f79c5050, last 30 days) → rsa-ticket-sync edge fn (v9) → rsa_
 
 ---
 
+## New Tables (session 6 — Phase 2½ + 5.1)
+
+| Table | Purpose | Notes |
+|-------|---------|-------|
+| `vehicles` | Dimension table: one row per chassis (reg, model, city) | ML training anchor. Empty — needs backfill from bike_location_cache |
+| `sync_heartbeats` | One row per edge fn run (status, duration_ms, rows_affected) | Edge fns not yet wired to write here — Task 5.2 |
+| `fw_pending_history` | Daily snapshot of fw_pending_cache (chassis, hub, reg) | Cron `fw-pending-daily-snapshot` runs 18:25 UTC (23:55 IST) daily |
+
+---
+
 ## Supabase Objects
 
 ### Tables
@@ -239,12 +280,13 @@ Both have 7-day session (no 12h reauth) in fw-map.html. RSA_EMAILS list in fw-ma
 ---
 
 ## Live URLs
-- bounceops.online → index.html
-- bounceops.online/fw-map.html → FW Flash Map (restricted allowlist)
-- bounceops.online/rsa.html → RSA Warroom
-- bounceops.online/tech.html → Technician PWA (Supabase auth, email/password)
-- bounceops.online/admin-techs.html → Tech admin panel (unlock: Bounce@123)
-- bounceops.online/maintenance.html, /queue.html, /deployment.html
+- bounceops.online → redirects to v8/index.html (FleetPro hub, magic link auth)
+- bounceops.online/v8/fw-map.html → FW Flash Map (restricted allowlist)
+- bounceops.online/v8/rsa.html → RSA Warroom
+- bounceops.online/v8/tech.html → Technician PWA (Supabase auth, email/password)
+- bounceops.online/v8/admin-techs.html → Tech admin panel (unlock: Bounce@123)
+- bounceops.online/v8/maintenance.html, /queue.html, /deployment.html
+- All v8/ assets in git including logo.jpg (was missing, restored session 6)
 
 ## Supabase
 - Project ID: `clkfvmmlgwcvntxnolsv` (Tokyo, ap-northeast-1)
