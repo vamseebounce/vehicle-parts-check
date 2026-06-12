@@ -1,5 +1,5 @@
 # Fleetpro — Context File
-*Last updated: 2026-06-12 (session 6 — Phase 0 complete, 2½ tables, 1.2, 5.6, H1 rsa-ticket-sync hotfix)*
+*Last updated: 2026-06-13 (session 7 — 1.1 secret rotated, 1.3 role claims, 1.4 DB-driven fw-map auth, 1.9 hubs view, permission system built, index.html role-aware tiles)*
 
 ## 🏗 Architecture Roadmap (session 5)
 - `ARCHITECTURE-PROPOSAL.md` created at repo root — 6-phase productization roadmap (PROPOSAL ONLY, nothing executed)
@@ -18,7 +18,7 @@
 
 - **Repo:** https://github.com/vamseebounce/vehicle-parts-check
 - **Branch:** `main` → GitHub Pages → bounceops.online
-- **PAT:** embedded in remote URL for sandbox-autonomous pushes. ⚠️ Token `<REDACTED_REGENERATE_IN_GITHUB>` was shared in chat — **regenerate it**.
+- **PAT:** embedded in remote URL for sandbox-autonomous pushes. Regenerated session 7 (old token revoked).
 - **Lock file gotcha:** Sandbox creates `.git/index.lock` and `refs/remotes/origin/main.lock` on macOS FUSE mount but cannot delete them. Workaround: `git add` + `git commit` must run from user's **Terminal**; sandbox handles `git push` and `git tag`.
 - **Rollback tags:** `phase-0.0`, `v8-final`, `phase-0.3`, `phase-0.4`, `phase-0.5`, `phase-0.6`, `phase-2half-additive` (vehicles, sync_heartbeats, fw_pending_history), `phase-2half-additive-2` (ticket_status_history)
 - **Task tracker:** `PRODUCTIZATION-TASKS.md` in repo root — 47 tasks across Phase 0–6 + Phase 2½
@@ -98,7 +98,9 @@
 | `tech-sw.js` | Service worker for tech.html |
 | `rsa-manifest.json` | PWA manifest for rsa.html |
 | `rsa-sw.js` | Service worker for rsa.html |
-| `admin-techs.html` | **NEW** — Admin panel: create/manage tech accounts, view actions log |
+| `admin-techs.html` | **NEW** — Admin panel: create/manage tech accounts, view actions log. Session 7: role dropdown added (tech/ops/admin) |
+| `admin-permissions.html` | **NEW (session 7)** — Groups×Features + Users×Groups permission matrix manager |
+| `index.html` | Session 7: data-feature attributes on FW Map + RSA tiles; loadUserPermissions + applyTilePermissions wired |
 
 ---
 
@@ -168,7 +170,12 @@ Metabase (card f79c5050, last 30 days) → rsa-ticket-sync edge fn (v9) → rsa_
 | `rsa_technicians` | Table | id (=auth.users.id), name, email, phone, is_active |
 | `rsa_tech_actions` | Table | ticket_number, technician_id, action, resolution_type, notes, evidence_urls[] |
 | `rsa-evidence` | Storage bucket | photos/videos, 50MB limit, authenticated upload only |
-| `admin-create-tech` | Edge fn | create/deactivate/reset_password/list — protected by ADMIN_SECRET |
+| `admin-create-tech` | Edge fn | create/deactivate/reset_password/list/set_role — protected by ADMIN_SECRET. v5: sets app_metadata.role (admin/ops/tech) on create |
+| `groups` | Table | Permission groups. Current: Default, RSA Field Team, RSA Warroom, Admin |
+| `group_features` | Table | group_id → feature_key. Feature keys: fw-map, rsa-warroom, tech-app, admin-panel, export-data, all-cities |
+| `user_groups` | Table | user_id → group_id (one-to-many). Nishanth+Pavan in RSA Field Team |
+| `admin-permissions` | Edge fn | v2: list_groups, list_users, toggle_user_group, toggle_group_feature, create_group, delete_group. Protected by Login_key. Blocks changes to superadmin users (is_superadmin flag in app_metadata). |
+| `admin-permissions.html` | Page | Tab 1: Groups×Features matrix. Tab 2: Users×Groups matrix. Live checkbox toggles. |
 
 ---
 
@@ -204,6 +211,7 @@ Metabase (card f79c5050, last 30 days) → rsa-ticket-sync edge fn (v9) → rsa_
 |------|---------|
 | `fw_bikes_live` | fw_pending_cache ⨝ bike_location_cache ⨝ bike_rider_cache — 1,366 FW-pending bikes with location+rider |
 | `rsa_tickets_live` | rsa_tickets_cache — adds `display_lat`/`display_lng`: DONE→Bass snapshot (lat/lng), NEW/IN_PROGRESS→COALESCE(live_lat, lat) |
+| `hubs` | rental_locations WHERE status='active', exposes id/location_name/lat/lng/address/short_address/dms_code/city_id |
 
 ### Edge Functions
 | Function | Schedule | Purpose |
@@ -236,7 +244,7 @@ Metabase (card f79c5050, last 30 days) → rsa-ticket-sync edge fn (v9) → rsa_
 | Nishanth | P6EBE1JYK25000288 | KA05AR5056 | internal use — in bike_location_cache |
 | Pavan | P6EBE1JYK25000072 | KA05AR3238 | internal use — in bike_location_cache |
 
-Both have 7-day session (no 12h reauth) in fw-map.html. RSA_EMAILS list in fw-map.html.
+Both have 7-day session (no 12h reauth) in fw-map.html. RSA_EMAILS kept in fw-map.html as fallback only — primary auth is now DB-driven via user_groups → group_features. Both are assigned to RSA Field Team group in user_groups.
 
 ---
 
@@ -251,6 +259,38 @@ Both have 7-day session (no 12h reauth) in fw-map.html. RSA_EMAILS list in fw-ma
 - Checks: cron last run (>10min=WARN, >30min=FAIL), DB reachable, tickets today, open tickets
 - Task ID: `fleetpro-health-check` in Cowork Scheduled sidebar
 - **Egress alert (task 5.6):** `health-check` fn updated — calls Supabase Management API (`MGMT_TOKEN` secret) daily via pg_cron job 16 (03:00 UTC / 08:30 IST). Emails `vamsee@bounceshare.com` if egress ≥ 70% (175 GB of 250 GB). Also emails on DB health failure.
+
+---
+
+## Permission System (session 7)
+
+### Groups & Feature Keys
+| Group | Features |
+|-------|----------|
+| Default | (none — can see everything except fw-map and rsa-warroom) |
+| RSA Field Team | fw-map, tech-app |
+| RSA Warroom | fw-map, rsa-warroom |
+| Admin | all 6 features |
+
+Feature keys: `fw-map` · `rsa-warroom` · `tech-app` · `admin-panel` · `export-data` · `all-cities`
+
+### How it works
+- `loadUserPermissions(userId)` — queries `user_groups` → `group_features` → returns `{key:true}` map, or `null` if user has no groups (null = fallback to legacy RSA_EMAILS in fw-map, show-all in index.html)
+- `applyTilePermissions(features)` in index.html — hides `[data-feature]` elements whose key is absent from features map
+- `fpCan(key)` in fw-map.html — checks `window.FP_FEATURES` for access gate
+- Superadmin (`vamsee@scalability.club`): `app_metadata.is_superadmin=true`, cannot be modified by admin-permissions fn (403 returned)
+- `window.FP_FEATURES` global — set after login, available for any page-level feature check
+
+### index.html tile gating
+- `data-feature="fw-map"` on FW Pending Map tile + sidebar link
+- `data-feature="rsa-warroom"` on RSA Warroom tile + sidebar link
+- Elements with missing feature are set to `display:none` — design unchanged, tiles simply disappear
+- Existing session: optimistic show → load permissions async → hide if no access
+- Fresh sign-in: await permissions before applying tile visibility
+
+### Admin tools
+- `admin-permissions.html` — manage groups/features/users via checkbox matrices
+- Login_key rotated session 7 to `Hatric1@3` (stored in Supabase env, never in code)
 
 ---
 
@@ -286,7 +326,8 @@ Both have 7-day session (no 12h reauth) in fw-map.html. RSA_EMAILS list in fw-ma
 - bounceops.online/v8/fw-map.html → FW Flash Map (restricted allowlist)
 - bounceops.online/v8/rsa.html → RSA Warroom
 - bounceops.online/v8/tech.html → Technician PWA (Supabase auth, email/password)
-- bounceops.online/v8/admin-techs.html → Tech admin panel (unlock: <ADMIN_SECRET — see Supabase env var Login_key>)
+- bounceops.online/v8/admin-techs.html → Tech admin panel (unlock: Login_key secret from Supabase env)
+- bounceops.online/v8/admin-permissions.html → Permission matrix manager (same Login_key secret)
 - bounceops.online/v8/maintenance.html, /queue.html, /deployment.html
 - All v8/ assets in git including logo.jpg (was missing, restored session 6)
 
