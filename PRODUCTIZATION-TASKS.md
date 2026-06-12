@@ -1,5 +1,5 @@
 # Fleetpro — Productization Task Tracker
-*Last updated: 2026-06-13 (session 7 — 1.1, 1.3, 1.4, 1.9 done + permission system built)*
+*Last updated: 2026-06-14 (session 8 — 1.5, 1.6, 1.7, 1.8, 1.11 done; 1.10 parked; phase-1 tagged)*
 
 Legend: ⬜ TODO · 🔄 IN PROGRESS · ✅ DONE · ⏸ BLOCKED
 
@@ -37,13 +37,13 @@ Legend: ⬜ TODO · 🔄 IN PROGRESS · ✅ DONE · ⏸ BLOCKED
 | 1.2 | Remove all plaintext secrets from `Fleetpro-context.md` | ✅ | PAT + Bounce@123 redacted |
 | 1.3 | Add `role` claim (`admin`/`ops`/`tech`) to `app_metadata` via admin-create-tech fn | ✅ | edge fn v5 deployed; role dropdown added to admin-techs.html; set_role action added |
 | 1.4 | Replace RSA_EMAILS allowlist in fw-map with Supabase Auth + role check | ✅ | DB-driven via groups/group_features/user_groups. RSA_EMAILS kept as fallback. admin-permissions.html built for matrix management. |
-| 1.5 | Replace admin-techs unlock screen with Supabase Auth + role check | ⬜ | |
-| 1.6 | RLS on `rsa_tickets_cache`: SELECT authenticated, INSERT/UPDATE service role only | ⬜ | ⚠️ Test after |
-| 1.7 | RLS on `bike_rider_cache` (rider PII): authenticated ops/admin only | ⬜ | ⚠️ Currently open to anon |
-| 1.8 | RLS on location tables: service-role write, authenticated read | ⬜ | Verify pg_cron bypasses RLS as table owner first |
+| 1.5 | Replace admin-techs unlock screen with Supabase Auth + role check | ✅ | Two-stage: magic link → role=admin check → Login_key secret |
+| 1.6 | RLS on `rsa_tickets_cache`: SELECT authenticated, INSERT/UPDATE service role only | ✅ | Removed anon policy; authenticated_select only; service_role bypasses |
+| 1.7 | RLS on `bike_rider_cache` (rider PII): authenticated ops/admin only | ✅ | Removed public read policy; authenticated only |
+| 1.8 | RLS on location tables: service-role write, authenticated read | ✅ | bike_location_cache, rsa_ticket_locations, rsa_team_locations — RLS enabled authenticated-only |
 | 1.9 | Expose hub list via curated view, not base table | ✅ | `hubs` view created + migration 20260613000001; live in Supabase |
-| 1.10 | `verify_jwt=true` on all browser-facing edge fns | ⬜ | |
-| 1.11 | Re-test all pages after RLS changes | ⬜ | |
+| 1.10 | `verify_jwt=true` on all browser-facing edge fns | ⏸ | Parked — do after Vite migration (Phase 3) when shared auth lib exists |
+| 1.11 | Re-test all pages after RLS changes | ✅ | All edge fn logs 200; crons healthy; authenticated reads confirmed; anon blocked |
 
 ---
 
