@@ -1,5 +1,5 @@
 # Fleetpro — Productization Task Tracker
-*Last updated: 2026-06-12 (session 6 — 2½.2, 1.2, 5.6 done + rsa-ticket-sync hotfix)*
+*Last updated: 2026-06-13 (session 7 — 1.1, 1.3, 1.9 done)*
 
 Legend: ⬜ TODO · 🔄 IN PROGRESS · ✅ DONE · ⏸ BLOCKED
 
@@ -33,15 +33,15 @@ Legend: ⬜ TODO · 🔄 IN PROGRESS · ✅ DONE · ⏸ BLOCKED
 
 | # | Task | Status | Notes |
 |---|------|--------|-------|
-| 1.1 | Rotate admin secret (`Login_key` / `Bounce@123`) in Supabase env vars | ⬜ | Update admin-techs.html + edge fn after |
+| 1.1 | Rotate admin secret (`Login_key` / `Bounce@123`) in Supabase env vars | ✅ | Rotated 2026-06-13; no code change needed (user enters secret manually) |
 | 1.2 | Remove all plaintext secrets from `Fleetpro-context.md` | ✅ | PAT + Bounce@123 redacted |
-| 1.3 | Add `role` claim (`admin`/`ops`/`tech`) to `app_metadata` via admin-create-tech fn | ⬜ | |
-| 1.4 | Replace RSA_EMAILS allowlist in fw-map with Supabase Auth + role check | ⬜ | |
+| 1.3 | Add `role` claim (`admin`/`ops`/`tech`) to `app_metadata` via admin-create-tech fn | ✅ | edge fn v5 deployed; role dropdown added to admin-techs.html; set_role action added |
+| 1.4 | Replace RSA_EMAILS allowlist in fw-map with Supabase Auth + role check | ⬜ | ⚠️ Create ops accounts first — existing users need Supabase accounts before deploy |
 | 1.5 | Replace admin-techs unlock screen with Supabase Auth + role check | ⬜ | |
 | 1.6 | RLS on `rsa_tickets_cache`: SELECT authenticated, INSERT/UPDATE service role only | ⬜ | ⚠️ Test after |
 | 1.7 | RLS on `bike_rider_cache` (rider PII): authenticated ops/admin only | ⬜ | ⚠️ Currently open to anon |
 | 1.8 | RLS on location tables: service-role write, authenticated read | ⬜ | Verify pg_cron bypasses RLS as table owner first |
-| 1.9 | Expose hub list via curated view, not base table | ⬜ | |
+| 1.9 | Expose hub list via curated view, not base table | ✅ | `hubs` view created + migration 20260613000001; live in Supabase |
 | 1.10 | `verify_jwt=true` on all browser-facing edge fns | ⬜ | |
 | 1.11 | Re-test all pages after RLS changes | ⬜ | |
 
