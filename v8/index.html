@@ -220,10 +220,10 @@ body.pinned #hbg{display:none}
     <a href="./deployment.html" class="sb-item">
       <span class="si">🚲</span><span>Deployment Queue</span>
     </a>
-    <a href="./fw-map.html" class="sb-item">
+    <a href="./fw-map.html" class="sb-item" data-feature="fw-map">
       <span class="si">🗺️</span><span>FW Pending Map</span>
     </a>
-    <a href="./rsa.html" class="sb-item">
+    <a href="./rsa.html" class="sb-item" data-feature="rsa-warroom">
       <span class="si">🦺</span><span>RSA Warroom</span>
     </a>
   </div>
@@ -340,7 +340,7 @@ body.pinned #hbg{display:none}
       </a>
 
       <!-- FW Pending Map Tile -->
-      <a class="tile" href="./fw-map.html">
+      <a class="tile" href="./fw-map.html" data-feature="fw-map">
         <div class="tile-accent" style="background:linear-gradient(90deg,#0369A1,#0891B2)"></div>
         <div class="tile-body">
           <div class="tile-icon">🗺️</div>
@@ -349,7 +349,7 @@ body.pinned #hbg{display:none}
           <button class="tile-cta" style="background:#EFF6FF;color:#0369A1">Open →</button>
         </div>
       </a>
-      <a class="tile" href="./rsa.html">
+      <a class="tile" href="./rsa.html" data-feature="rsa-warroom">
         <div class="tile-accent" style="background:linear-gradient(90deg,#7C3AED,#A855F7)"></div>
         <div class="tile-body">
           <div class="tile-icon">🦺</div>
@@ -467,6 +467,26 @@ async function forceLogoutAll(){
   await signOut();
 }
 
+// Load user's allowed features from group_features via user_groups.
+// Returns feature map {key:true} or null (triggers no hiding — show all).
+async function loadUserPermissions(userId){
+  try{
+    var r1=await sbClient.from('user_groups').select('group_id').eq('user_id',userId);
+    if(!r1.data||!r1.data.length)return null;
+    var ids=r1.data.map(function(r){return r.group_id;});
+    var r2=await sbClient.from('group_features').select('feature_key').in('group_id',ids);
+    var f={};(r2.data||[]).forEach(function(r){f[r.feature_key]=true;});return f;
+  }catch(e){console.warn('[FP] Permission check failed',e);return null;}
+}
+// Hide tiles and sidebar links for features the user doesn't have.
+function applyTilePermissions(features){
+  if(!features)return; // null = no DB groups → show everything (backward compat)
+  document.querySelectorAll('[data-feature]').forEach(function(el){
+    var key=el.getAttribute('data-feature');
+    if(!features[key])el.style.display='none';
+  });
+}
+
 (async function(){
   var mainLogo=document.querySelector('.sb-brand img');
   if(mainLogo)document.getElementById('auth-logo-img').src=mainLogo.src;
@@ -480,17 +500,25 @@ async function forceLogoutAll(){
     document.getElementById('fb-fab').style.display='flex';
     loadTileStats();
     _authReady=true;
-    if(!isHashLogin)enforce24hReauth(session.user.id).then(function(){checkGlobalLogout(session.user.id);});
+    // Load permissions async — hides gated tiles once resolved
+    loadUserPermissions(session.user.id).then(function(features){
+      window.FP_FEATURES=features;
+      applyTilePermissions(features);
+      if(!isHashLogin)enforce24hReauth(session.user.id).then(function(){checkGlobalLogout(session.user.id);});
+    });
   } else {_authReady=true;showAuthScreen();}
   sbClient.auth.onAuthStateChange(async function(event,session){
     if(event==='SIGNED_IN'&&session){
       K=session.access_token;CURRENT_USER_EMAIL=session.user.email;
+      var features=await loadUserPermissions(session.user.id);
+      window.FP_FEATURES=features;
       hideAuthScreen();
       document.getElementById('logout-btn').style.display='block';
       document.getElementById('logout-btn').title='Signed in as '+CURRENT_USER_EMAIL;
       document.getElementById('fb-fab').style.display='flex';
       loadTileStats();
-    } else if(event==='SIGNED_OUT'){K=ANON_KEY;document.getElementById('logout-btn').style.display='none';if(_authReady)showAuthScreen();}
+      applyTilePermissions(features);
+    } else if(event==='SIGNED_OUT'){K=ANON_KEY;window.FP_FEATURES=undefined;document.getElementById('logout-btn').style.display='none';if(_authReady)showAuthScreen();}
     else if(event==='TOKEN_REFRESHED'&&session){K=session.access_token;}
   });
   // Periodic global logout check every 5 min

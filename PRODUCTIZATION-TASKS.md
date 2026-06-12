@@ -1,5 +1,5 @@
 # Fleetpro — Productization Task Tracker
-*Last updated: 2026-06-13 (session 7 — 1.1, 1.3, 1.9 done)*
+*Last updated: 2026-06-13 (session 7 — 1.1, 1.3, 1.4, 1.9 done + permission system built)*
 
 Legend: ⬜ TODO · 🔄 IN PROGRESS · ✅ DONE · ⏸ BLOCKED
 
@@ -36,7 +36,7 @@ Legend: ⬜ TODO · 🔄 IN PROGRESS · ✅ DONE · ⏸ BLOCKED
 | 1.1 | Rotate admin secret (`Login_key` / `Bounce@123`) in Supabase env vars | ✅ | Rotated 2026-06-13; no code change needed (user enters secret manually) |
 | 1.2 | Remove all plaintext secrets from `Fleetpro-context.md` | ✅ | PAT + Bounce@123 redacted |
 | 1.3 | Add `role` claim (`admin`/`ops`/`tech`) to `app_metadata` via admin-create-tech fn | ✅ | edge fn v5 deployed; role dropdown added to admin-techs.html; set_role action added |
-| 1.4 | Replace RSA_EMAILS allowlist in fw-map with Supabase Auth + role check | ⬜ | ⚠️ Create ops accounts first — existing users need Supabase accounts before deploy |
+| 1.4 | Replace RSA_EMAILS allowlist in fw-map with Supabase Auth + role check | ✅ | DB-driven via groups/group_features/user_groups. RSA_EMAILS kept as fallback. admin-permissions.html built for matrix management. |
 | 1.5 | Replace admin-techs unlock screen with Supabase Auth + role check | ⬜ | |
 | 1.6 | RLS on `rsa_tickets_cache`: SELECT authenticated, INSERT/UPDATE service role only | ⬜ | ⚠️ Test after |
 | 1.7 | RLS on `bike_rider_cache` (rider PII): authenticated ops/admin only | ⬜ | ⚠️ Currently open to anon |
@@ -139,3 +139,25 @@ Legend: ⬜ TODO · 🔄 IN PROGRESS · ✅ DONE · ⏸ BLOCKED
 | D3 | TypeScript scope | **Lib-only TS**, pages stay JS | Lib-only |
 | D4 | Metabase dependency | **Keep polling** vs go direct to Bass | Keep for now |
 | D5 | Realtime strategy | **Keep clean-refetch** vs row-level patch | Keep refetch |
+
+---
+
+## Permission System (built session 7)
+
+| Object | Type | Notes |
+|--------|------|-------|
+| `groups` | Table | id, name, description. Current: RSA Field Team, RSA Warroom, Admin |
+| `group_features` | Table | group_id → feature_key. RSA Field: fw-map. RSA Warroom: fw-map+rsa-warroom. Admin: all |
+| `user_groups` | Table | user_id → group_id (one-to-many). Nishanth+Pavan in RSA Field Team |
+| `admin-permissions` | Edge fn | list_groups, list_users, toggle_user_group, toggle_group_feature, create_group, delete_group. Protected by Login_key |
+| `admin-permissions.html` | Page | Groups×Features matrix + Users×Groups matrix. Live checkbox toggles. |
+| `loadUserPermissions()` | fw-map.html fn | Fetches user's features from DB. Falls back to RSA_EMAILS if no DB groups. |
+| `window.FP_FEATURES` | Global | Feature map {key:true} set after login. Use fpCan('feature-key') anywhere on page. |
+
+**Feature keys:** fw-map · rsa-warroom · tech-app · admin-panel · export-data · all-cities
+
+**Pending permission tasks:**
+- Add superadmin role (protected from role changes) — session 8
+- Wire index.html home page to show only allowed links per user — session 8
+- Add tech-app feature to RSA Field Team — session 8
+- Wire rsa.html gate using same fpCan() pattern — session 8

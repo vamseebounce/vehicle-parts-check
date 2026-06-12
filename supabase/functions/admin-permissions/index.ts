@@ -53,7 +53,13 @@ Deno.serve(async (req) => {
 
   // --- toggle_user_group: add or remove user from group ---
   if (action === 'toggle_user_group') {
-    // Check if assignment exists
+    // Superadmins are protected — their group assignments cannot be changed by anyone
+    const { data: targetUser } = await supabase.auth.admin.getUserById(user_id)
+    if (targetUser?.user?.app_metadata?.is_superadmin) {
+      return new Response(JSON.stringify({ error: 'Superadmin group assignments cannot be modified.' }), {
+        status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      })
+    }
     const { data: existing } = await supabase
       .from('user_groups')
       .select('id')
