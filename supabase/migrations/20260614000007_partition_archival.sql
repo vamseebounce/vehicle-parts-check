@@ -5,11 +5,14 @@
 -- Storage (location-archives bucket), then drops the partition.
 --
 -- One-time setup required after applying:
---   1. Set ARCHIVE_CRON_SECRET in Supabase dashboard:
---      Edge Functions → Secrets → Add: ARCHIVE_CRON_SECRET = <random token>
---   2. Store the same secret for pg_cron:
---      ALTER DATABASE postgres SET app.archive_cron_secret = '<same token>';
---      (Run in SQL editor after applying this migration)
+--   1. Generate a token: openssl rand -hex 32
+--   2. Store in Supabase Vault (SQL editor):
+--      SELECT vault.create_secret('<token>', 'archive_cron_secret', 'Archive cron auth');
+--   3. Set same token in Edge Functions → archive-location-partition → Secrets:
+--      ARCHIVE_CRON_SECRET = <same token>
+--
+-- NOTE: ALTER DATABASE SET is blocked in Supabase (permission denied).
+-- Use vault.create_secret() instead — that's what schedule_partition_archival() reads.
 --
 -- Rollback:
 --   SELECT cron.unschedule('archive-old-location-partitions');
@@ -71,10 +74,14 @@ DECLARE
   arc_secret text;
   fn_url     text := 'https://clkfvmmlgwcvntxnolsv.supabase.co/functions/v1/archive-location-partition';
 BEGIN
-  arc_secret := current_setting('app.archive_cron_secret', true);
+  -- Read from Supabase Vault (ALTER DATABASE SET is blocked in Supabase)
+  SELECT decrypted_secret INTO arc_secret
+  FROM vault.decrypted_secrets
+  WHERE name = 'archive_cron_secret'
+  LIMIT 1;
 
   IF arc_secret IS NULL OR arc_secret = '' THEN
-    RAISE EXCEPTION 'app.archive_cron_secret not set — run: ALTER DATABASE postgres SET app.archive_cron_secret = ''<token>'';';
+    RAISE EXCEPTION 'archive_cron_secret not in vault — run: SELECT vault.create_secret(''<token>'', ''archive_cron_secret'');';
   END IF;
 
   FOR r IN
