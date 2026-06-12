@@ -176,8 +176,11 @@ SELECT cron.schedule(
 --  10   | fw-sheet-sync-15min       | */15 * * * * | fw_pending_cache (anon key)
 --  11   | bike-location-sync-5min   | 0 * * * *    | bike_location_cache (hourly in prod)
 --  13   | rsa-ticket-sync-2min      | */2 * * * *  | rsa_tickets_cache + trails
---  14   | rsa-team-track-2min       | */2 * * * *  | rsa_team_locations (pure SQL)
---  16   | health-egress-daily       | 0 3 * * *    | DB + egress alert (03:00 UTC / 08:30 IST)
+--  14   | rsa-team-track-2min              | */2 * * * *  | rsa_team_locations (pure SQL)
+--  16   | health-egress-daily              | 0 3 * * *    | DB + egress alert (03:00 UTC / 08:30 IST)
+--  17   | rsa-ticket-sync-2min (recreated) | */2 * * * *  | replaced job 13 (header fix)
+--  18   | create_monthly_location_partitions | 0 0 25 * * | pre-creates next month's location partitions
+--  19   | archive-old-location-partitions  | 0 2 1 * *    | archives + drops partitions >90 days
 
 -- ============================================================
 -- Task 5.6: Daily health + egress check (08:30 IST = 03:00 UTC)
@@ -196,3 +199,23 @@ SELECT cron.schedule(
 -- Simpler alternative if vault not set up — paste your project URL directly:
 -- url := 'https://clkfvmmlgwcvntxnolsv.supabase.co/functions/v1/health-check'
 --  15  | health-egress-daily       | 0 3 * * *    | DB + egress alert (03:00 UTC / 08:30 IST)
+
+-- ============================================================
+-- Task 2.7: Archive old location partitions to Supabase Storage
+-- 1st of each month at 02:00 UTC (07:30 IST)
+-- Finds rsa_ticket_locations + rsa_team_locations partitions >90 days old,
+-- calls archive-location-partition edge fn per partition.
+-- Edge fn: exports as Arrow IPC (.arrow) to location-archives bucket, then drops partition.
+--
+-- ⚠️  One-time setup required:
+--   1. Supabase dashboard → Edge Functions → Secrets → Add:
+--      ARCHIVE_CRON_SECRET = <generate a random token, e.g. openssl rand -hex 32>
+--   2. Run in SQL editor:
+--      ALTER DATABASE postgres SET app.archive_cron_secret = '<same token>';
+-- ============================================================
+SELECT cron.schedule(
+  'archive-old-location-partitions',
+  '0 2 1 * *',
+  $$SELECT public.schedule_partition_archival()$$
+);
+--  19  | archive-old-location-partitions | 0 2 1 * *  | location partition archival (02:00 UTC / 07:30 IST)

@@ -1,5 +1,5 @@
 # Fleetpro — Productization Task Tracker
-*Last updated: 2026-06-13 (session 11 — Task 2.6 done: location tables partitioned by month)*
+*Last updated: 2026-06-13 (session 11 — Tasks 2.6 + 2.7 done: partition + archival pipeline)*
 
 Legend: ⬜ TODO · 🔄 IN PROGRESS · ✅ DONE · ⏸ BLOCKED
 
@@ -57,7 +57,7 @@ Legend: ⬜ TODO · 🔄 IN PROGRESS · ✅ DONE · ⏸ BLOCKED
 | 2.4 | Create `rsa_tickets_live` view (effective_status precedence logic) | ✅ | migration 20260614000003; new cols: effective_status, latest_event_type, latest_event_at, event_technician |
 | 2.5 | Switch rsa.html + admin panels to query `rsa_tickets_live` | ✅ | effStatus() helper; all 10 status refs switched; security_invoker on view; anon blocked; override tested |
 | 2.6 | Partition `rsa_ticket_locations` + `rsa_team_locations` by month | ✅ | migration 20260614000006; RANGE on synced_at; June+July+DEFAULT partitions; pg_cron job 18 auto-creates next month on 25th; old tables kept as *_old |
-| 2.7 | pg_cron job: export partitions >90 days to Parquet in Supabase Storage | ⬜ | |
+| 2.7 | pg_cron job: export partitions >90 days to Parquet in Supabase Storage | ✅ | migration 20260614000007; edge fn archive-location-partition; Arrow IPC format (.arrow) in location-archives bucket; pg_cron job 19 on 1st of month 02:00 UTC; ⚠️ needs ARCHIVE_CRON_SECRET set (see migration header) |
 
 ---
 
