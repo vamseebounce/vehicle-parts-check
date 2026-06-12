@@ -55,12 +55,33 @@ tr:last-child td{border-bottom:none}
 </head>
 <body>
 
-<div id="lock-screen" class="admin-lock">
+<!-- STAGE 1: Magic link auth -->
+<div id="auth-gate" class="admin-lock">
   <div style="font-size:48px">🔐</div>
   <h2>Admin Access</h2>
-  <p>Enter admin secret to continue</p>
+  <p>Sign in with your admin email</p>
   <div style="width:100%;max-width:320px;display:flex;flex-direction:column;gap:12px">
-    <input type="password" id="admin-secret-input" placeholder="Admin secret" style="width:100%" onkeydown="if(event.key==='Enter')unlockAdmin()">
+    <input type="email" id="auth-email" placeholder="your@email.com" style="width:100%" onkeydown="if(event.key==='Enter')sendMagicLink()">
+    <button class="btn btn-teal" id="magic-btn" style="width:100%;padding:12px" onclick="sendMagicLink()">Send Magic Link</button>
+    <div id="auth-msg" style="font-size:13px;text-align:center;min-height:16px"></div>
+  </div>
+</div>
+
+<!-- STAGE 1b: Access denied (non-admin role) -->
+<div id="denied-screen" class="admin-lock" style="display:none">
+  <div style="font-size:48px">🚫</div>
+  <h2>Access Denied</h2>
+  <p style="max-width:280px;text-align:center">Your account doesn't have admin access.</p>
+  <button class="btn btn-ghost" style="margin-top:8px" onclick="doSignOut()">Sign out</button>
+</div>
+
+<!-- STAGE 2: Login_key gate (shown only after role verified) -->
+<div id="secret-gate" class="admin-lock" style="display:none">
+  <div style="font-size:48px">🔑</div>
+  <h2>Enter Admin Secret</h2>
+  <p id="secret-gate-user" style="font-size:13px;color:var(--muted)"></p>
+  <div style="width:100%;max-width:320px;display:flex;flex-direction:column;gap:12px">
+    <input type="password" id="admin-secret-input" placeholder="Login_key secret" style="width:100%" onkeydown="if(event.key==='Enter')unlockAdmin()">
     <button class="btn btn-teal" style="width:100%;padding:12px" onclick="unlockAdmin()">Unlock</button>
     <div id="lock-err" style="color:var(--red);font-size:13px;text-align:center;min-height:16px"></div>
   </div>
@@ -163,11 +184,56 @@ const sb = supabase.createClient(SB_URL, ANON_KEY);
 let ADMIN_SECRET = '';
 let _techs = [];
 
+// --- Auth flow ---
+sb.auth.onAuthStateChange(function(event, session) {
+  if (session) {
+    var meta = session.user.app_metadata || {};
+    var isAdmin = meta.role === 'admin' || meta.is_superadmin === true;
+    if (isAdmin) { showSecretGate(session.user.email); }
+    else { showDenied(); }
+  } else {
+    showAuthGate();
+  }
+});
+
+function showAuthGate() {
+  document.getElementById('auth-gate').style.display = 'flex';
+  document.getElementById('secret-gate').style.display = 'none';
+  document.getElementById('denied-screen').style.display = 'none';
+  document.getElementById('main-content').style.display = 'none';
+}
+function showSecretGate(email) {
+  document.getElementById('auth-gate').style.display = 'none';
+  document.getElementById('denied-screen').style.display = 'none';
+  document.getElementById('secret-gate').style.display = 'flex';
+  document.getElementById('secret-gate-user').textContent = 'Signed in as ' + email;
+  document.getElementById('main-content').style.display = 'none';
+}
+function showDenied() {
+  document.getElementById('auth-gate').style.display = 'none';
+  document.getElementById('secret-gate').style.display = 'none';
+  document.getElementById('denied-screen').style.display = 'flex';
+  document.getElementById('main-content').style.display = 'none';
+}
+async function doSignOut() { await sb.auth.signOut(); }
+
+async function sendMagicLink() {
+  var email = document.getElementById('auth-email').value.trim();
+  if (!email) return;
+  var btn = document.getElementById('magic-btn');
+  btn.disabled = true; btn.textContent = 'Sending...';
+  var res = await sb.auth.signInWithOtp({ email: email, options: { emailRedirectTo: window.location.href } });
+  btn.disabled = false;
+  var msg = document.getElementById('auth-msg');
+  if (res.error) { msg.style.color = 'var(--red)'; msg.textContent = res.error.message; btn.textContent = 'Send Magic Link'; }
+  else { msg.style.color = 'var(--teal)'; msg.textContent = '✓ Check your email for the link'; btn.textContent = 'Resend Link'; }
+}
+
 function unlockAdmin() {
   const s = document.getElementById('admin-secret-input').value.trim();
   if (!s) { document.getElementById('lock-err').textContent = 'Enter the admin secret'; return; }
   ADMIN_SECRET = s;
-  document.getElementById('lock-screen').style.display = 'none';
+  document.getElementById('secret-gate').style.display = 'none';
   document.getElementById('main-content').style.display = 'block';
   loadTechs();
   loadActions();
