@@ -807,11 +807,11 @@ window.addEventListener('resize',setMapHeight);
 async function loadUserPermissions(userId){
   try{
     var r1=await sbClient.from('user_groups').select('group_id').eq('user_id',userId);
-    if(!r1.data||!r1.data.length)return null;
+    if(!r1.data||!r1.data.length)return {}; // no groups → empty feature map (deny gated pages)
     var groupIds=r1.data.map(function(r){return r.group_id;});
     var r2=await sbClient.from('group_features').select('feature_key').in('group_id',groupIds);
     var f={};(r2.data||[]).forEach(function(r){f[r.feature_key]=true;});return f;
-  }catch(e){console.warn('[FP] Permission check failed, using fallback',e);return null;}
+  }catch(e){console.warn('[FP] Permission check failed',e);return {};}
 }
 // Returns true if user has the feature (DB-driven), falls back to RSA_EMAILS allowlist.
 function fpCan(featureKey){

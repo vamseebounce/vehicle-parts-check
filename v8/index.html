@@ -472,15 +472,15 @@ async function forceLogoutAll(){
 async function loadUserPermissions(userId){
   try{
     var r1=await sbClient.from('user_groups').select('group_id').eq('user_id',userId);
-    if(!r1.data||!r1.data.length)return null;
+    if(!r1.data||!r1.data.length)return {}; // no groups → empty map; trigger assigns default group on first sign-in
     var ids=r1.data.map(function(r){return r.group_id;});
     var r2=await sbClient.from('group_features').select('feature_key').in('group_id',ids);
     var f={};(r2.data||[]).forEach(function(r){f[r.feature_key]=true;});return f;
-  }catch(e){console.warn('[FP] Permission check failed',e);return null;}
+  }catch(e){console.warn('[FP] Permission check failed',e);return {};}
 }
 // Hide tiles and sidebar links for features the user doesn't have.
 function applyTilePermissions(features){
-  if(!features)return; // null = no DB groups → show everything (backward compat)
+  if(!features)return; // safety: null means skip (should not happen with default group trigger)
   document.querySelectorAll('[data-feature]').forEach(function(el){
     var key=el.getAttribute('data-feature');
     if(!features[key])el.style.display='none';
