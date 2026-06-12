@@ -800,6 +800,30 @@ function setMapHeight(){
 }
 window.addEventListener('resize',setMapHeight);
 
+// ── Permission helpers ──
+// Fetches user's allowed features from group_features via user_groups.
+// Returns a feature map {key:true} or null if user has no DB groups (triggers RSA_EMAILS fallback).
+async function loadUserPermissions(userId){
+  try{
+    var r1=await sbClient.from('user_groups').select('group_id').eq('user_id',userId);
+    if(!r1.data||!r1.data.length)return null;
+    var groupIds=r1.data.map(function(r){return r.group_id;});
+    var r2=await sbClient.from('group_features').select('feature_key').in('group_id',groupIds);
+    var f={};(r2.data||[]).forEach(function(r){f[r.feature_key]=true;});return f;
+  }catch(e){console.warn('[FP] Permission check failed, using fallback',e);return null;}
+}
+// Returns true if user has the feature (DB-driven), falls back to RSA_EMAILS allowlist.
+function fpCan(featureKey){
+  if(window.FP_FEATURES!==undefined)return !!(window.FP_FEATURES&&window.FP_FEATURES[featureKey]);
+  return RSA_EMAILS.indexOf(CURRENT_USER_EMAIL)>-1;
+}
+// Show access denied on auth screen
+function showAccessDenied(){
+  var el=document.getElementById('auth-msg');
+  if(el){el.textContent='⛔ You don\'t have access to this page. Contact your admin.';el.style.display='block';}
+  showAuthScreen();
+}
+
 // ── Boot ──
 var _authReady=false;
 (async function(){
@@ -808,30 +832,37 @@ var _authReady=false;
 
   var{data:{session}}=await sbClient.auth.getSession();
   if(session){
-    // Show map immediately — check session expiry in background
     K=session.access_token;CURRENT_USER_EMAIL=session.user.email;
+    // Load permissions; show map optimistically for returning users then revoke if denied
     hideAuthScreen();
     document.getElementById('logout-btn').style.display='block';
     _authReady=true;
     setTimeout(function(){setMapHeight();loadMapData();loadHubMarkers();loadRsaLocations();triggerSyncFireAndForget();},100);
-    enforce12hReauth(session.user.id).then(function(){checkGlobalLogout(session.user.id);});
+    loadUserPermissions(session.user.id).then(function(features){
+      window.FP_FEATURES=features;
+      if(!fpCan('fw-map')){sbClient.auth.signOut();showAccessDenied();return;}
+      enforce12hReauth(session.user.id).then(function(){checkGlobalLogout(session.user.id);});
+    });
   }else{_authReady=true;showAuthScreen();}
 
   sbClient.auth.onAuthStateChange(async function(event,session){
     if((event==='SIGNED_IN')&&session){
-      // Fresh sign-in (magic link click)
+      // Fresh sign-in (magic link) — check permissions before showing map
       K=session.access_token;CURRENT_USER_EMAIL=session.user.email;
+      var features=await loadUserPermissions(session.user.id);
+      window.FP_FEATURES=features;
+      if(!fpCan('fw-map')){await sbClient.auth.signOut();showAccessDenied();return;}
       hideAuthScreen();
       document.getElementById('logout-btn').style.display='block';
       document.getElementById('logout-btn').title='Signed in as '+CURRENT_USER_EMAIL;
       setTimeout(function(){setMapHeight();loadMapData();loadHubMarkers();loadRsaLocations();triggerSyncFireAndForget();},100);
-    }else if(event==='SIGNED_OUT'){K=ANON_KEY;document.getElementById('logout-btn').style.display='none';if(_authReady)showAuthScreen();}
+    }else if(event==='SIGNED_OUT'){K=ANON_KEY;window.FP_FEATURES=undefined;document.getElementById('logout-btn').style.display='none';if(_authReady)showAuthScreen();}
     else if(event==='TOKEN_REFRESHED'&&session){K=session.access_token;}
   });
 
-  // Idle logout 8h
+  // Idle logout — ops/admin get 7-day session, others 8h; falls back to RSA_EMAILS if no DB groups
   var _idleTimer;
-  var _idleMs=RSA_EMAILS.indexOf(CURRENT_USER_EMAIL)>-1?7*24*60*60*1000:8*60*60*1000;
+  var _idleMs=(RSA_EMAILS.indexOf(CURRENT_USER_EMAIL)>-1||fpCan('fw-map'))?7*24*60*60*1000:8*60*60*1000;
   function _resetIdle(){clearTimeout(_idleTimer);_idleTimer=setTimeout(async function(){await sbClient.auth.signOut();},_idleMs);}
   ['click','keydown','mousemove','touchstart'].forEach(function(ev){document.addEventListener(ev,_resetIdle,{passive:true});});
   _resetIdle();

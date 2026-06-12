@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FleetPro — Permissions</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  :root{--bg:#0a0f1e;--card:#111827;--border:#1e2d45;--teal:#14b8a6;--red:#ef4444;--muted:#64748b;--text:#f1f5f9}
+  body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh}
+  #lock-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;gap:16px;padding:24px}
+  #lock-screen h2{font-size:20px;font-weight:700}
+  #lock-screen input{background:#0f172a;border:1.5px solid var(--border);border-radius:8px;padding:10px 14px;font-size:14px;color:var(--text);width:280px;outline:none}
+  #app{display:none;padding:24px;max-width:1100px;margin:0 auto}
+  .header{display:flex;align-items:center;gap:12px;margin-bottom:24px}
+  .header h1{font-size:20px;font-weight:700}
+  .header span{color:var(--muted);font-size:13px}
+  .tabs{display:flex;gap:4px;margin-bottom:24px;border-bottom:1px solid var(--border);padding-bottom:0}
+  .tab{padding:10px 20px;font-size:13px;font-weight:600;cursor:pointer;border-radius:8px 8px 0 0;color:var(--muted);border:1px solid transparent;border-bottom:none;margin-bottom:-1px}
+  .tab.active{background:var(--card);color:var(--teal);border-color:var(--border)}
+  .panel{display:none}.panel.active{display:block}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:20px}
+  .card-title{font-size:14px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:16px;display:flex;align-items:center;gap:8px}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th{text-align:left;font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.5px;text-transform:uppercase;padding:8px 12px;border-bottom:1px solid var(--border)}
+  td{padding:10px 12px;border-bottom:1px solid var(--border);vertical-align:middle}
+  td:first-child{font-weight:500;color:var(--text)}
+  tr:last-child td{border-bottom:none}
+  .cb-cell{text-align:center}
+  input[type=checkbox]{width:16px;height:16px;accent-color:var(--teal);cursor:pointer}
+  input[type=checkbox]:disabled{opacity:.3;cursor:not-allowed}
+  .btn{padding:8px 16px;border-radius:8px;border:none;font-size:13px;font-weight:600;cursor:pointer;transition:opacity .15s}
+  .btn:disabled{opacity:.4;cursor:not-allowed}
+  .btn-teal{background:var(--teal);color:#000}
+  .btn-ghost{background:transparent;color:var(--muted);border:1px solid var(--border)}
+  .btn-red{background:var(--red);color:#fff}
+  .badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.3px}
+  .badge-teal{background:#0d3d38;color:var(--teal)}
+  .badge-muted{background:#1e2d45;color:var(--muted)}
+  .msg{font-size:12px;padding:8px 12px;border-radius:6px;margin-top:8px;display:none}
+  .msg.error{background:#3b1010;color:#f87171;display:block}
+  .msg.success{background:#0d2e28;color:#34d399;display:block}
+  .new-group-row{display:flex;gap:8px;align-items:center;margin-top:12px;flex-wrap:wrap}
+  .new-group-row input{background:#0f172a;border:1.5px solid var(--border);border-radius:8px;padding:8px 12px;font-size:13px;color:var(--text);outline:none;flex:1;min-width:140px}
+  .spin{display:inline-block;width:14px;height:14px;border:2px solid var(--border);border-top-color:var(--teal);border-radius:50%;animation:spin .6s linear infinite;vertical-align:middle;margin-right:6px}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .loading{text-align:center;padding:32px;color:var(--muted)}
+  .user-email{font-size:12px;color:var(--muted)}
+</style>
+</head>
+<body>
+
+<!-- LOCK SCREEN -->
+<div id="lock-screen">
+  <h2>🔐 FleetPro Permissions</h2>
+  <p style="color:var(--muted);font-size:13px">Enter admin secret to continue</p>
+  <div id="lock-err" class="msg error" style="display:none;width:280px"></div>
+  <input type="password" id="secret-input" placeholder="Admin secret" onkeydown="if(event.key==='Enter')unlock()">
+  <button class="btn btn-teal" onclick="unlock()" style="width:280px;padding:12px">Unlock</button>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <div class="header">
+    <div>
+      <h1>⚙️ Permissions Manager</h1>
+      <span>Groups, features, and user assignments — all changes save instantly</span>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" onclick="switchTab('features')">Groups × Features</div>
+    <div class="tab" onclick="switchTab('users')">Users × Groups</div>
+  </div>
+
+  <!-- TAB 1: Groups × Features -->
+  <div id="tab-features" class="panel active">
+    <div class="card">
+      <div class="card-title">
+        Which features does each group have access to?
+        <span style="margin-left:auto;font-size:11px;color:var(--muted)">Click any checkbox to toggle instantly</span>
+      </div>
+      <div id="features-table"><div class="loading"><span class="spin"></span>Loading…</div></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Create new group</div>
+      <div class="new-group-row">
+        <input type="text" id="new-group-name" placeholder="Group name (e.g. City Ops)">
+        <input type="text" id="new-group-desc" placeholder="Description (optional)">
+        <button class="btn btn-teal" onclick="createGroup()">+ Add Group</button>
+      </div>
+      <div id="create-group-msg" class="msg"></div>
+    </div>
+  </div>
+
+  <!-- TAB 2: Users × Groups -->
+  <div id="tab-users" class="panel">
+    <div class="card">
+      <div class="card-title">
+        Which groups does each user belong to?
+        <span style="margin-left:auto;font-size:11px;color:var(--muted)">Click any checkbox to toggle instantly</span>
+      </div>
+      <div id="users-table"><div class="loading"><span class="spin"></span>Loading…</div></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const EDGE_URL = 'https://clkfvmmlgwcvntxnolsv.supabase.co/functions/v1/admin-permissions'
+let ADMIN_SECRET = ''
+let _groups = []
+let _users = []
+
+// All known feature keys (add here to extend the matrix)
+const ALL_FEATURES = [
+  { key: 'fw-map',      label: 'FW Flash Map' },
+  { key: 'rsa-warroom', label: 'RSA Warroom' },
+  { key: 'tech-app',    label: 'Tech PWA' },
+  { key: 'admin-panel', label: 'Admin Panel' },
+  { key: 'export-data', label: 'Export Data' },
+  { key: 'all-cities',  label: 'All Cities' },
+]
+
+function unlock() {
+  const s = document.getElementById('secret-input').value.trim()
+  if (!s) return
+  ADMIN_SECRET = s
+  document.getElementById('lock-err').style.display = 'none'
+  loadAll()
+}
+
+async function permFetch(body) {
+  const r = await fetch(EDGE_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-admin-secret': ADMIN_SECRET },
+    body: JSON.stringify(body)
+  })
+  return r.json()
+}
+
+async function loadAll() {
+  const [gd, ud] = await Promise.all([
+    permFetch({ action: 'list_groups' }),
+    permFetch({ action: 'list_users' })
+  ])
+  if (gd.error || ud.error) {
+    const el = document.getElementById('lock-err')
+    el.textContent = gd.error || ud.error
+    el.style.display = 'block'
+    return
+  }
+  document.getElementById('lock-screen').style.display = 'none'
+  document.getElementById('app').style.display = 'block'
+  _groups = gd.groups
+  _users = ud.users
+  renderFeaturesMatrix()
+  renderUsersMatrix()
+}
+
+// --- TAB 1: Groups × Features ---
+function renderFeaturesMatrix() {
+  if (!_groups.length) { document.getElementById('features-table').innerHTML = '<div class="loading">No groups yet</div>'; return }
+  const featureSet = _groups.reduce((acc, g) => {
+    (g.group_features || []).forEach(f => acc.add(f.feature_key)); return acc
+  }, new Set(ALL_FEATURES.map(f => f.key)))
+  const features = ALL_FEATURES.filter(f => featureSet.has(f.key))
+
+  let html = '<table><thead><tr><th>Feature</th>'
+  _groups.forEach(g => { html += `<th class="cb-cell">${g.name}</th>` })
+  html += '</tr></thead><tbody>'
+
+  features.forEach(f => {
+    html += `<tr><td>${f.label}<br><span class="user-email">${f.key}</span></td>`
+    _groups.forEach(g => {
+      const has = (g.group_features || []).some(gf => gf.feature_key === f.key)
+      html += `<td class="cb-cell">
+        <input type="checkbox" ${has ? 'checked' : ''}
+          onchange="toggleGroupFeature('${g.id}','${f.key}',this)"
+          title="${has ? 'Remove' : 'Add'} ${f.key} from ${g.name}">
+      </td>`
+    })
+    html += '</tr>'
+  })
+  html += '</tbody></table>'
+  document.getElementById('features-table').innerHTML = html
+}
+
+async function toggleGroupFeature(groupId, featureKey, checkbox) {
+  checkbox.disabled = true
+  const data = await permFetch({ action: 'toggle_group_feature', group_id: groupId, feature_key: featureKey })
+  if (data.error) { checkbox.checked = !checkbox.checked; alert(data.error) }
+  else {
+    // Update local state
+    const g = _groups.find(g => g.id === groupId)
+    if (data.added) g.group_features.push({ feature_key: featureKey })
+    if (data.removed) g.group_features = g.group_features.filter(f => f.feature_key !== featureKey)
+  }
+  checkbox.disabled = false
+}
+
+async function createGroup() {
+  const name = document.getElementById('new-group-name').value.trim()
+  const desc = document.getElementById('new-group-desc').value.trim()
+  const msg = document.getElementById('create-group-msg')
+  if (!name) { showMsg(msg, 'error', 'Name is required'); return }
+  const data = await permFetch({ action: 'create_group', name, description: desc || null })
+  if (data.error) { showMsg(msg, 'error', data.error); return }
+  showMsg(msg, 'success', `✓ Group "${name}" created`)
+  document.getElementById('new-group-name').value = ''
+  document.getElementById('new-group-desc').value = ''
+  data.group.group_features = []
+  _groups.push(data.group)
+  _groups.sort((a, b) => a.name.localeCompare(b.name))
+  renderFeaturesMatrix()
+  renderUsersMatrix()
+}
+
+// --- TAB 2: Users × Groups ---
+function renderUsersMatrix() {
+  if (!_users.length) { document.getElementById('users-table').innerHTML = '<div class="loading">No users</div>'; return }
+  let html = '<table><thead><tr><th>User</th>'
+  _groups.forEach(g => { html += `<th class="cb-cell">${g.name}</th>` })
+  html += '</tr></thead><tbody>'
+
+  _users.forEach(u => {
+    html += `<tr><td>${u.email}<br><span class="user-email">${u.id.slice(0,8)}…</span></td>`
+    _groups.forEach(g => {
+      const has = u.group_ids.includes(g.id)
+      html += `<td class="cb-cell">
+        <input type="checkbox" ${has ? 'checked' : ''}
+          onchange="toggleUserGroup('${u.id}','${g.id}',this)"
+          title="${has ? 'Remove' : 'Add'} ${u.email} ${has ? 'from' : 'to'} ${g.name}">
+      </td>`
+    })
+    html += '</tr>'
+  })
+  html += '</tbody></table>'
+  document.getElementById('users-table').innerHTML = html
+}
+
+async function toggleUserGroup(userId, groupId, checkbox) {
+  checkbox.disabled = true
+  const data = await permFetch({ action: 'toggle_user_group', user_id: userId, group_id: groupId })
+  if (data.error) { checkbox.checked = !checkbox.checked; alert(data.error) }
+  else {
+    const u = _users.find(u => u.id === userId)
+    if (data.added) u.group_ids.push(groupId)
+    if (data.removed) u.group_ids = u.group_ids.filter(id => id !== groupId)
+  }
+  checkbox.disabled = false
+}
+
+// --- Tabs ---
+function switchTab(tab) {
+  document.querySelectorAll('.tab').forEach((t, i) => t.classList.toggle('active', ['features','users'][i] === tab))
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'))
+  document.getElementById('tab-' + tab).classList.add('active')
+}
+
+function showMsg(el, type, text) {
+  el.textContent = text
+  el.className = 'msg ' + type
+  setTimeout(() => { el.className = 'msg' }, 3000)
+}
+</script>
+</body>
+</html>
