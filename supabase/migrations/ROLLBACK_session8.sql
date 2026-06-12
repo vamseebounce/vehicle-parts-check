@@ -2,7 +2,12 @@
 -- Run sections below for whichever session's changes need to be rolled back.
 -- After running, redeploy relevant edge fn versions from Supabase dashboard.
 
+-- ── ROLLBACK 2.5: rsa.html ──────────────────────────────────────────────────
+-- Code-only change. To rollback:
+-- git checkout session-9 -- v8/rsa.html && git push origin main
+
 -- ── ROLLBACK 2.4: Restore rsa_tickets_live v1 (remove ticket_events join) ───
+-- Also removes security_invoker (anon will be able to read view again — acceptable if reverting)
 -- DROP VIEW rsa_tickets_live;
 -- CREATE VIEW rsa_tickets_live AS
 -- SELECT ticket_number, status, category, reg_number, technician_name, fault_details,

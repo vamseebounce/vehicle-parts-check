@@ -52,3 +52,8 @@ LEFT JOIN LATERAL (
   ORDER BY created_at DESC
   LIMIT 1
 ) e ON true;
+
+-- Enforce RLS on view callers (PG15+ security_invoker).
+-- Without this, views owned by postgres bypass RLS on underlying tables,
+-- meaning anon could read rsa_tickets_live even though rsa_tickets_cache blocks them.
+ALTER VIEW rsa_tickets_live SET (security_invoker = true);

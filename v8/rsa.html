@@ -412,8 +412,11 @@ function makeRsaIcon(name,loc){
 function parseUtcTs(ts){if(!ts)return null;var s=ts.toString().trim().replace(' ','T').replace(/(Z|[+-]\d{2}(?::?\d{2})?)$/,'');var d=new Date(s+'Z');return isNaN(d.getTime())?null:d;}
 function fmtTime(ts){var d=parseUtcTs(ts);return d?d.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',hour12:true,timeZone:'Asia/Kolkata'}):'--';}
 function fmtTat(m){if(m==null||m<0)return '--';return m<60?Math.round(m)+' min':(m/60).toFixed(1)+' hr';}
+// 2.5: effective status — prefers ticket_events override over raw Metabase status.
+// Falls back to t.status for old cached data that predates the effective_status column.
+function effStatus(t){return t.effective_status||t.status;}
 function tatMins(t){
-  if(t.status==='DONE'&&t.tat_minutes!=null)return t.tat_minutes;
+  if(effStatus(t)==='DONE'&&t.tat_minutes!=null)return t.tat_minutes;
   if(t.created_at_ist){var d=parseUtcTs(t.created_at_ist);if(d)return(Date.now()-d)/60000;}
   return null;
 }
@@ -425,7 +428,7 @@ function ticketPopup(t){
   var coordStr=lat&&lng?(lat.toFixed(5)+', '+lng.toFixed(5)):'';
   return '<div class="rsa-popup">'
     +'<div class="p-ticket">'+t.ticket_number+'</div>'
-    +'<span class="p-status '+t.status+'">'+t.status.replace('_',' ')+'</span>'
+    +'<span class="p-status '+effStatus(t)+'">'+effStatus(t).replace('_',' ')+'</span>'
     +'<div class="p-row"><b>Reg:</b> '+(t.reg_number||'--')+(t.city?' · <span style="background:#EEF2FF;color:#4F46E5;font-size:.65rem;font-weight:700;padding:1px 5px;border-radius:4px">'+t.city+'</span>':'')+'</div>'
     +'<div class="p-row"><b>Category:</b> '+(t.category||'--')+'</div>'
     +'<div class="p-row"><b>Fault:</b> '+(t.fault_details||'--')+'</div>'
@@ -478,7 +481,7 @@ function renderTickets(){
 
   ticketGroup.clearLayers();
   var filtered=_all.filter(function(t){
-    if(statusSel.length&&statusSel.indexOf(t.status)<0)return false;
+    if(statusSel.length&&statusSel.indexOf(effStatus(t))<0)return false;
     if(tatSel.length){
       var m=tatMins(t);
       var tatMatch=tatSel.some(function(v){
@@ -518,7 +521,7 @@ function renderTickets(){
   var bounds=[];
   filtered.forEach(function(t){
     if(!t.display_lat||!t.display_lng)return;
-    L.marker([t.display_lat,t.display_lng],{icon:makeTicketIcon(t.status),zIndexOffset:t.status==='NEW'?200:t.status==='IN_PROGRESS'?100:0})
+    L.marker([t.display_lat,t.display_lng],{icon:makeTicketIcon(effStatus(t)),zIndexOffset:effStatus(t)==='NEW'?200:effStatus(t)==='IN_PROGRESS'?100:0})
       .bindPopup(ticketPopup(t),{maxWidth:260})
       .addTo(ticketGroup);
     bounds.push([t.display_lat,t.display_lng]);
@@ -555,9 +558,9 @@ function renderTickets(){
     if(citySel.length&&citySel.indexOf(inferCity(t)||'')<0)return false;
     return true;
   });
-  document.getElementById('cnt-new').textContent=globalFiltered.filter(function(t){return t.status==='NEW';}).length;
-  document.getElementById('cnt-ip').textContent=globalFiltered.filter(function(t){return t.status==='IN_PROGRESS';}).length;
-  document.getElementById('cnt-done').textContent=globalFiltered.filter(function(t){return t.status==='DONE';}).length;
+  document.getElementById('cnt-new').textContent=globalFiltered.filter(function(t){return effStatus(t)==='NEW';}).length;
+  document.getElementById('cnt-ip').textContent=globalFiltered.filter(function(t){return effStatus(t)==='IN_PROGRESS';}).length;
+  document.getElementById('cnt-done').textContent=globalFiltered.filter(function(t){return effStatus(t)==='DONE';}).length;
   computeMetrics(globalFiltered);
   // Note: tickets without lat/lng won't show on map (Bass_Lat/Bass_Lng missing from Metabase)
   var noLoc=filtered.filter(function(t){return !t.display_lat||!t.display_lng;}).length;
@@ -571,7 +574,7 @@ function renderTickets(){
 function fmtMin(m){if(m==null||isNaN(m)||!isFinite(m))return '—';return m<60?Math.round(m)+'m':(m/60).toFixed(1)+'h';}
 function computeMetrics(data){
   // Avg Closure TAT — DONE tickets with tat_minutes
-  var done=data.filter(function(t){return t.status==='DONE'&&t.tat_minutes!=null;});
+  var done=data.filter(function(t){return effStatus(t)==='DONE'&&t.tat_minutes!=null;});
   var avgClosure=done.length?done.reduce(function(s,t){return s+parseFloat(t.tat_minutes);},0)/done.length:null;
 
   // Avg Response TAT — time from created → inprogress (positive diffs only)
@@ -610,7 +613,7 @@ function flashStatus(status, color){
   // Respect city filter — only flash tickets visible in current city selection
   var citySel=getChecked('ms-city');
   var matches=_all.filter(function(t){
-    if(t.status!==status)return false;
+    if(effStatus(t)!==status)return false;
     if(!(t.display_lat||t.lat)||!(t.display_lng||t.lng))return false;
     if(citySel.length&&citySel.indexOf(inferCity(t)||'')<0)return false;
     return true;
@@ -738,7 +741,7 @@ var _syncTimer=null;
 
 async function readFromSupabase(from,to){
   var url=SB_URL+'/rest/v1/rsa_tickets_live'
-    +'?select=ticket_number,status,category,reg_number,technician_name,fault_details,created_at_ist,inprogress_at_ist,resolved_at_ist,tat_minutes,city,lat,lng,display_lat,display_lng'
+    +'?select=ticket_number,status,effective_status,category,reg_number,technician_name,fault_details,created_at_ist,inprogress_at_ist,resolved_at_ist,tat_minutes,city,lat,lng,display_lat,display_lng'
     +'&created_at_ist=gte.'+from
     +'&created_at_ist=lte.'+to+'T23%3A59%3A59'
     +'&limit=5000&order=created_at_ist.desc';
@@ -976,7 +979,7 @@ async function loadTicketTrack(){
     var res=await fetch(url,{headers:{apikey:ANON_KEY,Authorization:'Bearer '+K}});
     var rows=res.ok?await res.json():[];
     // Fetch ticket info for status change timestamps
-    var tRes=await fetch(SB_URL+'/rest/v1/rsa_tickets_live?select=ticket_number,status,created_at_ist,inprogress_at_ist,resolved_at_ist,lat,lng,display_lat,display_lng&ticket_number=eq.'+encodeURIComponent(ticketNum),{headers:{apikey:ANON_KEY,Authorization:'Bearer '+K}});
+    var tRes=await fetch(SB_URL+'/rest/v1/rsa_tickets_live?select=ticket_number,status,effective_status,created_at_ist,inprogress_at_ist,resolved_at_ist,lat,lng,display_lat,display_lng&ticket_number=eq.'+encodeURIComponent(ticketNum),{headers:{apikey:ANON_KEY,Authorization:'Bearer '+K}});
     var tData=tRes.ok?await tRes.json():[];
     var ticket=tData[0];
     if(!ticket){document.getElementById('tp-ticket-info').textContent='Ticket not found.';btn.disabled=false;btn.textContent='Show Trail';return;}
@@ -1002,7 +1005,7 @@ async function loadTicketTrack(){
     var allPts=pts.length?pts:(ticket&&(ticket.display_lat||ticket.lat)?[[ticket.display_lat||ticket.lat,ticket.display_lng||ticket.lng]]:[]);
     if(allPts.length>1)leafMap.fitBounds(L.latLngBounds(allPts).pad(0.2),{animate:true,maxZoom:15});
     else if(allPts.length===1)leafMap.setView(allPts[0],15,{animate:true});
-    var msg=(ticket?'Status: '+ticket.status:'');
+    var msg=(ticket?'Status: '+effStatus(ticket):'');
     msg+=rows.length?' · '+rows.length+' movement points':' · No trail yet (builds every 2 min for open tickets)';
     document.getElementById('tp-ticket-info').textContent=msg;
     document.getElementById('tp-ticket-legend').style.display='block';
