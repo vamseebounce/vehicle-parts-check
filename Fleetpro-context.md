@@ -1,5 +1,5 @@
 # Fleetpro — Context File
-*Last updated: 2026-06-13 (session 10 — fw-map enforce12hReauth fixed; Phase 2 complete 2.1–2.5)*
+*Last updated: 2026-06-13 (session 11 — Phase 2 complete: 2.6 location tables partitioned by month; 2.7 archival pipeline to Supabase Storage)*
 
 ## 🏗 Architecture Roadmap (session 5)
 - `ARCHITECTURE-PROPOSAL.md` created at repo root — 6-phase productization roadmap (PROPOSAL ONLY, nothing executed)
@@ -19,8 +19,9 @@
 - **Repo:** https://github.com/vamseebounce/vehicle-parts-check
 - **Branch:** `main` → GitHub Pages → bounceops.online
 - **PAT:** embedded in remote URL for sandbox-autonomous pushes. Regenerated session 7 (old token revoked).
-- **Lock file gotcha:** Sandbox creates `.git/index.lock` and `refs/remotes/origin/main.lock` on macOS FUSE mount but cannot delete them. Workaround: `git add` + `git commit` must run from user's **Terminal**; sandbox handles `git push` and `git tag`.
+- **Lock file gotcha:** Sandbox creates `.git/index.lock` / `.git/HEAD.lock` on macOS FUSE mount but cannot delete them. Workaround: user runs `rm -f .git/HEAD.lock .git/index.lock` + `git add` + `git commit` + `git push` from Terminal. Sandbox cannot reliably run any git write operation — tell user the exact commands to copy-paste.
 - **Rollback tags:** `phase-0.0`, `v8-final`, `phase-0.3`, `phase-0.4`, `phase-0.5`, `phase-0.6`, `phase-2half-additive` (vehicles, sync_heartbeats, fw_pending_history), `phase-2half-additive-2` (ticket_status_history)
+- **Latest commits (session 11):** fa2f545 (2.6 partition), e574773 (2.7 archival), bbe4d29 (vault fix)
 - **Task tracker:** `PRODUCTIZATION-TASKS.md` in repo root — 47 tasks across Phase 0–6 + Phase 2½
 - **.gitignore:** excludes `.DS_Store`, `v6/`, `v7/`, `archive/`, `*.lock`
 
@@ -171,11 +172,25 @@ Metabase (card f79c5050, last 30 days) → rsa-ticket-sync edge fn (v9) → rsa_
 | `rsa_tech_actions` | Table | ticket_number, technician_id, action, resolution_type, notes, evidence_urls[] |
 | `rsa-evidence` | Storage bucket | photos/videos, 50MB limit, authenticated upload only |
 | `admin-create-tech` | Edge fn | create/deactivate/reset_password/list/set_role — protected by ADMIN_SECRET. v5: sets app_metadata.role (admin/ops/tech) on create |
-| `groups` | Table | Permission groups. Current: Default, RSA Field Team, RSA Warroom, Admin |
-| `group_features` | Table | group_id → feature_key. Feature keys: fw-map, rsa-warroom, tech-app, admin-panel, export-data, all-cities |
-| `user_groups` | Table | user_id → group_id (one-to-many). Nishanth+Pavan in RSA Field Team |
-| `admin-permissions` | Edge fn | v2: list_groups, list_users, toggle_user_group, toggle_group_feature, create_group, delete_group. Protected by Login_key. Blocks changes to superadmin users (is_superadmin flag in app_metadata). |
+| `groups` | Table | 4 groups: Admin (5 members), RSA Field Team (3), RSA Warroom (3), Default Users (0, auto-assigned on signup) |
+| `group_features` | Table | group_id → feature_key. Feature keys: fw-map, rsa-warroom, tech-app, admin-panel, export-data, all-cities, maintenance, oos-queue, deployment |
+| `user_groups` | Table | user_id → group_id. RLS: authenticated users read own row only. group_features/groups: authenticated read all. |
+| `login_events` | Table | Append-only login log. `user_last_login` view = DISTINCT ON(user_id) most recent. fw-map writes on SIGNED_IN. |
+| `assign_default_group()` | Trigger fn | AFTER INSERT ON auth.users → auto-adds to Default Users group. Looks up by name, not UUID. |
+| `admin-permissions` | Edge fn | Protected by Login_key. list_groups, list_users, toggle_user_group, toggle_group_feature, create_group, delete_group. |
 | `admin-permissions.html` | Page | Tab 1: Groups×Features matrix. Tab 2: Users×Groups matrix. Live checkbox toggles. |
+
+**Permission system bug (session 10 — FIXED):** user_groups/group_features/groups had RLS enabled with ZERO SELECT policies → authenticated users got empty results → loadUserPermissions returned null → fpCan=false → signOut for all DB-group users. Fixed by adding SELECT policies (migration 20260614000004).
+
+**enforce12hReauth fix (session 10):** Added `if(fpCan('fw-map'))return` bypass so DB group members skip 12h check. Also writes login_events on SIGNED_IN so timestamp stays fresh.
+
+**Tile gating (session 10):** maintenance, oos-queue, deployment tiles gated by data-feature in index.html. RSA Field Team and RSA Warroom don't have these → tiles hidden. Admin + Default Users have them.
+
+**Current user→group assignments:**
+- Admin: vamsee@bounceshare.com, vamsee@scalability.club, cheekoti.manideep@bounceshare.com, jagadishcp@bounceshare.com, nithish@bounceshare.com
+- RSA Field Team: nishanthshetty2024@gmail.com, pavanmahesh120@gmail.com, sreeranga100@gmail.com
+- RSA Warroom: sreeranga@bounceshare.com, venkatesh.r@bounceshare.com, nabina.behera@bounceshare.com
+- Pending (not yet signed up): jaikumar.jayachandran@bounceshare.com → add to Admin once they sign up
 
 ---
 
@@ -199,8 +214,9 @@ Metabase (card f79c5050, last 30 days) → rsa-ticket-sync edge fn (v9) → rsa_
 | `bike_location_cache` | ~9,812 | All bike GPS locations (5-min cron) |
 | `bike_rider_cache` | ~9,795 | Rider name+phone (hourly cron) |
 | `rsa_tickets_cache` | ~58/day | RSA tickets; columns: ticket_number, status, category, reg_number, technician_name, fault_details, created_at_ist, inprogress_at_ist, resolved_at_ist, tat_minutes, city, synced_at, lat, lng, bass_location_time_ist, live_lat, live_lng |
-| `rsa_team_locations` | append-only | Nishanth/Pavan GPS trail — appended every 2-min cron; columns: id, name, chassis, reg_number, lat, lng, location(geography), synced_at |
-| `rsa_ticket_locations` | append-only | Per-ticket bike movement trail for open tickets — appended every 2-min cron while NEW/IN_PROGRESS; columns: id, ticket_number, status, lat, lng, location(geography), synced_at |
+| `rsa_team_locations` | append-only, **partitioned by month on synced_at** | Nishanth/Pavan GPS trail. PK: (id, synced_at). Partitions: _2026_06, _2026_07, _default. Old table kept as rsa_team_locations_old. |
+| `rsa_ticket_locations` | append-only, **partitioned by month on synced_at** | Per-ticket bike movement trail for open tickets. PK: (id, synced_at). Same partition structure. Old table kept as rsa_ticket_locations_old. |
+| `partition_archive_log` | archive log | One row per archived partition: table_name, partition_name, row_count, file_bytes, storage_path, archived_at |
 | `rental_locations` | 15 | Bounce hub locations (Bangalore) |
 | `oos_work_queue` | 570 | OOS job queue |
 | `dms_jc_history` | — | Job card history |
@@ -221,6 +237,23 @@ Metabase (card f79c5050, last 30 days) → rsa-ticket-sync edge fn (v9) → rsa_
 | `fw-map-rider-sync` | `0 * * * *` | Metabase → bike_rider_cache (hourly) |
 | `rsa-ticket-sync` | `*/2 * * * *` | **v9** (verify_jwt=false, CORS headers). Per run: (1) fetch Metabase card f79c5050, (2) enrich open tickets with live GPS from bike_location_cache → live_lat/live_lng, (3) delete+reinsert rsa_tickets_cache, (4) append open ticket locations to rsa_ticket_locations, (5) append RSA team locations to rsa_team_locations. Accepts start_date/end_date for historical re-sync. Dedup: 100s. |
 | `rsa-history` | on-demand | Proxy for RSA historical Metabase fetch (likely unused now) |
+| `archive-location-partition` | called by pg_cron job 19 | Reads a stale location partition, exports as Apache Arrow IPC (.arrow) to `location-archives` Supabase Storage bucket, then drops the partition. Auth: `ARCHIVE_CRON_SECRET` header (set in edge fn secrets ✅ + vault ✅). |
+
+### pg_cron Jobs (all active)
+| Job ID | Name | Schedule | What it does |
+|--------|------|----------|--------------|
+| 1 | metabase-hourly-sync | `0 * * * *` | vehicle_parts_check_flag |
+| 2 | OOS_QUEUE-hourly | `5 * * * *` | oos_work_queue |
+| 6 | refresh-deployment-cache | `*/15 * * * *` | deployment + pending_bookings |
+| 7 | jc-history-daily-sync | `30 20 * * *` | jc_history (02:00 IST) |
+| 9 | fw-map-rider-sync-10min | `0 * * * *` | bike_rider_cache (hourly) |
+| 10 | fw-sheet-sync-15min | `*/15 * * * *` | fw_pending_cache |
+| 11 | bike-location-sync-5min | `0 * * * *` | bike_location_cache |
+| 14 | rsa-team-track-2min | `*/2 * * * *` | rsa_team_locations (pure SQL) |
+| 16 | health-egress-daily | `0 3 * * *` | egress+health alert (08:30 IST) |
+| 17 | rsa-ticket-sync-2min | `*/2 * * * *` | rsa_tickets_cache + trails (replaced job 13) |
+| 18 | create_monthly_location_partitions | `0 0 25 * *` | pre-creates next month's location partitions |
+| 19 | archive-old-location-partitions | `0 2 1 * *` | archives + drops partitions >90 days (via edge fn) |
 
 ### PostGIS Functions
 | Function | Purpose |
@@ -304,7 +337,8 @@ Feature keys: `fw-map` · `rsa-warroom` · `tech-app` · `admin-panel` · `expor
 7. GitHub Pages deployment warning (Node.js 20 deprecated) — self-resolves June 16, 2026
 8. `inferCity(t)`: uses t.city first, then lat/lng bounds inference, defaults to 'BLR' — tickets with null city/GPS always appear under BLR filter
 9. Realtime uses clean re-fetch (not payload patching) to avoid ticket accumulation bug — old approach caused `_all` to grow to 237 tickets
-10. `rsa_team_locations` and `rsa_ticket_locations` have RLS **disabled** — internal tables, no sensitive data. Edge fn was blocked by RLS (anon role fallback issue). Fix: disable RLS.
+10. `rsa_team_locations` and `rsa_ticket_locations` now have RLS **enabled** (authenticated SELECT) — added when partitioned in session 11. Edge fn inserts work (service role bypasses RLS).
+10a. **Partition PK gotcha:** PK is now `(id, synced_at)` — not just `(id)`. Any future `ON CONFLICT (id)` will fail. Both tables use plain INSERT (no upsert on id), so this is safe today.
 11. `rsa_team_locations` now populated by dedicated pg_cron job `rsa-team-track-2min` (pure SQL, no edge fn dependency)
 12. `rsa_ticket_locations` populates when open NEW/IN_PROGRESS tickets exist during edge fn v11 cron run
 13. Track panel shows "No trail yet" message if `rsa_ticket_locations` empty for that ticket — not an error
