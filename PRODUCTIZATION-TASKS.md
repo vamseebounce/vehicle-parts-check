@@ -1,5 +1,5 @@
 # Fleetpro — Productization Task Tracker
-*Last updated: 2026-06-14 (session 8 — 1.5, 1.6, 1.7, 1.8, 1.11 done; 1.10 parked; phase-1 tagged)*
+*Last updated: 2026-06-13 (session 9 — 2.1, 2.2, 2.3, 2.4 done; 2.5 next)*
 
 Legend: ⬜ TODO · 🔄 IN PROGRESS · ✅ DONE · ⏸ BLOCKED
 
@@ -51,11 +51,11 @@ Legend: ⬜ TODO · 🔄 IN PROGRESS · ✅ DONE · ⏸ BLOCKED
 
 | # | Task | Status | Notes |
 |---|------|--------|-------|
-| 2.1 | Change rsa-ticket-sync to upsert on `ticket_number` (stop delete+reinsert) | ⬜ | Fixes Realtime churn + egress |
-| 2.2 | Create `ticket_events` table (append-only, extends rsa_tech_actions) | ⬜ | |
-| 2.3 | Update tech.html to INSERT event instead of UPDATE rsa_tickets_cache | ⬜ | |
-| 2.4 | Create `rsa_tickets_live` view (effective_status precedence logic) | ⬜ | Tech DONE survives next cron |
-| 2.5 | Switch rsa.html + admin panels to query `rsa_tickets_live` | ⬜ | |
+| 2.1 | Change rsa-ticket-sync to upsert on `ticket_number` (stop delete+reinsert) | ✅ | rsa-ticket-sync v16 deployed |
+| 2.2 | Create `ticket_events` table (append-only, extends rsa_tech_actions) | ✅ | migration 20260614000002; RLS authenticated only |
+| 2.3 | Update tech.html to INSERT event instead of UPDATE rsa_tickets_cache | ✅ | Dual-write: ticket_events + rsa_tickets_cache kept until 2.5 |
+| 2.4 | Create `rsa_tickets_live` view (effective_status precedence logic) | ✅ | migration 20260614000003; new cols: effective_status, latest_event_type, latest_event_at, event_technician |
+| 2.5 | Switch rsa.html + admin panels to query `rsa_tickets_live` | ⬜ | Next session — use effective_status instead of status |
 | 2.6 | Partition `rsa_ticket_locations` + `rsa_team_locations` by month | ⬜ | |
 | 2.7 | pg_cron job: export partitions >90 days to Parquet in Supabase Storage | ⬜ | |
 

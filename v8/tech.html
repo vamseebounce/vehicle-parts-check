@@ -583,6 +583,16 @@ async function logAction(action) {
   });
 
   if (error) { showToast('Failed: ' + error.message, 'error'); return; }
+
+  // 2.3: dual-write to ticket_events (new system of record)
+  await sb.from('ticket_events').insert({
+    ticket_number: _currentTicket.ticket_number,
+    technician_id: _tech.id,
+    technician_name: _tech.name,
+    event_type: action,
+    notes: notes || null
+  });
+
   showToast(actionLabel(action) + ' logged', 'success');
   await loadActions([_currentTicket.ticket_number]);
   renderDetailActions(_currentTicket);
@@ -669,7 +679,18 @@ async function submitComplete() {
 
   if (error) { showToast('Failed: ' + error.message, 'error'); btn.disabled = false; btn.textContent = '✓ Mark as Complete'; return; }
 
-  // Write back to rsa_tickets_cache
+  // 2.3: dual-write to ticket_events (new system of record)
+  await sb.from('ticket_events').insert({
+    ticket_number: _currentTicket.ticket_number,
+    technician_id: _tech.id,
+    technician_name: _tech.name,
+    event_type: 'completed',
+    resolution_type: resolution,
+    notes: notes || null,
+    evidence_urls: uploadedUrls.length ? uploadedUrls : null
+  });
+
+  // Write back to rsa_tickets_cache (kept for backward compat until Task 2.5)
   await sb.from('rsa_tickets_cache').update({ status: 'DONE' }).eq('ticket_number', _currentTicket.ticket_number);
 
   showToast('Ticket completed! ✓', 'success');

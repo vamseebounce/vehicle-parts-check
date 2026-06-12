@@ -1,6 +1,22 @@
--- ROLLBACK: Session 8 changes
--- Run this if any session-8 change causes issues.
--- After running, redeploy rsa-ticket-sync v15 from Supabase dashboard.
+-- ROLLBACK: Session 8 + Session 9 changes
+-- Run sections below for whichever session's changes need to be rolled back.
+-- After running, redeploy relevant edge fn versions from Supabase dashboard.
+
+-- ── ROLLBACK 2.4: Restore rsa_tickets_live v1 (remove ticket_events join) ───
+-- DROP VIEW rsa_tickets_live;
+-- CREATE VIEW rsa_tickets_live AS
+-- SELECT ticket_number, status, category, reg_number, technician_name, fault_details,
+--   created_at_ist, inprogress_at_ist, resolved_at_ist, tat_minutes, city, synced_at,
+--   lat, lng, live_lat, live_lng, bass_location_time_ist AS loc_time,
+--   CASE WHEN status = 'DONE' THEN lat ELSE COALESCE(live_lat, lat) END AS display_lat,
+--   CASE WHEN status = 'DONE' THEN lng ELSE COALESCE(live_lng, lng) END AS display_lng
+-- FROM rsa_tickets_cache;
+
+-- ── ROLLBACK 2.3: tech.html ──────────────────────────────────────────────────
+-- Code-only change. To rollback:
+-- git checkout session-8 -- v8/tech.html && git push origin main
+
+
 
 -- ── ROLLBACK 2.2: Drop ticket_events table ──────────────────────────────────
 DROP TABLE IF EXISTS ticket_events;
