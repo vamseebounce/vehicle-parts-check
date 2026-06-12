@@ -132,15 +132,13 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    await sb.from('rsa_tickets_cache')
-      .delete()
-      .gte('created_at_ist', start_date)
-      .lte('created_at_ist', end_date + 'T23:59:59');
-
+    // 2.1: Upsert on ticket_number (PK) — no more delete+reinsert
+    // Stops Realtime churn; preserves rows not in current sync window
     const BATCH = 200;
     for (let i = 0; i < records.length; i += BATCH) {
-      const { error } = await sb.from('rsa_tickets_cache').insert(records.slice(i, i + BATCH));
-      if (error) throw new Error(`Insert error: ${error.message}`);
+      const { error } = await sb.from('rsa_tickets_cache')
+        .upsert(records.slice(i, i + BATCH), { onConflict: 'ticket_number' });
+      if (error) throw new Error(`Upsert error: ${error.message}`);
     }
 
     if (isScheduled && openTickets.length > 0) {
