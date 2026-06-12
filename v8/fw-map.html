@@ -736,7 +736,8 @@ async function signOut(){await sbClient.auth.signOut();document.getElementById('
 var RSA_EMAILS=['nishanthshetty2024@gmail.com','pavanmahesh120@gmail.com'];
 async function enforce12hReauth(userId){
   try{
-    if(RSA_EMAILS.indexOf(CURRENT_USER_EMAIL)>-1)return; // 7-day window — skip 12h check
+    if(RSA_EMAILS.indexOf(CURRENT_USER_EMAIL)>-1)return; // RSA team — skip 12h check
+    if(fpCan('fw-map'))return; // DB group members (admin/ops) — skip 12h check
     var{data}=await sbClient.from('user_last_login').select('last_login_at').eq('user_id',userId).single();
     if(!data)return;
     var hoursElapsed=(Date.now()-new Date(data.last_login_at))/36e5;
@@ -852,6 +853,8 @@ var _authReady=false;
       var features=await loadUserPermissions(session.user.id);
       window.FP_FEATURES=features;
       if(!fpCan('fw-map')){await sbClient.auth.signOut();showAccessDenied();return;}
+      // Record login so enforce12hReauth clock stays fresh
+      sbClient.from('login_events').insert({user_id:session.user.id,email:session.user.email,logged_in_at:new Date().toISOString()}).then(function(){});
       hideAuthScreen();
       document.getElementById('logout-btn').style.display='block';
       document.getElementById('logout-btn').title='Signed in as '+CURRENT_USER_EMAIL;
