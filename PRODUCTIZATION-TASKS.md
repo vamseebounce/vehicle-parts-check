@@ -1,5 +1,5 @@
 # Fleetpro — Productization Task Tracker
-*Last updated: 2026-06-13 (session 9 — 2.1, 2.2, 2.3, 2.4, 2.5 done; Phase 2 complete through 2.5)*
+*Last updated: 2026-06-13 (session 11 — Task 2.6 done: location tables partitioned by month)*
 
 Legend: ⬜ TODO · 🔄 IN PROGRESS · ✅ DONE · ⏸ BLOCKED
 
@@ -56,7 +56,7 @@ Legend: ⬜ TODO · 🔄 IN PROGRESS · ✅ DONE · ⏸ BLOCKED
 | 2.3 | Update tech.html to INSERT event instead of UPDATE rsa_tickets_cache | ✅ | Dual-write: ticket_events + rsa_tickets_cache kept until 2.5 |
 | 2.4 | Create `rsa_tickets_live` view (effective_status precedence logic) | ✅ | migration 20260614000003; new cols: effective_status, latest_event_type, latest_event_at, event_technician |
 | 2.5 | Switch rsa.html + admin panels to query `rsa_tickets_live` | ✅ | effStatus() helper; all 10 status refs switched; security_invoker on view; anon blocked; override tested |
-| 2.6 | Partition `rsa_ticket_locations` + `rsa_team_locations` by month | ⬜ | |
+| 2.6 | Partition `rsa_ticket_locations` + `rsa_team_locations` by month | ✅ | migration 20260614000006; RANGE on synced_at; June+July+DEFAULT partitions; pg_cron job 18 auto-creates next month on 25th; old tables kept as *_old |
 | 2.7 | pg_cron job: export partitions >90 days to Parquet in Supabase Storage | ⬜ | |
 
 ---
