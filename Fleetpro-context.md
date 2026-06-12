@@ -1,5 +1,5 @@
 # Fleetpro — Context File
-*Last updated: 2026-06-13 (session 7 — 1.1 secret rotated, 1.3 role claims, 1.4 DB-driven fw-map auth, 1.9 hubs view, permission system built, index.html role-aware tiles)*
+*Last updated: 2026-06-13 (session 10 — fw-map enforce12hReauth fixed; Phase 2 complete 2.1–2.5)*
 
 ## 🏗 Architecture Roadmap (session 5)
 - `ARCHITECTURE-PROPOSAL.md` created at repo root — 6-phase productization roadmap (PROPOSAL ONLY, nothing executed)
