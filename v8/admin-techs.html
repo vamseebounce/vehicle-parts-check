@@ -96,6 +96,14 @@ tr:last-child td{border-bottom:none}
         <label>Password</label>
         <input type="password" id="new-password" placeholder="Min 8 characters">
       </div>
+      <div class="form-group">
+        <label>Role</label>
+        <select id="new-role" style="background:#0f172a;border:1.5px solid var(--border);border-radius:8px;padding:10px 12px;font-size:14px;color:#f1f5f9;width:100%">
+          <option value="tech">Tech (RSA technician)</option>
+          <option value="ops">Ops (RSA warroom)</option>
+          <option value="admin">Admin (full access)</option>
+        </select>
+      </div>
     </div>
     <button class="btn btn-teal" id="create-btn" onclick="createTech()">Create Account</button>
   </div>
@@ -179,6 +187,7 @@ async function createTech() {
   const email = document.getElementById('new-email').value.trim();
   const password = document.getElementById('new-password').value;
   const phone = document.getElementById('new-phone').value.trim();
+  const role = document.getElementById('new-role').value;
   const msg = document.getElementById('create-msg');
   const btn = document.getElementById('create-btn');
 
@@ -186,11 +195,11 @@ async function createTech() {
   if (password.length < 8) { showMsg(msg, 'error', 'Password must be at least 8 characters'); return; }
 
   btn.disabled = true; btn.textContent = 'Creating...';
-  const data = await adminFetch({ action: 'create', name, email, password, phone });
+  const data = await adminFetch({ action: 'create', name, email, password, phone, role });
   btn.disabled = false; btn.textContent = 'Create Account';
 
   if (data.error) { showMsg(msg, 'error', data.error); return; }
-  showMsg(msg, 'success', `✓ Account created for ${name}`);
+  showMsg(msg, 'success', `✓ Account created for ${name} (role: ${data.role || role})`);
   document.getElementById('new-name').value = '';
   document.getElementById('new-email').value = '';
   document.getElementById('new-password').value = '';

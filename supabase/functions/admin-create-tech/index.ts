@@ -21,11 +21,13 @@ Deno.serve(async (req) => {
     { auth: { autoRefreshToken: false, persistSession: false } }
   )
 
-  const { action, email, password, name, phone, user_id } = await req.json()
+  const { action, email, password, name, phone, user_id, role } = await req.json()
 
   if (action === 'create') {
+    const assignedRole = ['admin', 'ops', 'tech'].includes(role) ? role : 'tech'
     const { data: authData, error: authErr } = await supabase.auth.admin.createUser({
-      email, password, email_confirm: true
+      email, password, email_confirm: true,
+      app_metadata: { role: assignedRole }
     })
     if (authErr) return new Response(JSON.stringify({ error: authErr.message }), {
       status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -36,7 +38,20 @@ Deno.serve(async (req) => {
     if (profileErr) return new Response(JSON.stringify({ error: profileErr.message }), {
       status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     })
-    return new Response(JSON.stringify({ success: true, user_id: authData.user.id }), {
+    return new Response(JSON.stringify({ success: true, user_id: authData.user.id, role: assignedRole }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    })
+  }
+
+  if (action === 'set_role') {
+    const assignedRole = ['admin', 'ops', 'tech'].includes(role) ? role : 'tech'
+    const { error } = await supabase.auth.admin.updateUserById(user_id, {
+      app_metadata: { role: assignedRole }
+    })
+    if (error) return new Response(JSON.stringify({ error: error.message }), {
+      status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    })
+    return new Response(JSON.stringify({ success: true, role: assignedRole }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     })
   }
