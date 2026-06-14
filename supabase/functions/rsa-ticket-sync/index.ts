@@ -19,6 +19,15 @@ function todayIST(): string {
   return d.toISOString().slice(0, 10);
 }
 
+// Returns current IST hour (0–23)
+function hourIST(): number {
+  return new Date(Date.now() + 330 * 60 * 1000).getUTCHours();
+}
+
+// Off-hours: midnight–6am IST — no RSA ops, skip all cron work
+const OFF_HOURS_START = 0;  // midnight IST
+const OFF_HOURS_END   = 6;  // 6am IST (exclusive)
+
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: CORS });
 
@@ -34,6 +43,16 @@ Deno.serve(async (req: Request) => {
     if (body.start_date) { start_date = body.start_date; isScheduled = false; }
     if (body.end_date)   { end_date   = body.end_date;   isScheduled = false; }
   } catch (_) {}
+
+  // ── Off-hours guard: skip cron runs midnight–6am IST (no ops, saves ~180 DB hits/day) ──
+  if (isScheduled) {
+    const h = hourIST();
+    if (h >= OFF_HOURS_START && h < OFF_HOURS_END) {
+      return new Response(JSON.stringify({ skipped: true, reason: 'off-hours', ist_hour: h }), {
+        headers: { 'Content-Type': 'application/json', ...CORS }
+      });
+    }
+  }
 
   // ── Step 0: RSA team tracking — runs first, always, no dedup ──
   if (isScheduled) {

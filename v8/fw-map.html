@@ -866,7 +866,15 @@ var _authReady=false;
   // Idle logout — ops/admin get 7-day session, others 8h; falls back to RSA_EMAILS if no DB groups
   var _idleTimer;
   var _idleMs=(RSA_EMAILS.indexOf(CURRENT_USER_EMAIL)>-1||fpCan('fw-map'))?7*24*60*60*1000:8*60*60*1000;
-  function _resetIdle(){clearTimeout(_idleTimer);_idleTimer=setTimeout(async function(){await sbClient.auth.signOut();},_idleMs);}
+  // Separate poll-idle: stop DB polling after 15 min of no user activity (saves queries overnight)
+  var _POLL_IDLE_MS=15*60*1000;
+  var _lastFwActivity=Date.now();
+  function _isPollIdle(){return Date.now()-_lastFwActivity>_POLL_IDLE_MS;}
+  function _resetIdle(){
+    _lastFwActivity=Date.now();
+    clearTimeout(_idleTimer);
+    _idleTimer=setTimeout(async function(){await sbClient.auth.signOut();},_idleMs);
+  }
   ['click','keydown','mousemove','touchstart'].forEach(function(ev){document.addEventListener(ev,_resetIdle,{passive:true});});
   _resetIdle();
 
@@ -899,11 +907,10 @@ var _authReady=false;
     }).catch(function(){}).finally(function(){_syncLock=false;});
   }
 
-  // Tab visible + session → sync every 1 min; tab hidden → cron handles it (5 min)
-  // 5-min auto-refresh (reduced from 1-min to cut egress ~80%)
-  // Manual refresh button still triggers immediately on demand
+  // Tab visible + session → sync every 5 min; tab hidden or idle → skip
+  // Idle guard: stops polling after 15 min of no user activity (prevents overnight DB drain)
   setInterval(function(){
-    if(!_authReady||!K||K===ANON_KEY)return;
+    if(!_authReady||!K||K===ANON_KEY||_isPollIdle())return;
     sbClient.auth.getSession().then(function(r){
       if(!r.data||!r.data.session)return;
       if(!document.hidden)triggerSyncFireAndForget();
@@ -913,7 +920,7 @@ var _authReady=false;
 
   // RSA team location — 1-min refresh (only 2 rows, negligible egress)
   setInterval(function(){
-    if(!_authReady||!K||K===ANON_KEY||document.hidden)return;
+    if(!_authReady||!K||K===ANON_KEY||document.hidden||_isPollIdle())return;
     loadRsaLocations();
   },60*1000);
 

@@ -1067,7 +1067,7 @@ async function signOut(){await sbClient.auth.signOut();}
     document.getElementById('logout-btn').style.display='block';
     _authReady=true;
     // No triggerSync on load — cron handles every 2 min; only manual Refresh triggers sync
-    setTimeout(function(){fetchAndLoad(false);loadRsaLocations();loadHubs();subscribeRealtime();},800);
+    setTimeout(function(){fetchAndLoad(false);loadRsaLocations();loadHubs();},800);
   }else{_authReady=true;showAuthScreen();}
 
   sbClient.auth.onAuthStateChange(async function(event,session){
@@ -1076,46 +1076,31 @@ async function signOut(){await sbClient.auth.signOut();}
       hideAuthScreen();
       document.getElementById('logout-btn').style.display='block';
       _authReady=true;
-      setTimeout(function(){fetchAndLoad(false);loadRsaLocations();loadHubs();subscribeRealtime();},800);
-    }else if(event==='SIGNED_OUT'){K=ANON_KEY;if(_realtimeChannel){sbClient.removeChannel(_realtimeChannel);_realtimeChannel=null;}showAuthScreen();}
+      setTimeout(function(){fetchAndLoad(false);loadRsaLocations();loadHubs();},800);
+    }else if(event==='SIGNED_OUT'){K=ANON_KEY;showAuthScreen();}
     else if(event==='TOKEN_REFRESHED'&&session){K=session.access_token;}
   });
 
-  // Realtime subscription — instant update when cron writes to rsa_tickets_cache
-  var _realtimeChannel=null;
-  function subscribeRealtime(){
-    if(_realtimeChannel)return;
-    _realtimeChannel=sbClient.channel('rsa_tickets_cache')
-      .on('postgres_changes',{event:'*',schema:'public',table:'rsa_tickets_cache'},function(){
-        if(!_isToday||document.hidden)return;
-        // Debounce: cron does delete+insert in batch, wait for it to settle then do a clean re-fetch
-        clearTimeout(window._rtDebounce);
-        window._rtDebounce=setTimeout(function(){
-          _lastRealtimeUpdate=Date.now();
-          var from=document.getElementById('date-from').value;
-          var to=document.getElementById('date-to').value;
-          readFromSupabase(from,to).then(function(tickets){
-            if(!tickets.length)return;
-            _all=tickets;_lastCitySel=null;renderTickets();
-            var now=new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',hour12:true});
-            document.getElementById('sync-time').textContent='Live · '+now+' · '+tickets.length+' tickets';
-            try{localStorage.setItem(RSA_CACHE_KEY,JSON.stringify({data:tickets,ts:Date.now()}));}catch(e){}
-          });
-        },3000); // 3s debounce — waits for full batch insert to complete
-      })
-      .subscribe();
-  }
+  // Idle detection — stop all polling after 15 min of no user activity
+  var IDLE_MS=15*60*1000;
+  var _lastActivity=Date.now();
+  function _touch(){_lastActivity=Date.now();}
+  function _isIdle(){return Date.now()-_lastActivity>IDLE_MS;}
+  ['mousemove','keydown','click','touchstart','scroll'].forEach(function(ev){
+    document.addEventListener(ev,_touch,{passive:true,capture:true});
+  });
 
-  // Fallback poll — only fires if Realtime hasn't updated in 5 min
-  var _lastRealtimeUpdate=Date.now();
+  // Poll every 2 min — matches cron cadence
+  // Realtime (postgres_changes) removed: it caused ~47K WAL scans/day via
+  // realtime.list_changes() polling even with 0 active subscribers.
   setInterval(function(){
-    if(!_authReady||!K||K===ANON_KEY||document.hidden||!_isToday)return;
-    if(Date.now()-_lastRealtimeUpdate>5*60*1000)fetchAndLoad(false);
-  },5*60*1000);
+    if(!_authReady||!K||K===ANON_KEY||document.hidden||!_isToday||_isIdle())return;
+    fetchAndLoad(false);
+  },2*60*1000);
 
   // RSA team location refresh — every 2 min (matches cron cadence)
   setInterval(function(){
-    if(!_authReady||!K||K===ANON_KEY||document.hidden)return;
+    if(!_authReady||!K||K===ANON_KEY||document.hidden||_isIdle())return;
     loadRsaLocations();
   },2*60*1000);
 })();
