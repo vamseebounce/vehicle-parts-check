@@ -176,6 +176,26 @@ Deno.serve(async (req: Request) => {
       } catch (e) { console.error('Ticket trail error:', String(e)); }
     }
 
+    // Broadcast sync_done to Realtime clients (pure pub/sub, zero WAL overhead)
+    // rsa.html subscribes to this channel instead of postgres_changes
+    if (isScheduled) {
+      fetch(`${SUPABASE_URL}/realtime/v1/api/broadcast`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': SERVICE_KEY,
+          'Authorization': `Bearer ${SERVICE_KEY}`,
+        },
+        body: JSON.stringify({
+          messages: [{
+            topic: 'realtime:rsa-ops',
+            event: 'broadcast',
+            payload: { type: 'broadcast', event: 'sync_done', payload: { count: records.length, synced_at: now } }
+          }]
+        })
+      }).catch(e => console.warn('Broadcast warn:', String(e)));
+    }
+
     return new Response(JSON.stringify({ success: true, count: records.length, start_date, end_date }), {
       headers: { 'Content-Type': 'application/json', ...CORS },
     });
