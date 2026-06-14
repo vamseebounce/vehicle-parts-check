@@ -5,6 +5,20 @@ Legend: ⬜ TODO · 🔄 IN PROGRESS · ✅ DONE · ⏸ BLOCKED
 
 ---
 
+## Performance & Infrastructure (session 13)
+
+| # | Task | Status | Notes |
+|---|------|--------|-------|
+| P1 | Remove Supabase Realtime `postgres_changes` → Broadcast pub/sub | ✅ | rsa.html + rsa-ticket-sync v19; zero WAL polling |
+| P2 | Add 15-min idle guard on rsa.html + fw-map.html | ✅ | Stops polling when tabs left open overnight |
+| P3 | Add off-hours guard to rsa-ticket-sync (midnight–6am IST skip) | ✅ | rsa-ticket-sync v19; saves ~180 cron runs/day |
+| P4 | VACUUM rsa_tickets_cache + weekly cleanup-cron-history job | ✅ | Dead tuples 17.3% → 0%; cron.job_run_details auto-trims |
+| P5 | Drop `rsa_ticket_locations_old` + `rsa_team_locations_old` | ✅ | migration 20260614000001; freed 3.7MB buffer cache |
+| P6 | Investigate services loaded in RAM — optimize or drop what's unused | 🔄 | PostGIS candidate for removal if geography col unused |
+| P7 | Upgrade compute Micro → Small (2 GB RAM) | ⬜ | BLOCKED: budget. Costs $5/month extra. Fixes red dot permanently |
+
+---
+
 ## Hotfixes (production issues fixed outside phase order)
 
 | # | Issue | Status | Notes |
@@ -138,7 +152,8 @@ Legend: ⬜ TODO · 🔄 IN PROGRESS · ✅ DONE · ⏸ BLOCKED
 | D2 | Staging backend | **Supabase branch** vs 2nd project | Branch (Pro feature, less key juggling) |
 | D3 | TypeScript scope | **Lib-only TS**, pages stay JS | Lib-only |
 | D4 | Metabase dependency | **Keep polling** vs go direct to Bass | Keep for now |
-| D5 | Realtime strategy | **Keep clean-refetch** vs row-level patch | Keep refetch |
+| D5 | Realtime strategy | **Broadcast pub/sub** (implemented) vs postgres_changes | Broadcast — done ✅ |
+| D6 | Frontend framework | **Vite** (Phase 3 plan) vs **Next.js** (Amit suggestion) vs stay HTML | Next.js has better AI coding reliability + Server Components reduce PostgREST load; decide before Phase 3 |
 
 ---
 
