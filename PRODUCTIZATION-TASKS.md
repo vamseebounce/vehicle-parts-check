@@ -14,7 +14,7 @@ Legend: ⬜ TODO · 🔄 IN PROGRESS · ✅ DONE · ⏸ BLOCKED
 | P3 | Add off-hours guard to rsa-ticket-sync (midnight–6am IST skip) | ✅ | rsa-ticket-sync v19; saves ~180 cron runs/day |
 | P4 | VACUUM rsa_tickets_cache + weekly cleanup-cron-history job | ✅ | Dead tuples 17.3% → 0%; cron.job_run_details auto-trims |
 | P5 | Drop `rsa_ticket_locations_old` + `rsa_team_locations_old` | ✅ | migration 20260614000001; freed 3.7MB buffer cache |
-| P6 | Investigate services loaded in RAM — optimize or drop what's unused | 🔄 | PostGIS candidate for removal if geography col unused |
+| P6 | Investigate services loaded in RAM — optimize or drop what's unused | ✅ | PostGIS dropped (~80MB); pg_stat_statements dropped (~10MB); 7 remaining services are Supabase-managed, can't be removed |
 | P7 | Upgrade compute Micro → Small (2 GB RAM) | ⬜ | BLOCKED: budget. Costs $5/month extra. Fixes red dot permanently |
 
 ---
