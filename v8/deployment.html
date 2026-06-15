@@ -485,18 +485,11 @@ async function checkGlobalLogout(userId){
     document.getElementById('fb-fab').style.display='flex';loadHubs();
     loadAndApplyPermissions(s2.user.id);
   }else{showAuthScreen();}
-  var _logoutChannel=null;
-  function _subscribeLogout(userId){
-    if(_logoutChannel)sbClient.removeChannel(_logoutChannel);
-    _logoutChannel=sbClient.channel('global-logout-watch')
-      .on('postgres_changes',{event:'*',schema:'public',table:'app_settings',filter:'key=eq.global_logout_at'},
-        async function(){
-          var{data:{session:s}}=await sbClient.auth.getSession();
-          if(s)await checkGlobalLogout(s.user.id);
-        }
-      )
-      .subscribe();
-  }
+  // Poll for global logout every 60s (replaces Realtime channel)
+  setInterval(async function(){
+    var{data:{session:s}}=await sbClient.auth.getSession();
+    if(s)await checkGlobalLogout(s.user.id);
+  },60*1000);
   sbClient.auth.onAuthStateChange(async function(event,session){
     if((event==='SIGNED_IN'||event==='INITIAL_SESSION')&&session){
       if(event==='INITIAL_SESSION'){
@@ -507,11 +500,8 @@ async function checkGlobalLogout(userId){
       hideAuthScreen();document.getElementById('logout-btn').style.display='block';
       document.getElementById('logout-btn').title='Signed in as '+CURRENT_USER_EMAIL;
       document.getElementById('fb-fab').style.display='flex';loadHubs();
-      // Subscribe with authenticated JWT so RLS allows the Realtime event
-      _subscribeLogout(session.user.id);
     }else if(event==='SIGNED_OUT'){
       K=ANON_KEY;document.getElementById('logout-btn').style.display='none';showAuthScreen();
-      if(_logoutChannel){sbClient.removeChannel(_logoutChannel);_logoutChannel=null;}
     }
     else if(event==='TOKEN_REFRESHED'&&session){K=session.access_token;}
   });

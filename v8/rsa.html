@@ -1127,7 +1127,7 @@ async function loadAndApplyPermissions(userId){
     _authReady=true;
     loadAndApplyPermissions(session.user.id);
     // No triggerSync on load — cron handles every 2 min; only manual Refresh triggers sync
-    setTimeout(function(){fetchAndLoad(false);loadRsaLocations();loadHubs();subscribeBroadcast();},800);
+    setTimeout(function(){fetchAndLoad(false);loadRsaLocations();loadHubs();},800);
   }else{_authReady=true;showAuthScreen();}
 
   sbClient.auth.onAuthStateChange(async function(event,session){
@@ -1137,10 +1137,9 @@ async function loadAndApplyPermissions(userId){
       document.getElementById('logout-btn').style.display='block';
       _authReady=true;
       loadAndApplyPermissions(session.user.id);
-      setTimeout(function(){fetchAndLoad(false);loadRsaLocations();loadHubs();subscribeBroadcast();},800);
+      setTimeout(function(){fetchAndLoad(false);loadRsaLocations();loadHubs();},800);
     }else if(event==='SIGNED_OUT'){
       K=ANON_KEY;
-      if(_broadcastCh){sbClient.removeChannel(_broadcastCh);_broadcastCh=null;}
       showAuthScreen();
     }
     else if(event==='TOKEN_REFRESHED'&&session){K=session.access_token;}
@@ -1155,24 +1154,11 @@ async function loadAndApplyPermissions(userId){
     document.addEventListener(ev,_touch,{passive:true,capture:true});
   });
 
-  // Broadcast subscription — instant update when rsa-ticket-sync cron completes
-  // Uses Supabase Realtime Broadcast (pure WebSocket pub/sub, zero WAL/DB reads)
-  var _broadcastCh=null;
-  function subscribeBroadcast(){
-    if(_broadcastCh)return;
-    _broadcastCh=sbClient.channel('rsa-ops')
-      .on('broadcast',{event:'sync_done'},function(){
-        if(!_authReady||!K||K===ANON_KEY||document.hidden||!_isToday||_isIdle())return;
-        fetchAndLoad(false);
-      })
-      .subscribe();
-  }
-
-  // Fallback poll every 5 min — catches missed broadcasts, reconnects, date changes
+  // Poll every 30s — replaces Realtime broadcast (was 5min fallback + instant push)
   setInterval(function(){
     if(!_authReady||!K||K===ANON_KEY||document.hidden||!_isToday||_isIdle())return;
     fetchAndLoad(false);
-  },5*60*1000);
+  },30*1000);
 
   // RSA team location refresh — every 2 min (matches cron cadence)
   setInterval(function(){
