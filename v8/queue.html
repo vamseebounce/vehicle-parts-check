@@ -226,9 +226,11 @@ body.pinned #hbg{display:none}
   .content-wrap{padding:12px 12px 60px}
   .synced-bar{padding:5px 12px}
 }
+#perm-veil{position:fixed;inset:0;background:#fff;z-index:8000}
 </style>
 </head>
 <body>
+<div id="perm-veil"></div>
 
 <div id="auth-screen">
   <div class="auth-card">
@@ -409,6 +411,7 @@ async function loadAndApplyPermissions(userId){
     var{data:r2}=await sbClient.from('group_features').select('feature_key').in('group_id',r1.map(function(r){return r.group_id;}));
     var f={};(r2||[]).forEach(function(r){f[r.feature_key]=true;});
     if(!f['oos-queue']){window.location.href='./index.html';return;}
+    var v=document.getElementById('perm-veil');if(v)v.remove();
     document.querySelectorAll('[data-feature]').forEach(function(el){if(!f[el.getAttribute('data-feature')])el.style.display='none';});
   }catch(e){console.warn('[FP] Permission check failed',e);}
 }

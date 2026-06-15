@@ -263,9 +263,11 @@ body.pinned #main{margin-left:var(--sb-width)}
 body.pinned #hbg{display:none}
 @media(max-width:767px){body.pinned #main{margin-left:0}body.pinned #sb{transform:translateX(0)}.pin-btn{display:none}}
 @media(max-width:600px){.rec-metrics{grid-template-columns:repeat(2,1fr)}.kb-col{min-width:200px;width:200px}}
+#perm-veil{position:fixed;inset:0;background:#fff;z-index:8000}
 </style>
 </head>
 <body>
+<div id="perm-veil"></div>
 
 <!-- Auth -->
 <div id="auth-screen">
@@ -447,6 +449,7 @@ async function loadAndApplyPermissions(userId){
     var{data:r2}=await sbClient.from('group_features').select('feature_key').in('group_id',r1.map(function(r){return r.group_id;}));
     var f={};(r2||[]).forEach(function(r){f[r.feature_key]=true;});
     if(!f['deployment']){window.location.href='./index.html';return;}
+    var v=document.getElementById('perm-veil');if(v)v.remove();
     document.querySelectorAll('[data-feature]').forEach(function(el){if(!f[el.getAttribute('data-feature')])el.style.display='none';});
   }catch(e){console.warn('[FP] Permission check failed',e);}
 }

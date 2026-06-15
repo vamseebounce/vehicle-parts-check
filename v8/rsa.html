@@ -157,9 +157,11 @@ body{font-family:'Inter',sans-serif;background:#F8FAFC;color:#1E293B;height:100v
 .auth-input:focus{border-color:var(--brand)}
 .auth-btn{width:100%;padding:10px;background:var(--brand);color:#fff;border:none;border-radius:10px;font-size:.86rem;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif}
 .auth-msg{font-size:.75rem;color:#DC2626;margin-top:7px;min-height:18px}
+#perm-veil{position:fixed;inset:0;background:#fff;z-index:8000}
 </style>
 </head>
 <body>
+<div id="perm-veil"></div>
 
 <!-- Auth -->
 <div id="auth-screen">
@@ -1092,6 +1094,7 @@ async function loadAndApplyPermissions(userId){
     var{data:r2}=await sbClient.from('group_features').select('feature_key').in('group_id',r1.map(function(r){return r.group_id;}));
     var f={};(r2||[]).forEach(function(r){f[r.feature_key]=true;});
     if(!f['rsa-warroom']){window.location.href='./index.html';return;}
+    var v=document.getElementById('perm-veil');if(v)v.remove();
     document.querySelectorAll('[data-feature]').forEach(function(el){if(!f[el.getAttribute('data-feature')])el.style.display='none';});
   }catch(e){console.warn('[FP] Permission check failed',e);}
 }

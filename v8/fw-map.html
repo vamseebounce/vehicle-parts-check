@@ -143,9 +143,11 @@ body.pinned #main{margin-left:var(--sb-width)}
 .layer-row label{display:flex;align-items:center;gap:7px;cursor:pointer;flex:1}
 .layer-badge{font-size:.65rem;color:#9CA3AF;font-weight:500;}
 .layer-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+#perm-veil{position:fixed;inset:0;background:#fff;z-index:8000}
 </style>
 </head>
 <body>
+<div id="perm-veil"></div>
 
 <!-- Auth Screen -->
 <div id="auth-screen" class="hidden">
@@ -842,6 +844,7 @@ var _authReady=false;
     loadUserPermissions(session.user.id).then(function(features){
       window.FP_FEATURES=features;
       if(!fpCan('fw-map')){window.location.href='./index.html';return;}
+      var v=document.getElementById('perm-veil');if(v)v.remove();
       document.querySelectorAll('[data-feature]').forEach(function(el){if(!features[el.getAttribute('data-feature')])el.style.display='none';});
       enforce12hReauth(session.user.id).then(function(){checkGlobalLogout(session.user.id);});
     });
@@ -854,6 +857,7 @@ var _authReady=false;
       var features=await loadUserPermissions(session.user.id);
       window.FP_FEATURES=features;
       if(!fpCan('fw-map')){window.location.href='./index.html';return;}
+      var v=document.getElementById('perm-veil');if(v)v.remove();
       document.querySelectorAll('[data-feature]').forEach(function(el){if(!features[el.getAttribute('data-feature')])el.style.display='none';});
       // Record login so enforce12hReauth clock stays fresh
       sbClient.from('login_events').insert({user_id:session.user.id,email:session.user.email,logged_in_at:new Date().toISOString()}).then(function(){});
