@@ -14,6 +14,67 @@
 
 ---
 
+## 🔑 Source of Truth (verified 2026-06-16 from live DB)
+
+### Groups & Features (live from group_features table)
+| Group | Features |
+|-------|----------|
+| Admin | all-cities, deployment, export-data, fw-map, maintenance, oos-queue, rsa-warroom, tech-app |
+| Default Users | all-cities, deployment, export-data, maintenance, oos-queue |
+| RSA Field Team | fw-map, tech-app |
+| RSA Warroom | fw-map, rsa-warroom |
+
+**`admin-panel` is NOT in any group** — granted only to superadmins via `app_metadata.is_superadmin=true` (checked client-side in `loadUserPermissions`). Only `vamsee@bounceshare.com` has this flag.
+
+### Feature Key → Page/Capability
+| Feature key | Gates |
+|-------------|-------|
+| `fw-map` | fw-map.html, sidebar link |
+| `rsa-warroom` | rsa.html, sidebar link |
+| `maintenance` | maintenance.html, sidebar link, tile |
+| `oos-queue` | queue.html, sidebar link, tile |
+| `deployment` | deployment.html, sidebar link, tile |
+| `tech-app` | tech.html (RSA technician PWA) |
+| `export-data` | future export feature |
+| `all-cities` | pan-India view in fw-map/rsa |
+| `admin-panel` | admin-techs.html, admin-permissions.html, sidebar Admin section, Settings danger zone |
+
+### Group Memberships (live)
+| Group | Members |
+|-------|---------|
+| Admin | vamsee@bounceshare.com, vamsee@scalability.club, cheekoti.manideep@bounceshare.com, jagadishcp@bounceshare.com, nithish@bounceshare.com |
+| RSA Field Team | nishanthshetty2024@gmail.com, pavanmahesh120@gmail.com, sreeranga100@gmail.com |
+| RSA Warroom | sreeranga@bounceshare.com, venkatesh.r@bounceshare.com, nabina.behera@bounceshare.com |
+| Default Users | All other signed-up users (auto-assigned by trigger) |
+
+**Superadmin:** `vamsee@bounceshare.com` — `app_metadata.is_superadmin=true`, group assignments cannot be changed via admin-permissions fn (returns 403). `vamsee@scalability.club` is a regular Admin group member (no superadmin flag).
+
+### Table Columns (live schema)
+| Table | Columns |
+|-------|---------|
+| `rsa_tickets_cache` | ticket_number (PK), status, category, reg_number, technician_name, fault_details, created_at_ist, inprogress_at_ist, resolved_at_ist, tat_minutes, synced_at, city, lat, lng, bass_location_time_ist, live_lat, live_lng |
+| `bike_location_cache` | id, chassis_number (unique), reg_number, lat, lng, baas_location_time, current_soc, vehicle_status, synced_at |
+| `bike_rider_cache` | chassis_number (PK), rider_name, rider_phone, synced_at |
+| `fw_pending_cache` | chassis_number (PK), hub, reg_number, synced_at |
+| `sync_heartbeats` | id, function_name, status, duration_ms, rows_affected, error_message, synced_at |
+| `user_groups` | id, user_id, group_id |
+| `groups` | id, name, description, created_at |
+| `group_features` | id, group_id, feature_key |
+| `rsa_technicians` | id (=auth.users.id), name, email, phone, is_active, created_at |
+| `rsa_tech_actions` | id, ticket_number, technician_id, technician_name, technician_email, action, resolution_type, notes, evidence_urls[], created_at |
+| `rsa_team_locations` | id, name, chassis, reg_number, lat, lng, synced_at — partitioned by month |
+| `rsa_ticket_locations` | id, ticket_number, status, lat, lng, synced_at — partitioned by month |
+| `ticket_status_history` | id, ticket_number, old_status, new_status, changed_at, synced_at |
+| `app_settings` | key (PK), value, updated_at |
+| `vehicles` | chassis_number (PK), reg_number, model, city, created_at, updated_at |
+
+### D-Decisions Log
+| ID | Decision | Status |
+|----|----------|--------|
+| D6 | Next.js vs Vite for Phase 3 | ✅ **Vite** (session 14) — static output, GitHub Pages compatible, no server needed |
+
+---
+
 ## Git / GitHub (set up session 6)
 
 - **Repo:** https://github.com/vamseebounce/vehicle-parts-check
@@ -313,7 +374,7 @@ Feature keys: `fw-map` · `rsa-warroom` · `tech-app` · `admin-panel` · `expor
 - `loadUserPermissions(userId)` — queries `user_groups` → `group_features` → returns `{key:true}` map, or `null` if user has no groups (null = fallback to legacy RSA_EMAILS in fw-map, show-all in index.html)
 - `applyTilePermissions(features)` in index.html — hides `[data-feature]` elements whose key is absent from features map
 - `fpCan(key)` in fw-map.html — checks `window.FP_FEATURES` for access gate
-- Superadmin (`vamsee@scalability.club`): `app_metadata.is_superadmin=true`, cannot be modified by admin-permissions fn (403 returned)
+- Superadmin (`vamsee@bounceshare.com`): `app_metadata.is_superadmin=true`, cannot be modified by admin-permissions fn (403 returned)
 - `window.FP_FEATURES` global — set after login, available for any page-level feature check
 
 ### index.html tile gating
