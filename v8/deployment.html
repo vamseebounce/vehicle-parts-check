@@ -592,6 +592,9 @@ function modelTag(type){
 function loadHubs(){
   var sel=document.getElementById('hub-select');
   var sel2=document.getElementById('alloc-hub-select');
+  // Clear existing options (keep first placeholder) to avoid duplicates on re-call
+  while(sel.options.length>1)sel.remove(1);
+  while(sel2.options.length>1)sel2.remove(1);
   // Merge hubs from both tables so hubs with 0 bikes still appear in dropdown
   Promise.all([
     sbGet('deployment_queue_cache','select=hub_name&order=hub_name'),
