@@ -16,6 +16,17 @@ const CORS = {
   "Access-Control-Allow-Headers": "authorization, apikey, content-type",
 };
 
+// Max minutes before a sync is considered stale
+const STALE_MINUTES: Record<string, number> = {
+  "rsa-ticket-sync":          5,   // cron every 2 min
+  "bike-location-sync":       5,   // cron every 1 min
+  "fw-map-rider-sync":        35,  // cron every 30 min
+  "fw-sheet-sync":            35,
+  "jc-history-sync":          65,  // cron every hour
+  "metabase-sync":            65,
+  "refresh-deployment-cache": 35,
+};
+
 async function sendAlert(subject: string, html: string) {
   if (!RESEND_KEY) return;
   await fetch("https://api.resend.com/emails", {
@@ -98,6 +109,64 @@ Deno.serve(async (req: Request) => {
     }
   } else {
     result.egress = MGMT_TOKEN ? { status: "check_failed" } : { status: "no_token_set" };
+  }
+
+  // ── 3. Sync heartbeats ───────────────────────────────────────────────────
+  try {
+    const sb2 = createClient(SUPABASE_URL, SERVICE_KEY);
+    const { data: rows, error: hbErr } = await sb2
+      .from("sync_heartbeats")
+      .select("function_name, status, duration_ms, rows_affected, error_message, synced_at")
+      .order("synced_at", { ascending: false })
+      .limit(100);
+
+    if (hbErr) {
+      result.syncs = { status: "check_failed", error: hbErr.message };
+    } else {
+      // Latest row per function
+      const latest: Record<string, Record<string, unknown>> = {};
+      for (const row of (rows ?? [])) {
+        if (!latest[row.function_name]) latest[row.function_name] = row;
+      }
+
+      const syncSummary: Record<string, unknown> = {};
+      const problems: string[] = [];
+
+      for (const [fn, staleMin] of Object.entries(STALE_MINUTES)) {
+        const row = latest[fn];
+        if (!row) {
+          syncSummary[fn] = { status: "no_data" };
+          problems.push(`${fn}: no heartbeat data`);
+          continue;
+        }
+        const minutesAgo = Math.round((Date.now() - new Date(row.synced_at as string).getTime()) / 60000);
+        const stale = minutesAgo > staleMin;
+        const failed = row.status === "error";
+        syncSummary[fn] = {
+          status:       row.status,
+          minutes_ago:  minutesAgo,
+          duration_ms:  row.duration_ms,
+          rows_affected: row.rows_affected,
+          stale,
+          ...(failed ? { error: row.error_message } : {}),
+        };
+        if (failed)  problems.push(`${fn}: last run errored — ${row.error_message}`);
+        if (stale)   problems.push(`${fn}: no successful run in ${minutesAgo}m (threshold ${staleMin}m)`);
+      }
+
+      result.syncs = syncSummary;
+
+      if (problems.length > 0) {
+        await sendAlert(
+          `🚨 FleetPro Sync Alert: ${problems.length} issue(s)`,
+          `<p><strong>${problems.length} sync issue(s) detected:</strong></p>
+           <ul>${problems.map(p => `<li>${p}</li>`).join("")}</ul>
+           <p>Checked at: ${now}</p>`,
+        );
+      }
+    }
+  } catch (err) {
+    result.syncs = { status: "check_failed", error: String(err) };
   }
 
   const dbStatus = (result.db as Record<string, unknown>)?.status;
