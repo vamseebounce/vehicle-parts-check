@@ -124,8 +124,8 @@ Legend: ⬜ TODO · 🔄 IN PROGRESS · ✅ DONE · ⏸ BLOCKED
 | # | Task | Status | Notes |
 |---|------|--------|-------|
 | 5.1 | Create `sync_heartbeats` table | ✅ | Applied to DB + migration file |
-| 5.2 | Update each edge fn to write to `sync_heartbeats` | ⬜ | |
-| 5.3 | Update Cowork 8 AM health check to read `sync_heartbeats` | ⬜ | |
+| 5.2 | Update each edge fn to write to `sync_heartbeats` | ✅ | All 7 fns wired (session 14) — commit 146d5c4 |
+| 5.3 | Update Cowork 8 AM health check to read `sync_heartbeats` | ✅ | health-check fn reads sync_heartbeats, flags stale/error, emails alert (session 14) — commit fdb1dc3 |
 | 5.4 | Add Sentry (free tier) to shared lib | ⬜ | All pages get error reporting |
 | 5.5 | Add `Cache-Control` headers on static assets (Vercel/Pages config) | ⬜ | Egress guardrail |
 | 5.6 | Egress + DB health alert | ✅ | health-check fn emails at 70% egress; cron job 16 daily 08:30 IST |

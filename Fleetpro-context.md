@@ -1,5 +1,5 @@
 # Fleetpro — Context File
-*Last updated: 2026-06-13 (session 11 — Phase 2 complete: 2.6 location tables partitioned by month; 2.7 archival pipeline to Supabase Storage)*
+*Last updated: 2026-06-16 (session 14 — Phase 5.2 heartbeats wired; Phase 5.3 health-check sync monitor; Realtime → polling; perm-veil)*
 
 ## 🏗 Architecture Roadmap (session 5)
 - `ARCHITECTURE-PROPOSAL.md` created at repo root — 6-phase productization roadmap (PROPOSAL ONLY, nothing executed)
@@ -22,6 +22,7 @@
 - **Lock file gotcha:** Sandbox creates `.git/index.lock` / `.git/HEAD.lock` on macOS FUSE mount but cannot delete them. Workaround: user runs `rm -f .git/HEAD.lock .git/index.lock` + `git add` + `git commit` + `git push` from Terminal. Sandbox cannot reliably run any git write operation — tell user the exact commands to copy-paste.
 - **Rollback tags:** `phase-0.0`, `v8-final`, `phase-0.3`, `phase-0.4`, `phase-0.5`, `phase-0.6`, `phase-2half-additive` (vehicles, sync_heartbeats, fw_pending_history), `phase-2half-additive-2` (ticket_status_history)
 - **Latest commits (session 11):** fa2f545 (2.6 partition), e574773 (2.7 archival), bbe4d29 (vault fix)
+- **Latest commits (session 14):** 27e9759 (perm-veil all 5 pages), 32c5117 (Realtime→polling), 146d5c4 (5.2 heartbeats wired to all 7 edge fns), fdb1dc3 (5.3 health-check reads sync_heartbeats)
 - **Task tracker:** `PRODUCTIZATION-TASKS.md` in repo root — 47 tasks across Phase 0–6 + Phase 2½
 - **.gitignore:** excludes `.DS_Store`, `v6/`, `v7/`, `archive/`, `*.lock`
 
@@ -114,7 +115,7 @@ Live ops map for RSA (Roadside Assistance) tickets. Central team monitors open t
 ```
 Metabase (card f79c5050, last 30 days) → rsa-ticket-sync edge fn (v9) → rsa_tickets_cache → rsa_tickets_live view → rsa.html
 ```
-- **Today**: Supabase Realtime subscription — on any change to `rsa_tickets_cache`, 3s debounce then full re-fetch from `rsa_tickets_live`. Fallback poll only if Realtime silent >5 min.
+- **Today**: Polls every 30s (replaced Realtime subscription — session 14). `rsa_tickets_cache` and `rsa_team_locations` removed from `supabase_realtime` publication.
 - **Historical**: user picks date range → edge fn syncs → polls until fresh data appears
 - **Live location**: edge fn enriches open (NEW/IN_PROGRESS) tickets with live GPS from bike_location_cache → stored as live_lat/live_lng
 - **Movement tracking**: every 2-min cron appends open ticket locations to rsa_ticket_locations + RSA team locations to rsa_team_locations
@@ -199,7 +200,7 @@ Metabase (card f79c5050, last 30 days) → rsa-ticket-sync edge fn (v9) → rsa_
 | Table | Purpose | Notes |
 |-------|---------|-------|
 | `vehicles` | Dimension table: one row per chassis (reg, model, city) | ML training anchor. Empty — needs backfill from bike_location_cache |
-| `sync_heartbeats` | One row per edge fn run (status, duration_ms, rows_affected) | Edge fns not yet wired to write here — Task 5.2 |
+| `sync_heartbeats` | One row per edge fn run (status, duration_ms, rows_affected) | **✅ Session 14: all 7 sync edge fns now write here on every run** |
 | `fw_pending_history` | Daily snapshot of fw_pending_cache (chassis, hub, reg) | Cron `fw-pending-daily-snapshot` runs 18:25 UTC (23:55 IST) daily |
 | `ticket_status_history` | Immutable log of every ticket status transition | Trigger `trg_ticket_status_history` on rsa_tickets_cache INSERT/UPDATE |
 
@@ -267,7 +268,7 @@ Metabase (card f79c5050, last 30 days) → rsa-ticket-sync edge fn (v9) → rsa_
 - `rsa_ticket_locations.location` and `rsa_team_locations.location` are `geography(Point, 4326)`
 - Trigger `set_location_from_latlong()` auto-populates geography from lat/lng on every insert
 - GIST spatial indexes on both tables
-- `rsa_tickets_cache` published to `supabase_realtime`
+- `rsa_tickets_cache` **removed from** `supabase_realtime` publication (session 14 — replaced with 30s polling)
 
 ---
 
@@ -292,6 +293,7 @@ Both have 7-day session (no 12h reauth) in fw-map.html. RSA_EMAILS kept in fw-ma
 - Checks: cron last run (>10min=WARN, >30min=FAIL), DB reachable, tickets today, open tickets
 - Task ID: `fleetpro-health-check` in Cowork Scheduled sidebar
 - **Egress alert (task 5.6):** `health-check` fn updated — calls Supabase Management API (`MGMT_TOKEN` secret) daily via pg_cron job 16 (03:00 UTC / 08:30 IST). Emails `vamsee@bounceshare.com` if egress ≥ 70% (175 GB of 250 GB). Also emails on DB health failure.
+- **Phase 5.3 (session 14):** `health-check` fn now reads `sync_heartbeats` — reports latest status, minutes_since, duration_ms, rows_affected per function. Flags stale (per-function thresholds: rsa-ticket-sync/bike-location-sync=5m, fw-map-rider-sync/fw-sheet-sync/refresh-deployment-cache=35m, jc-history-sync/metabase-sync=65m) and erroring syncs. Sends alert email if any problems found.
 
 ---
 
@@ -336,7 +338,7 @@ Feature keys: `fw-map` · `rsa-warroom` · `tech-app` · `admin-panel` · `expor
 6. fw-sheet-sync: old approach was upsert-only (stale bikes stayed). Now: delete range + insert.
 7. GitHub Pages deployment warning (Node.js 20 deprecated) — self-resolves June 16, 2026
 8. `inferCity(t)`: uses t.city first, then lat/lng bounds inference, defaults to 'BLR' — tickets with null city/GPS always appear under BLR filter
-9. Realtime uses clean re-fetch (not payload patching) to avoid ticket accumulation bug — old approach caused `_all` to grow to 237 tickets
+9. Realtime removed (session 14) — rsa.html polls every 30s; deployment.html polls every 60s for global logout. `rsa_tickets_cache` + `rsa_team_locations` dropped from supabase_realtime publication.
 10. `rsa_team_locations` and `rsa_ticket_locations` now have RLS **enabled** (authenticated SELECT) — added when partitioned in session 11. Edge fn inserts work (service role bypasses RLS).
 10a. **Partition PK gotcha:** PK is now `(id, synced_at)` — not just `(id)`. Any future `ON CONFLICT (id)` will fail. Both tables use plain INSERT (no upsert on id), so this is safe today.
 11. `rsa_team_locations` now populated by dedicated pg_cron job `rsa-team-track-2min` (pure SQL, no edge fn dependency)
