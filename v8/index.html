@@ -227,6 +227,15 @@ body.pinned #hbg{display:none}
       <span class="si">🦺</span><span>RSA Warroom</span>
     </a>
   </div>
+  <div class="sb-section" style="margin-top:8px" data-feature="admin-panel">
+    <div class="sb-label">Admin</div>
+    <a href="./admin-techs.html" class="sb-item" data-feature="admin-panel">
+      <span class="si">👤</span><span>Manage Technicians</span>
+    </a>
+    <a href="./admin-permissions.html" class="sb-item" data-feature="admin-panel">
+      <span class="si">🔐</span><span>Permissions</span>
+    </a>
+  </div>
   <div class="sb-section" style="margin-top:8px">
     <div class="sb-label">Coming Soon</div>
     <div class="sb-item" style="opacity:.4;cursor:default"><span class="si">📊</span><span>Fleet Analytics</span></div>
@@ -439,11 +448,10 @@ async function checkGlobalLogout(userId){
 }
 
 // Settings modal
-var ADMIN_EMAILS=['vamsee@bounceshare.com'];
 function openSettings(){
   document.getElementById('settings-user-email').textContent=CURRENT_USER_EMAIL||'—';
   document.getElementById('settings-modal').classList.add('show');
-  var isAdmin=ADMIN_EMAILS.includes(CURRENT_USER_EMAIL);
+  var isAdmin=!!(window.FP_FEATURES&&window.FP_FEATURES['admin-panel']);
   document.getElementById('settings-danger-section').style.display=isAdmin?'block':'none';
   document.getElementById('settings-danger-divider').style.display=isAdmin?'block':'none';
   sbClient.from('app_settings').select('value,updated_at').eq('key','global_logout_at').single().then(function(r){
