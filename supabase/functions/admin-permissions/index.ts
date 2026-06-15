@@ -35,15 +35,26 @@ Deno.serve(async (req) => {
 
   // --- list_users: all auth users with their groups ---
   if (action === 'list_users') {
-    const { data: authUsers, error: authErr } = await supabase.auth.admin.listUsers()
-    if (authErr) return err(authErr.message, corsHeaders)
+    // Call GoTrue admin API directly to avoid JS client pagination quirks
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!
+    const serviceKey  = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    const res = await fetch(`${supabaseUrl}/auth/v1/admin/users?page=1&per_page=1000`, {
+      headers: { 'apikey': serviceKey, 'Authorization': `Bearer ${serviceKey}` }
+    })
+    if (!res.ok) {
+      const body = await res.text()
+      return err(`Auth API error ${res.status}: ${body}`, corsHeaders)
+    }
+    const json = await res.json()
+    // GoTrue returns { users: [...] } or an array directly depending on version
+    const userList: Array<{ id: string; email: string }> = Array.isArray(json) ? json : (json.users ?? [])
 
     const { data: userGroups, error: ugErr } = await supabase
       .from('user_groups')
       .select('user_id, group_id')
     if (ugErr) return err(ugErr.message, corsHeaders)
 
-    const grouped = authUsers.users.map(u => ({
+    const grouped = userList.map(u => ({
       id: u.id,
       email: u.email,
       group_ids: userGroups.filter(ug => ug.user_id === u.id).map(ug => ug.group_id)
