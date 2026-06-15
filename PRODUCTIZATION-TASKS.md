@@ -171,8 +171,8 @@ Legend: ⬜ TODO · 🔄 IN PROGRESS · ✅ DONE · ⏸ BLOCKED
 
 **Feature keys:** fw-map · rsa-warroom · tech-app · admin-panel · export-data · all-cities
 
-**Pending permission tasks:**
-- Add superadmin role (protected from role changes) — session 8
-- Wire index.html home page to show only allowed links per user — session 8
-- Add tech-app feature to RSA Field Team — session 8
-- Wire rsa.html gate using same fpCan() pattern — session 8
+**Permission tasks — completed session 14:**
+- ✅ Superadmin role protected from group changes (admin-permissions edge fn, 403 on toggle_user_group)
+- ✅ index.html sidebar + settings danger zone gated by FP_FEATURES['admin-panel'] (commit 5564db9); admin links in sidebar
+- ✅ tech-app feature assigned to RSA Field Team in group_features
+- ✅ rsa.html + all 5 gated pages have perm-veil + fpCan() checks (session 14)
