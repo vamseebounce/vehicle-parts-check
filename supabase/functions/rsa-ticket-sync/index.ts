@@ -13,6 +13,10 @@ const RSA_TEAM = [
 
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'POST', 'Access-Control-Allow-Headers': 'authorization, apikey, content-type' };
 
+async function writeHeartbeat(sb: any, status: string, durationMs: number, rowsAffected: number | null = null, errorMessage: string | null = null) {
+  try { await sb.from('sync_heartbeats').insert({ function_name: 'rsa-ticket-sync', status, duration_ms: durationMs, rows_affected: rowsAffected, error_message: errorMessage, synced_at: new Date().toISOString() }); } catch (_) {}
+}
+
 function todayIST(): string {
   const d = new Date();
   d.setMinutes(d.getMinutes() + 330);
@@ -31,6 +35,7 @@ const OFF_HOURS_END   = 6;  // 6am IST (exclusive)
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: CORS });
 
+  const t0 = Date.now();
   const sb = createClient(SUPABASE_URL, SERVICE_KEY);
   const now = new Date().toISOString();
 
@@ -176,31 +181,13 @@ Deno.serve(async (req: Request) => {
       } catch (e) { console.error('Ticket trail error:', String(e)); }
     }
 
-    // Broadcast sync_done to Realtime clients (pure pub/sub, zero WAL overhead)
-    // rsa.html subscribes to this channel instead of postgres_changes
-    if (isScheduled) {
-      fetch(`${SUPABASE_URL}/realtime/v1/api/broadcast`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'apikey': SERVICE_KEY,
-          'Authorization': `Bearer ${SERVICE_KEY}`,
-        },
-        body: JSON.stringify({
-          messages: [{
-            topic: 'realtime:rsa-ops',
-            event: 'broadcast',
-            payload: { type: 'broadcast', event: 'sync_done', payload: { count: records.length, synced_at: now } }
-          }]
-        })
-      }).catch(e => console.warn('Broadcast warn:', String(e)));
-    }
-
+    await writeHeartbeat(sb, 'success', Date.now() - t0, records.length);
     return new Response(JSON.stringify({ success: true, count: records.length, start_date, end_date }), {
       headers: { 'Content-Type': 'application/json', ...CORS },
     });
   } catch (err) {
     console.error('Ticket sync error:', String(err));
+    await writeHeartbeat(sb, 'error', Date.now() - t0, null, String(err));
     return new Response(JSON.stringify({ success: false, error: String(err) }), {
       status: 500, headers: { 'Content-Type': 'application/json', ...CORS },
     });

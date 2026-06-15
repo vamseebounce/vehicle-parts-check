@@ -6,7 +6,12 @@ const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const DEDUP_SECONDS = 55;
 
+async function writeHeartbeat(sb: any, status: string, durationMs: number, rowsAffected: number | null = null, errorMessage: string | null = null) {
+  try { await sb.from('sync_heartbeats').insert({ function_name: 'bike-location-sync', status, duration_ms: durationMs, rows_affected: rowsAffected, error_message: errorMessage, synced_at: new Date().toISOString() }); } catch (_) {}
+}
+
 Deno.serve(async (_req: Request) => {
+  const t0 = Date.now();
   const sb = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
   try {
@@ -53,11 +58,13 @@ Deno.serve(async (_req: Request) => {
       if (error) throw new Error(`Upsert failed at batch ${i}: ${error.message}`);
     }
 
+    await writeHeartbeat(sb, 'success', Date.now() - t0, records.length);
     return new Response(JSON.stringify({ success: true, count: records.length }), {
       headers: { 'Content-Type': 'application/json' },
     });
   } catch (err) {
     console.error('Error:', String(err));
+    await writeHeartbeat(sb, 'error', Date.now() - t0, null, String(err));
     return new Response(JSON.stringify({ success: false, error: String(err) }), {
       status: 500, headers: { 'Content-Type': 'application/json' },
     });

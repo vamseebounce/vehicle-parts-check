@@ -42,6 +42,10 @@ function rank(s: string | null): number {
 
 const BATCH_SIZE = 500;
 
+async function writeHeartbeat(sb: any, status: string, durationMs: number, rowsAffected: number | null = null, errorMessage: string | null = null) {
+  try { await sb.from('sync_heartbeats').insert({ function_name: 'metabase-sync', status, duration_ms: durationMs, rows_affected: rowsAffected, error_message: errorMessage, synced_at: new Date().toISOString() }); } catch (_) {}
+}
+
 async function insertBatch(supabase: any, batch: any[], batchNum: number, attempt = 1): Promise<void> {
   const { error } = await supabase.from("vehicle_parts_check_flag").insert(batch);
   if (!error) { console.log(`Batch ${batchNum} OK (${batch.length} rows)`); return; }
@@ -51,6 +55,8 @@ async function insertBatch(supabase: any, batch: any[], batchNum: number, attemp
 }
 
 Deno.serve(async (_req: Request) => {
+  const t0 = Date.now();
+  const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
   try {
     const mbRes = await fetch(METABASE_URL);
     if (!mbRes.ok) throw new Error(`Metabase fetch failed: ${mbRes.status} ${mbRes.statusText}`);
@@ -168,7 +174,6 @@ Deno.serve(async (_req: Request) => {
       };
     });
 
-    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
     const { error: delError } = await supabase.from("vehicle_parts_check_flag").delete().neq("id", 0);
     if (delError) throw new Error(`Delete failed: ${delError.message}`);
 
@@ -176,8 +181,10 @@ Deno.serve(async (_req: Request) => {
       await insertBatch(supabase, records.slice(i, i + BATCH_SIZE), Math.floor(i / BATCH_SIZE) + 1);
     }
 
+    await writeHeartbeat(supabase, 'success', Date.now() - t0, records.length);
     return new Response(JSON.stringify({ success: true, count: records.length }), { headers: { "Content-Type": "application/json" } });
   } catch (err) {
+    await writeHeartbeat(supabase, 'error', Date.now() - t0, null, String(err));
     return new Response(JSON.stringify({ success: false, error: String(err) }), { status: 500, headers: { "Content-Type": "application/json" } });
   }
 });

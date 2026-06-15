@@ -6,6 +6,10 @@ const SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQQKVgHvymh2u
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY  = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
+async function writeHeartbeat(sb: any, status: string, durationMs: number, rowsAffected: number | null = null, errorMessage: string | null = null) {
+  try { await sb.from('sync_heartbeats').insert({ function_name: 'fw-sheet-sync', status, duration_ms: durationMs, rows_affected: rowsAffected, error_message: errorMessage, synced_at: new Date().toISOString() }); } catch (_) {}
+}
+
 const CORS = {
   "Access-Control-Allow-Origin":  "https://bounceops.online",
   "Access-Control-Allow-Methods": "GET, OPTIONS",
@@ -29,7 +33,8 @@ function parseCSV(text: string): string[][] {
 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: CORS });
-
+  const t0 = Date.now();
+  const sb = createClient(SUPABASE_URL, SERVICE_KEY);
   try {
     console.log("Fetching Google Sheet...");
     const sheetRes = await fetch(SHEET_URL);
@@ -54,8 +59,6 @@ Deno.serve(async (req: Request) => {
 
     console.log(`Pending bikes from sheet: ${pending.length}`);
 
-    const sb = createClient(SUPABASE_URL, SERVICE_KEY);
-
     const { error: deleteErr } = await sb
       .from("fw_pending_cache")
       .delete()
@@ -72,12 +75,14 @@ Deno.serve(async (req: Request) => {
       }
     }
 
+    await writeHeartbeat(sb, 'success', Date.now() - t0, pending.length);
     return new Response(
       JSON.stringify({ ok: true, pending: pending.length }),
       { headers: { ...CORS, "Content-Type": "application/json" } }
     );
   } catch (err) {
     console.error("Error:", String(err));
+    await writeHeartbeat(sb, 'error', Date.now() - t0, null, String(err));
     return new Response(
       JSON.stringify({ error: String(err) }),
       { status: 500, headers: { ...CORS, "Content-Type": "application/json" } }

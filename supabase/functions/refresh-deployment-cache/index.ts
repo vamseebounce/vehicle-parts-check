@@ -40,6 +40,10 @@ function applyMap(rows: Record<string, unknown>[], map: Record<string, string>) 
   return rows.map(row => { const out: Record<string, unknown> = {}; for (const [k, v] of Object.entries(row)) { out[map[k] ?? k] = v }; return out })
 }
 
+async function writeHeartbeat(sb: any, status: string, durationMs: number, rowsAffected: number | null = null, errorMessage: string | null = null) {
+  try { await sb.from('sync_heartbeats').insert({ function_name: 'refresh-deployment-cache', status, duration_ms: durationMs, rows_affected: rowsAffected, error_message: errorMessage, synced_at: new Date().toISOString() }); } catch (_) {}
+}
+
 serve(async () => {
   const started = Date.now()
   const sb = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!)
@@ -50,8 +54,10 @@ serve(async () => {
     await Promise.all([sb.from('deployment_queue_cache').delete().gte('id', 0), sb.from('pending_bookings_cache').delete().gte('id', 0)])
     for (let i = 0; i < queueRows.length; i += BATCH) { const { error } = await sb.from('deployment_queue_cache').insert(queueRows.slice(i, i + BATCH)); if (error) throw new Error(`queue batch ${i}: ${error.message}`); }
     for (let i = 0; i < pendingRows.length; i += BATCH) { const { error } = await sb.from('pending_bookings_cache').insert(pendingRows.slice(i, i + BATCH)); if (error) throw new Error(`pending batch ${i}: ${error.message}`); }
+    await writeHeartbeat(sb, 'success', Date.now() - started, queueRows.length + pendingRows.length)
     return new Response(JSON.stringify({ ok: true, queue_bikes: queueRows.length, pending_customers: pendingRows.length, elapsed_ms: Date.now() - started }), { headers: { 'Content-Type': 'application/json' } })
   } catch (err) {
+    await writeHeartbeat(sb, 'error', Date.now() - started, null, String(err))
     return new Response(JSON.stringify({ ok: false, error: String(err) }), { status: 500, headers: { 'Content-Type': 'application/json' } })
   }
 })
