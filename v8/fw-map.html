@@ -841,7 +841,7 @@ var _authReady=false;
     setTimeout(function(){setMapHeight();loadMapData();loadHubMarkers();loadRsaLocations();triggerSyncFireAndForget();},100);
     loadUserPermissions(session.user.id).then(function(features){
       window.FP_FEATURES=features;
-      if(!fpCan('fw-map')){sbClient.auth.signOut();showAccessDenied();return;}
+      if(!fpCan('fw-map')){window.location.href='./index.html';return;}
       document.querySelectorAll('[data-feature]').forEach(function(el){if(!features[el.getAttribute('data-feature')])el.style.display='none';});
       enforce12hReauth(session.user.id).then(function(){checkGlobalLogout(session.user.id);});
     });
@@ -853,7 +853,7 @@ var _authReady=false;
       K=session.access_token;CURRENT_USER_EMAIL=session.user.email;
       var features=await loadUserPermissions(session.user.id);
       window.FP_FEATURES=features;
-      if(!fpCan('fw-map')){await sbClient.auth.signOut();showAccessDenied();return;}
+      if(!fpCan('fw-map')){window.location.href='./index.html';return;}
       document.querySelectorAll('[data-feature]').forEach(function(el){if(!features[el.getAttribute('data-feature')])el.style.display='none';});
       // Record login so enforce12hReauth clock stays fresh
       sbClient.from('login_events').insert({user_id:session.user.id,email:session.user.email,logged_in_at:new Date().toISOString()}).then(function(){});

@@ -443,9 +443,10 @@ async function signOut(){await sbClient.auth.signOut();document.getElementById('
 async function loadAndApplyPermissions(userId){
   try{
     var{data:r1}=await sbClient.from('user_groups').select('group_id').eq('user_id',userId);
-    if(!r1||!r1.length)return;
+    if(!r1||!r1.length){window.location.href='./index.html';return;}
     var{data:r2}=await sbClient.from('group_features').select('feature_key').in('group_id',r1.map(function(r){return r.group_id;}));
     var f={};(r2||[]).forEach(function(r){f[r.feature_key]=true;});
+    if(!f['deployment']){window.location.href='./index.html';return;}
     document.querySelectorAll('[data-feature]').forEach(function(el){if(!f[el.getAttribute('data-feature')])el.style.display='none';});
   }catch(e){console.warn('[FP] Permission check failed',e);}
 }

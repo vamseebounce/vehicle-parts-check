@@ -128,6 +128,25 @@ body{font-family:'Inter',sans-serif;background:#F8FAFC;color:#1E293B;height:100v
 .tp-leg-row{display:flex;align-items:center;gap:7px;font-size:.73rem;color:#374151;margin-bottom:4px}
 .tp-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
 
+/* Sidebar */
+#sb{position:fixed;top:0;left:0;bottom:0;width:220px;background:#fff;border-right:1px solid var(--border);z-index:800;display:flex;flex-direction:column;transform:translateX(-100%);transition:transform .22s ease;overflow-y:auto}
+#sb.open{transform:translateX(0)}
+#ov{position:fixed;inset:0;background:rgba(0,0,0,.18);z-index:799;display:none}
+#ov.show{display:block}
+.sb-header{display:flex;align-items:center;justify-content:space-between;padding:14px 14px 8px}
+.sb-brand{display:flex;align-items:center;gap:7px;font-size:.82rem;font-weight:800;color:var(--brand);text-decoration:none}
+.sb-close{background:none;border:none;font-size:1.1rem;cursor:pointer;color:#6B7280;padding:2px 6px}
+.sb-section{padding:6px 10px}
+.sb-label{font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:#9CA3AF;padding:4px 6px 6px}
+.sb-item{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:10px;text-decoration:none;color:#374151;font-size:.82rem;font-weight:500;transition:all .15s;margin-bottom:2px}
+.sb-item:hover{background:#F1F5F9;color:#0F172A}
+.sb-item.active{background:rgba(232,25,28,.12);color:#E8191C;font-weight:600}
+.si{font-size:.95rem;width:18px;text-align:center}
+.sb-spacer{flex:1}
+.sb-footer{padding:10px 16px 16px;font-size:.65rem;color:#9CA3AF}
+#hbg{background:none;border:none;cursor:pointer;padding:5px;display:flex;flex-direction:column;gap:4px;margin-right:4px}
+#hbg span{display:block;width:18px;height:2px;background:#374151;border-radius:2px}
+
 /* Auth */
 #auth-screen{position:fixed;inset:0;background:#fff;z-index:9999;display:flex;align-items:center;justify-content:center}
 #auth-screen.hidden{display:none}
@@ -161,8 +180,34 @@ body{font-family:'Inter',sans-serif;background:#F8FAFC;color:#1E293B;height:100v
   </div>
 </div>
 
+<!-- Sidebar overlay -->
+<div id="ov" onclick="toggleSidebar()"></div>
+
+<!-- Sidebar -->
+<nav id="sb">
+  <div class="sb-header">
+    <a href="./index.html" class="sb-brand">
+      <img src="logo.jpg" width="22" height="22" style="border-radius:5px;object-fit:cover" onerror="this.style.display='none'"/>
+      FleetPro
+    </a>
+    <button class="sb-close" onclick="toggleSidebar()">✕</button>
+  </div>
+  <div class="sb-section">
+    <div class="sb-label">Fleet Tools</div>
+    <a href="./index.html" class="sb-item"><span class="si">🏠</span><span>Home</span></a>
+    <a href="./maintenance.html" class="sb-item" data-feature="maintenance"><span class="si">🔧</span><span>Preventive Maintenance</span></a>
+    <a href="./queue.html" class="sb-item" data-feature="oos-queue"><span class="si">📋</span><span>OOS Queue</span></a>
+    <a href="./deployment.html" class="sb-item" data-feature="deployment"><span class="si">🚲</span><span>Deployment Queue</span></a>
+    <a href="./fw-map.html" class="sb-item" data-feature="fw-map"><span class="si">🗺️</span><span>FW Pending Map</span></a>
+    <a href="./rsa.html" class="sb-item active"><span class="si">🦺</span><span>RSA Warroom</span></a>
+  </div>
+  <div class="sb-spacer"></div>
+  <div class="sb-footer">FleetPro · RSA Warroom</div>
+</nav>
+
 <!-- Topbar -->
 <div id="topbar">
+  <button id="hbg" onclick="toggleSidebar()"><span></span><span></span><span></span></button>
   <a href="./index.html" class="tb-brand">
     <img src="logo.jpg" width="24" height="24" style="border-radius:5px;object-fit:cover" onerror="this.style.display='none'"/>
     FleetPro
@@ -1039,6 +1084,17 @@ async function sendMagicLink(){
   document.getElementById('auth-sent').style.display='block';
 }
 async function signOut(){await sbClient.auth.signOut();}
+function toggleSidebar(){var sb=document.getElementById('sb'),ov=document.getElementById('ov');sb.classList.toggle('open');ov.classList.toggle('show');}
+async function loadAndApplyPermissions(userId){
+  try{
+    var{data:r1}=await sbClient.from('user_groups').select('group_id').eq('user_id',userId);
+    if(!r1||!r1.length){window.location.href='./index.html';return;}
+    var{data:r2}=await sbClient.from('group_features').select('feature_key').in('group_id',r1.map(function(r){return r.group_id;}));
+    var f={};(r2||[]).forEach(function(r){f[r.feature_key]=true;});
+    if(!f['rsa-warroom']){window.location.href='./index.html';return;}
+    document.querySelectorAll('[data-feature]').forEach(function(el){if(!f[el.getAttribute('data-feature')])el.style.display='none';});
+  }catch(e){console.warn('[FP] Permission check failed',e);}
+}
 
 // ── Boot ──
 (function(){
@@ -1066,6 +1122,7 @@ async function signOut(){await sbClient.auth.signOut();}
     hideAuthScreen();
     document.getElementById('logout-btn').style.display='block';
     _authReady=true;
+    loadAndApplyPermissions(session.user.id);
     // No triggerSync on load — cron handles every 2 min; only manual Refresh triggers sync
     setTimeout(function(){fetchAndLoad(false);loadRsaLocations();loadHubs();subscribeBroadcast();},800);
   }else{_authReady=true;showAuthScreen();}
@@ -1076,6 +1133,7 @@ async function signOut(){await sbClient.auth.signOut();}
       hideAuthScreen();
       document.getElementById('logout-btn').style.display='block';
       _authReady=true;
+      loadAndApplyPermissions(session.user.id);
       setTimeout(function(){fetchAndLoad(false);loadRsaLocations();loadHubs();subscribeBroadcast();},800);
     }else if(event==='SIGNED_OUT'){
       K=ANON_KEY;
