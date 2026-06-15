@@ -194,11 +194,11 @@ body.pinned #main{margin-left:var(--sb-width)}
   <div class="sb-section">
     <div class="sb-label">Fleet Tools</div>
     <a href="./index.html" class="sb-item"><span class="si">🏠</span><span>Home</span></a>
-    <a href="./maintenance.html" class="sb-item"><span class="si">🔧</span><span>Preventive Maintenance</span></a>
-    <a href="./queue.html" class="sb-item"><span class="si">📋</span><span>OOS Queue</span></a>
-    <a href="./deployment.html" class="sb-item"><span class="si">🚲</span><span>Deployment Queue</span></a>
+    <a href="./maintenance.html" class="sb-item" data-feature="maintenance"><span class="si">🔧</span><span>Preventive Maintenance</span></a>
+    <a href="./queue.html" class="sb-item" data-feature="oos-queue"><span class="si">📋</span><span>OOS Queue</span></a>
+    <a href="./deployment.html" class="sb-item" data-feature="deployment"><span class="si">🚲</span><span>Deployment Queue</span></a>
     <a href="./fw-map.html" class="sb-item active"><span class="si">📍</span><span>FW Pending Map</span></a>
-    <a href="./rsa.html" class="sb-item"><span class="si">🦺</span><span>RSA Warroom</span></a>
+    <a href="./rsa.html" class="sb-item" data-feature="rsa-warroom"><span class="si">🦺</span><span>RSA Warroom</span></a>
   </div>
   <div class="sb-section" style="margin-top:8px">
     <div class="sb-label">Coming Soon</div>
@@ -842,6 +842,7 @@ var _authReady=false;
     loadUserPermissions(session.user.id).then(function(features){
       window.FP_FEATURES=features;
       if(!fpCan('fw-map')){sbClient.auth.signOut();showAccessDenied();return;}
+      document.querySelectorAll('[data-feature]').forEach(function(el){if(!features[el.getAttribute('data-feature')])el.style.display='none';});
       enforce12hReauth(session.user.id).then(function(){checkGlobalLogout(session.user.id);});
     });
   }else{_authReady=true;showAuthScreen();}
@@ -853,6 +854,7 @@ var _authReady=false;
       var features=await loadUserPermissions(session.user.id);
       window.FP_FEATURES=features;
       if(!fpCan('fw-map')){await sbClient.auth.signOut();showAccessDenied();return;}
+      document.querySelectorAll('[data-feature]').forEach(function(el){if(!features[el.getAttribute('data-feature')])el.style.display='none';});
       // Record login so enforce12hReauth clock stays fresh
       sbClient.from('login_events').insert({user_id:session.user.id,email:session.user.email,logged_in_at:new Date().toISOString()}).then(function(){});
       hideAuthScreen();
