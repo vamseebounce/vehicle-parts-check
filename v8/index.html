@@ -476,14 +476,19 @@ async function forceLogoutAll(){
 }
 
 // Load user's allowed features from group_features via user_groups.
-// Returns feature map {key:true} or null (triggers no hiding — show all).
+// Superadmins (app_metadata.is_superadmin=true) always get admin-panel.
+// Returns feature map {key:true}.
 async function loadUserPermissions(userId){
   try{
     var r1=await sbClient.from('user_groups').select('group_id').eq('user_id',userId);
     if(!r1.data||!r1.data.length)return {}; // no groups → empty map; trigger assigns default group on first sign-in
     var ids=r1.data.map(function(r){return r.group_id;});
     var r2=await sbClient.from('group_features').select('feature_key').in('group_id',ids);
-    var f={};(r2.data||[]).forEach(function(r){f[r.feature_key]=true;});return f;
+    var f={};(r2.data||[]).forEach(function(r){f[r.feature_key]=true;});
+    // Superadmin check — grants admin-panel regardless of group features
+    var{data:{session:s}}=await sbClient.auth.getSession();
+    if(s&&s.user&&s.user.app_metadata&&s.user.app_metadata.is_superadmin)f['admin-panel']=true;
+    return f;
   }catch(e){console.warn('[FP] Permission check failed',e);return {};}
 }
 // Hide tiles and sidebar links for features the user doesn't have.
