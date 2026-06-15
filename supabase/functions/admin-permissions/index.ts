@@ -35,19 +35,10 @@ Deno.serve(async (req) => {
 
   // --- list_users: all auth users with their groups ---
   if (action === 'list_users') {
-    // Call GoTrue admin API directly to avoid JS client pagination quirks
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!
-    const serviceKey  = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-    const res = await fetch(`${supabaseUrl}/auth/v1/admin/users?page=1&per_page=1000`, {
-      headers: { 'apikey': serviceKey, 'Authorization': `Bearer ${serviceKey}` }
-    })
-    if (!res.ok) {
-      const body = await res.text()
-      return err(`Auth API error ${res.status}: ${body}`, corsHeaders)
-    }
-    const json = await res.json()
-    // GoTrue returns { users: [...] } or an array directly depending on version
-    const userList: Array<{ id: string; email: string }> = Array.isArray(json) ? json : (json.users ?? [])
+    // Use a SECURITY DEFINER SQL function to read auth.users directly
+    // (GoTrue admin API has a known "Database error finding users" bug on this project)
+    const { data: userList, error: userErr } = await supabase.rpc('list_auth_users')
+    if (userErr) return err(userErr.message, corsHeaders)
 
     const { data: userGroups, error: ugErr } = await supabase
       .from('user_groups')
