@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>FleetPro v6 — Deployment Queue</title>
+<title>FleetPro v8 — Deployment Queue</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"/>
@@ -319,7 +319,7 @@ body.pinned #hbg{display:none}
     <div class="sb-item" style="opacity:.4;cursor:default"><span class="si">🔔</span><span>Alert Centre</span></div>
   </div>
   <div class="sb-spacer"></div>
-  <div class="sb-footer"><div class="sb-ver">FleetPro v6 · Deployment Queue</div></div>
+  <div class="sb-footer"><div class="sb-ver">FleetPro v8 · Deployment Queue</div></div>
 </nav>
 
 <!-- Main -->
@@ -1053,7 +1053,7 @@ function toggleFeedback(){document.getElementById('fb-popup').classList.toggle('
 async function submitFeedback(){
   var t=document.getElementById('fb-text').value.trim();
   if(!t)return;
-  await sbClient.from('feedback').insert([{page:'deployment-v6',message:t,user_email:CURRENT_USER_EMAIL,created_at:new Date().toISOString()}]).catch(function(){});
+  await sbClient.from('feedback').insert([{page:'deployment-v8',message:t,user_email:CURRENT_USER_EMAIL,created_at:new Date().toISOString()}]).catch(function(){});
   document.getElementById('fb-text').value='';document.getElementById('fb-popup').classList.remove('open');
 }
 </script>
