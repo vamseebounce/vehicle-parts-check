@@ -889,7 +889,7 @@ function buildJCSection(section,rows,bikeId,reg){
     +'<button class="jc-filter-clear" onclick="clearJCFilters(this)">✕ Clear</button>'
     +'<span class="jc-count">'+rows.length+' entries · '+Object.keys(jcSet).length+' JCs</span>'
     +'</div>';
-  var html='<div class="jc-hdr"><div class="jc-hdr-title">JC History</div><button class="dl-btn" style="margin-top:0" onclick="dlCSV('+bikeId+',\''+reg+'\')">⬇ Download CSV</button></div>'
+  var html='<div class="jc-hdr"><div class="jc-hdr-title">JC History</div><div style="display:flex;gap:8px;align-items:center"><button class="dl-btn" style="margin-top:0;background:#374151" id="jc-sync-btn-'+bikeId+'" onclick="forceRefreshJC('+bikeId+',\''+reg+'\',this)">↺ Sync Now</button><button class="dl-btn" style="margin-top:0" onclick="dlCSV('+bikeId+',\''+reg+'\')">⬇ Download CSV</button></div></div>'
     +filterHtml
     +'<div class="jc-wrap"><table class="jc-tbl"><thead><tr><th>JC No</th><th>Date</th><th>Hub</th><th>ODO</th><th>Service</th><th>Type</th><th>Item</th><th>Qty</th><th>Amount</th><th>Technician</th></tr></thead><tbody></tbody></table></div>';
   section.innerHTML=html;
@@ -922,6 +922,43 @@ function showJCHistory(bikeId,reg,btn){
   }).catch(function(e){btn.disabled=false;btn.innerHTML='📋 View JC History';alert('Failed to load JC history: '+e.message);});
 }
 
+function forceRefreshJC(bikeId,reg,btn){
+  btn.disabled=true;btn.innerHTML='↺ Syncing…';
+  // Fire the sync edge function (full Metabase pull, ~30-60s)
+  fetch(SB+'/functions/v1/jc-history-sync',{
+    method:'POST',
+    headers:{apikey:ANON_KEY,'Authorization':'Bearer '+K,'Content-Type':'application/json'},
+    body:'{}'
+  }).then(function(r){
+    if(!r.ok){r.text().then(function(t){console.warn('jc-history-sync returned',r.status,t);});}
+  }).catch(function(){});
+  // Poll Supabase every 8s for up to 90s — once fresh data appears re-render
+  var elapsed=0;
+  var poll=setInterval(function(){
+    elapsed+=8000;
+    fetch(SB+'/rest/v1/jc_history?bike_id=eq.'+bikeId+'&select=jc_no,jc_date,hub_name,bike_odo,service_type,line_type,item_name,qty,amount,technician_name,source&order=jc_date.desc,jc_no.asc&limit=1',
+      {headers:{apikey:ANON_KEY,Authorization:'Bearer '+K}})
+    .then(function(r){return r.json();})
+    .then(function(d){
+      // If we detect a newer date or table isn't empty, reload full set
+      if(Array.isArray(d)&&d.length){
+        fetch(SB+'/rest/v1/jc_history?bike_id=eq.'+bikeId+'&select=jc_no,jc_date,hub_name,bike_odo,service_type,line_type,item_name,qty,amount,technician_name,source&order=jc_date.desc,jc_no.asc',
+          {headers:{apikey:ANON_KEY,Authorization:'Bearer '+K}})
+        .then(function(r2){return r2.json();})
+        .then(function(rows){
+          clearInterval(poll);
+          JC_CACHE[bikeId]=rows;
+          var section=document.getElementById('jc-sync-btn-'+bikeId)&&document.getElementById('jc-sync-btn-'+bikeId).closest('.jc-section');
+          if(!section){section=document.querySelector('.jc-section.open');}
+          if(section){buildJCSection(section,rows,bikeId,reg);}
+          btn=document.getElementById('jc-sync-btn-'+bikeId);
+          if(btn){btn.disabled=false;btn.innerHTML='↺ Sync Now';}
+        }).catch(function(){clearInterval(poll);if(btn){btn.disabled=false;btn.innerHTML='↺ Sync Now';}});
+      }
+    }).catch(function(){});
+    if(elapsed>=90000){clearInterval(poll);btn=document.getElementById('jc-sync-btn-'+bikeId);if(btn){btn.disabled=false;btn.innerHTML='↺ Sync Now';}}
+  },8000);
+}
 function csvCell(v){if(v==null||v===undefined)return '';var s=String(v);return(s.indexOf(',')>=0||s.indexOf('"')>=0||s.indexOf('\n')>=0)?'"'+s.replace(/"/g,'""')+'"':s;}
 function csvRow(arr){return arr.map(csvCell).join(',');}
 function dlCSV(bikeId,reg){
@@ -954,5 +991,6 @@ function submitFeedback(){
   }).catch(function(){btn.textContent='Submit';btn.disabled=false;alert('Network error.');});
 }
 </script>
+<script src="./sync-status.js"></script>
 </body>
 </html>
