@@ -839,7 +839,7 @@ async function fetchAndLoad(forceSync){
     // Fire sync in background — Metabase takes ~60s
     fetch(SB_URL+'/functions/v1/rsa-ticket-sync',{
       method:'POST',
-      headers:{apikey:ANON_KEY,'Content-Type':'application/json'},
+      headers:{apikey:ANON_KEY,'Authorization':'Bearer '+K,'Content-Type':'application/json'},
       body:JSON.stringify({start_date:from,end_date:to})
     }).then(function(r){if(!r.ok)r.text().then(function(t){console.error('Sync error',r.status,t);document.getElementById('sync-time').textContent='Sync error: '+r.status+' — check console';});})
     .catch(function(e){console.error('Sync fetch failed',e);document.getElementById('sync-time').textContent='Sync failed — network error';});
@@ -1168,5 +1168,6 @@ async function loadAndApplyPermissions(userId){
 })();
 if('serviceWorker' in navigator){navigator.serviceWorker.register('rsa-sw.js').catch(()=>{});}
 </script>
+<script src="./sync-status.js"></script>
 </body>
 </html>
