@@ -1,5 +1,5 @@
 # Fleetpro — Context File
-*Last updated: 2026-06-16 (session 14 — Phase 5.2 heartbeats wired; Phase 5.3 health-check sync monitor; Realtime → polling; perm-veil)*
+*Last updated: 2026-06-18 (sessions 15–16 — Trace & Hunter Phase 1 complete: 3 edge fns, 3 cron jobs, 6 new tables, FPI groups, HO Dashboard, Hunter PWA)*
 
 ## 🏗 Architecture Roadmap (session 5)
 - `ARCHITECTURE-PROPOSAL.md` created at repo root — 6-phase productization roadmap (PROPOSAL ONLY, nothing executed)
@@ -426,6 +426,8 @@ Feature keys: `fw-map` · `rsa-warroom` · `tech-app` · `admin-panel` · `expor
 - bounceops.online/v8/admin-techs.html → Tech admin panel (unlock: Login_key secret from Supabase env)
 - bounceops.online/v8/admin-permissions.html → Permission matrix manager (same Login_key secret)
 - bounceops.online/v8/maintenance.html, /queue.html, /deployment.html
+- bounceops.online/v8/trace-ho.html → **Trace & Hunter HO Dashboard** (trace-ho feature)
+- bounceops.online/v8/trace-hunter.html → **FPI Hunter PWA** (trace-hunter feature, installable)
 - All v8/ assets in git including logo.jpg (was missing, restored session 6)
 
 ## Supabase
@@ -433,3 +435,82 @@ Feature keys: `fw-map` · `rsa-warroom` · `tech-app` · `admin-panel` · `expor
 - Plan: **Pro** ($25/mo, 250GB egress) — upgraded June 11, 2026
 - Anon key in all HTML files
 - Admin edge fn secret: env var `Login_key` — value stored in Supabase dashboard only (Task 1.1: rotate before sharing URLs wider)
+
+---
+
+## 🆕 Trace & Hunter — Phase 1 (sessions 15–16, completed 2026-06-18)
+
+### Overview
+Standalone FPI recovery ops product inside the FleetPro shell. **Purely additive — zero existing tables/features touched.**
+
+### Groups & Feature Keys Added
+| Group | Feature Keys | Purpose |
+|-------|-------------|---------|
+| FPI Hunter | `trace-hunter` | Ground agents — Hunter PWA |
+| FPI Admin | `trace-ho`, `trace-hunter` | HO Dashboard + roster management |
+| Admin (existing) | `trace-ho`, `trace-hunter` | Added to existing Admin group |
+
+### New Tables (migration 20260618000002_trace_hunter_tables.sql)
+| Table | Purpose |
+|-------|---------|
+| `recovery_tickets` | Core ticket: bike_id, reg_number, city_name, city_id, zone, status, assigned_hunter_id, marked_at_utc, call_status, is_base_list, model_name, last_user_name, last_user_phone, in_transit_at, mark_found_at, at_hub_at, cancelled_at, cancel_reason, is_deprioritized |
+| `recovery_ticket_events` | Immutable event log per ticket (event_type, created_by, metadata) |
+| `recovery_blocked_vehicles` | Reg numbers blocked from recovery (loaded from Google Sheet daily) |
+| `zone_configs` | Per city per day zone assignments: zone_label (NE/NW/SE/SW), hunter_id, centroid_lat/lng, vehicle_count, date |
+| `roster_template` | Weekly hunter schedule (hunter_id, day_of_week, city_id, shift_start/end) |
+| `roster_overrides` | Per-date override (hunter_id, date, city_id, status: active/leave/weekoff) |
+
+**RLS:** All tables have RLS enabled. `auth_update_recovery_tickets` allows any authenticated user to UPDATE. Inserts/deletes restricted to service role only (edge fns).
+
+**Storage:** `recovery-photos` bucket — authenticated upload, path `{ticket_id}/{timestamp}.{ext}`. Public read.
+
+### Status State Machine (recovery_tickets.status)
+`marked` → `assigned` (zone-cluster or mid-day) → `called` (hunter called user) → `en_route` (navigator opened) → `mark_found` (photo uploaded) → `in_transit` (on porter, photo uploaded) → `at_hub` (Q2 reconciliation) | `cancelled` (Q2: customer_renewed)
+
+### is_base_list Semantics
+- New tickets from Q1 cron default to `is_base_list = false`
+- zone-cluster sets `is_base_list = true` at 6 PM for all tickets assigned at that run
+- Mid-day auto-assign additions always stay `is_base_list = false`
+
+### Edge Functions (all verify_jwt=false, deployed active)
+| Function | Schedule | Key logic |
+|----------|----------|-----------|
+| `recovery-ticket-sync` | `*/5 * * * *` | Q1: fetch marked bikes from Metabase → insert new tickets (skip blocked, skip existing anchors) → mid-day auto-assign if zone_configs exist for today (nearest centroid via Haversine). Q2: reconcile open tickets → cancel/in_transit/at_hub transitions |
+| `recovery-blocked-sync` | `30 12 * * *` (6 PM IST) | Full-replace `recovery_blocked_vehicles` from Google Sheet (Step 0). Fail-safe: keeps existing if Sheet unreachable |
+| `zone-cluster` | `35 12 * * *` (6:05 PM IST) | Step 1: per-city balanced k-means (equal-count, deterministic max-spread init, rebalance loop), NE/NW/SE/SW labeling via dot-product greedy assignment, roster lookup (overrides→template, exclude leave/weekoff), hunter preference match, upsert zone_configs, UPDATE recovery_tickets (zone, assigned_hunter_id, city_id, status=assigned, is_base_list=true) |
+
+### pg_cron Jobs Added (Jobs T1–T3)
+| Job | Name | Schedule | Notes |
+|-----|------|----------|-------|
+| T1 | recovery-ticket-sync-5min | `*/5 * * * *` | No auth header (verify_jwt=false) |
+| T2 | recovery-blocked-sync-daily | `30 12 * * *` | 6 PM IST |
+| T3 | zone-cluster-daily | `35 12 * * *` | 6:05 PM IST (5 min after blocked-sync) |
+
+### Frontend Files Added
+| File | Purpose |
+|------|---------|
+| `v8/trace-ho.html` | HO Dashboard — stats bar, city tabs (NCR/BLR/HYD), Leaflet map with color-coded pins (amber/coral/orange/red by hours_in_recovery), per-city zone cards, location-unknown table. Auto-refresh 60s. feature: `trace-ho` |
+| `v8/trace-hunter.html` | Hunter PWA — mobile-first, List+Map tabs, vehicle cards sorted by Haversine distance, Call+Navigate+Mark Found+In Transit actions, photo upload to recovery-photos bucket, GPS staleness indicator. feature: `trace-hunter` |
+| `v8/trace-hunter-manifest.json` | PWA manifest (installable, standalone display, scope=/v8/) |
+| `v8/trace-hunter-sw.js` | Service worker — network-first, precaches shell (trace-hunter.html + manifest + logo.jpg) |
+
+### Key Implementation Notes
+- **GPS source:** always live from `bike_location_cache` via `reg_number` join — never stored on ticket
+- **City resolution:** `resolveCityId(cityName)` in edge fns maps NCR/Delhi/Noida/Gurugram→1, Bangalore/BLR→2, Hyderabad/HYD→5 (case-insensitive includes)
+- **Haversine:** shared function in both zone-cluster and recovery-ticket-sync for distance calculations
+- **Hunter names:** Phase 1 shows hunter UUID (last 6 chars). Phase 2 needs a profiles/roster table with display names
+- **Pin colors:** amber=#F59E0B (0–24h), coral=#F97316 (24–48h), orange=#EF4444 (48–72h), dark-red=#991B1B (72h+)
+- **Call action:** logs event + sets status=called, call_status=informed, then opens tel: link
+- **Mark Found / In Transit:** camera capture → upload to recovery-photos/{ticket_id}/{ts}.ext → update ticket status + insert event
+- **Sidebar nav:** both pages add "FPI Recovery" section with trace-ho + trace-hunter links
+
+### Auth Bug Discipline (mandatory — do not relax)
+Before marking any auth bug as fixed: (1) grep for every `signOut()` call, (2) for each one, trace the exact condition that triggers it and simulate against the affected user's current state (email, group membership, last_login_at, hours elapsed), (3) confirm user completes a full session without hitting any of them. Do not declare fixed until all signOut paths are explicitly cleared.
+
+### Phase 2 / 3 Items (NOT built — out of scope for Phase 1)
+- Hunter profiles table (display names for zone cards)
+- Roster management UI (admin roster editor)
+- Dual-source GPS fallback (IoT/Intellicar + BaaS)
+- Call outcome tracking (busy, no answer, etc.)
+- OTP verification for user-reported location
+- Analytics dashboard (recovery rate, avg age, zone heatmaps)
