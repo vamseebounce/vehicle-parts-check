@@ -431,7 +431,8 @@ async function loadAndApplyPermissions(userId){
 }
 
 // ── Boot ──
-sb.auth.onAuthStateChange(async function(event,session){
+async function bootPage(){
+  var{data:{session}}=await sb.auth.getSession();
   if(session){
     hideAuthScreen();
     document.getElementById('logout-btn').style.display='block';
@@ -439,15 +440,30 @@ sb.auth.onAuthStateChange(async function(event,session){
     await loadAndApplyPermissions(session.user.id);
     initMaps();
     await loadData();
-    // Refresh every 60 seconds
     if(_refreshTimer)clearInterval(_refreshTimer);
     _refreshTimer=setInterval(loadData,60000);
   } else {
     showAuthScreen();
+  }
+}
+bootPage();
+
+sb.auth.onAuthStateChange(async function(event,session){
+  if(event==='SIGNED_IN'){
+    hideAuthScreen();
+    document.getElementById('logout-btn').style.display='block';
+    document.getElementById('auth-logo-img').src='../logo.jpg';
+    await loadAndApplyPermissions(session.user.id);
+    initMaps();
+    await loadData();
+    if(_refreshTimer)clearInterval(_refreshTimer);
+    _refreshTimer=setInterval(loadData,60000);
+  } else if(event==='SIGNED_OUT'){
+    document.getElementById('logout-btn').style.display='none';
+    showAuthScreen();
     if(_refreshTimer)clearInterval(_refreshTimer);
   }
 });
-sb.auth.getSession().then(function(res){if(!res.data.session)showAuthScreen();});
 
 // ── Map init ──
 function initMaps(){
