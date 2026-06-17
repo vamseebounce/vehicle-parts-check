@@ -37,8 +37,7 @@ a{text-decoration:none;color:inherit;}
 .big-icon{font-size:2.5rem;margin-bottom:10px;}
 .resend{background:none;border:none;color:var(--accent);cursor:pointer;font-size:.82rem;margin-top:12px;text-decoration:underline;}
 
-/* ── Perm veil ── */
-#perm-veil{position:fixed;inset:0;background:#fff;z-index:8000;}
+/* ── Perm veil (removed — auth-screen covers initial load) ── */
 
 /* ── Sidebar ── */
 #ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.3);z-index:200;}
@@ -151,8 +150,6 @@ header#topbar{position:fixed;top:0;right:0;left:0;height:var(--topbar-h);backgro
 </style>
 </head>
 <body>
-<div id="perm-veil"></div>
-
 <!-- Auth Screen -->
 <div id="auth-screen">
   <div class="auth-card">
@@ -409,40 +406,59 @@ async function sendMagicLink(){
 document.getElementById('auth-email').addEventListener('keydown',function(e){if(e.key==='Enter')sendMagicLink();});
 async function signOut(){await sb.auth.signOut();document.getElementById('logout-btn').style.display='none';showAuthScreen();}
 
-async function loadAndApplyPermissions(userId){
+// Returns true if user has access, false if redirected away
+async function loadAndApplyPermissions(session){
   try{
-    var{data:r1}=await sb.from('user_groups').select('group_id').eq('user_id',userId);
-    if(!r1||!r1.length){window.location.href='index.html';return;}
-    var{data:r2}=await sb.from('group_features').select('feature_key').in('group_id',r1.map(function(r){return r.group_id;}));
-    var f={};(r2||[]).forEach(function(r){f[r.feature_key]=true;});
-    // Superadmin gets all features
-    var{data:{session:s}}=await sb.auth.getSession();
-    if(s&&s.user&&s.user.app_metadata&&s.user.app_metadata.is_superadmin){
+    var userId=session.user.id;
+    var f={};
+    // Superadmin short-circuit — no DB query needed
+    if(session.user.app_metadata&&session.user.app_metadata.is_superadmin){
       f['trace-ho']=true;f['trace-hunter']=true;f['admin-panel']=true;
+    } else {
+      var{data:r1}=await sb.from('user_groups').select('group_id').eq('user_id',userId);
+      if(r1&&r1.length){
+        var{data:r2}=await sb.from('group_features').select('feature_key').in('group_id',r1.map(function(r){return r.group_id;}));
+        (r2||[]).forEach(function(r){f[r.feature_key]=true;});
+      }
+      if(!f['trace-ho']){window.location.href='index.html';return false;}
     }
-    if(!f['trace-ho']){window.location.href='index.html';return;}
-    var v=document.getElementById('perm-veil');if(v)v.remove();
     // Hide sidebar links user doesn't have access to
     document.querySelectorAll('[data-feature]').forEach(function(el){
       if(!f[el.getAttribute('data-feature')])el.style.display='none';
     });
     window.FP_FEATURES=f;
-  }catch(e){console.warn('[FP] Permission check failed',e);document.getElementById('perm-veil').remove();}
+    return true;
+  }catch(e){
+    console.warn('[FP] Permission check failed',e);
+    return true; // fail open — show content rather than blank
+  }
 }
 
 // ── Boot ──
+async function activateSession(session){
+  // Permissions check happens first — auth-screen still visible as cover
+  var ok=await loadAndApplyPermissions(session);
+  if(!ok)return; // redirect happened
+  // Permission granted — now reveal content
+  hideAuthScreen();
+  document.getElementById('logout-btn').style.display='block';
+  document.getElementById('auth-logo-img').src='../logo.jpg';
+  initMaps();
+  await loadData();
+  if(_refreshTimer)clearInterval(_refreshTimer);
+  _refreshTimer=setInterval(loadData,60000);
+}
+
 async function bootPage(){
-  var{data:{session}}=await sb.auth.getSession();
-  if(session){
-    hideAuthScreen();
-    document.getElementById('logout-btn').style.display='block';
-    document.getElementById('auth-logo-img').src='../logo.jpg';
-    await loadAndApplyPermissions(session.user.id);
-    initMaps();
-    await loadData();
-    if(_refreshTimer)clearInterval(_refreshTimer);
-    _refreshTimer=setInterval(loadData,60000);
-  } else {
+  try{
+    var{data:{session}}=await sb.auth.getSession();
+    if(session){
+      await activateSession(session);
+    } else {
+      showAuthScreen();
+    }
+  }catch(e){
+    console.warn('[T&H] boot error',e);
     showAuthScreen();
   }
 }
@@ -450,14 +466,7 @@ bootPage();
 
 sb.auth.onAuthStateChange(async function(event,session){
   if(event==='SIGNED_IN'){
-    hideAuthScreen();
-    document.getElementById('logout-btn').style.display='block';
-    document.getElementById('auth-logo-img').src='../logo.jpg';
-    await loadAndApplyPermissions(session.user.id);
-    initMaps();
-    await loadData();
-    if(_refreshTimer)clearInterval(_refreshTimer);
-    _refreshTimer=setInterval(loadData,60000);
+    await activateSession(session);
   } else if(event==='SIGNED_OUT'){
     document.getElementById('logout-btn').style.display='none';
     showAuthScreen();
