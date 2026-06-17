@@ -157,7 +157,7 @@ header#topbar{position:fixed;top:0;right:0;left:0;height:var(--topbar-h);backgro
 <div id="auth-screen">
   <div class="auth-card">
     <div class="auth-logo">
-      <img id="auth-logo-img" width="44" height="44" style="border-radius:10px;object-fit:cover;flex-shrink:0"/>
+      <img id="auth-logo-img" src="../logo.jpg" width="44" height="44" style="border-radius:10px;object-fit:cover;flex-shrink:0"/>
       <div>
         <div class="auth-logo-name">Bounce Daily</div>
         <div class="auth-logo-sub">FleetPro · Trace & Hunter</div>
@@ -415,6 +415,11 @@ async function loadAndApplyPermissions(userId){
     if(!r1||!r1.length){window.location.href='index.html';return;}
     var{data:r2}=await sb.from('group_features').select('feature_key').in('group_id',r1.map(function(r){return r.group_id;}));
     var f={};(r2||[]).forEach(function(r){f[r.feature_key]=true;});
+    // Superadmin gets all features
+    var{data:{session:s}}=await sb.auth.getSession();
+    if(s&&s.user&&s.user.app_metadata&&s.user.app_metadata.is_superadmin){
+      f['trace-ho']=true;f['trace-hunter']=true;f['admin-panel']=true;
+    }
     if(!f['trace-ho']){window.location.href='index.html';return;}
     var v=document.getElementById('perm-veil');if(v)v.remove();
     // Hide sidebar links user doesn't have access to

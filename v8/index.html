@@ -505,7 +505,9 @@ async function loadUserPermissions(userId){
     var f={};(r2.data||[]).forEach(function(r){f[r.feature_key]=true;});
     // Superadmin check — grants admin-panel regardless of group features
     var{data:{session:s}}=await sbClient.auth.getSession();
-    if(s&&s.user&&s.user.app_metadata&&s.user.app_metadata.is_superadmin)f['admin-panel']=true;
+    if(s&&s.user&&s.user.app_metadata&&s.user.app_metadata.is_superadmin){
+      f['admin-panel']=true;f['trace-ho']=true;f['trace-hunter']=true;
+    }
     return f;
   }catch(e){console.warn('[FP] Permission check failed',e);return {};}
 }
