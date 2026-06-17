@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="theme-color" content="#111827"/>
+<title>FPI Hunter · FleetPro</title>
+<link rel="manifest" href="trace-hunter-manifest.json"/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+:root{
+  --red:#E8191C;--accent:#3B82F6;--green:#16A34A;--amber:#F59E0B;
+  --bg:#F4F5F7;--card:#fff;--border:#E5E7EB;--text:#111827;--muted:#6B7280;
+  --dark:#111827;--dark2:#1F2937;--topbar-h:56px;--bottom-h:60px;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;overscroll-behavior:none;}
+body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--text);display:flex;flex-direction:column;height:100%;overflow:hidden;}
+
+/* ── Auth ── */
+#auth-screen{position:fixed;inset:0;background:#fff;display:flex;align-items:center;justify-content:center;z-index:9000;padding:24px;}
+#auth-screen.hidden{display:none;}
+.auth-card{width:100%;max-width:360px;}
+.auth-logo{display:flex;align-items:center;gap:12px;margin-bottom:28px;}
+.auth-logo-text .t1{font-weight:700;font-size:.95rem;}
+.auth-logo-text .t2{font-size:.72rem;color:var(--muted);}
+.auth-title{font-size:1.5rem;font-weight:800;margin-bottom:4px;}
+.auth-sub{font-size:.82rem;color:var(--muted);margin-bottom:18px;}
+.auth-input{width:100%;border:1.5px solid var(--border);border-radius:12px;padding:14px 16px;font-size:1rem;outline:none;background:#F9FAFB;}
+.auth-input:focus{border-color:var(--accent);background:#fff;}
+.auth-btn{width:100%;margin-top:12px;background:var(--dark);color:#fff;border:none;border-radius:12px;padding:15px;font-size:.95rem;font-weight:700;cursor:pointer;}
+.auth-msg{margin-top:8px;font-size:.78rem;color:var(--red);min-height:18px;}
+.auth-sent-card{text-align:center;padding:10px 0;}
+.auth-sent-card .big{font-size:2.5rem;margin-bottom:10px;}
+.resend{background:none;border:none;color:var(--accent);font-size:.82rem;margin-top:14px;cursor:pointer;text-decoration:underline;}
+
+/* ── Perm veil ── */
+#perm-veil{position:fixed;inset:0;background:#fff;z-index:8000;}
+
+/* ── Topbar ── */
+#topbar{height:var(--topbar-h);background:var(--dark);color:#fff;display:flex;align-items:center;padding:0 16px;gap:10px;flex-shrink:0;padding-top:env(safe-area-inset-top);}
+.tb-title{font-weight:700;font-size:.9rem;flex:1;}
+.tb-sub{font-size:.68rem;color:rgba(255,255,255,.5);}
+.gps-badge{font-size:.65rem;padding:3px 10px;border-radius:16px;border:1px solid rgba(255,255,255,.2);color:rgba(255,255,255,.6);}
+.gps-badge.live{border-color:#16A34A;color:#4ADE80;}
+#tb-sync{font-size:.65rem;color:rgba(255,255,255,.4);}
+#logout-btn{background:none;border:1px solid rgba(255,255,255,.2);color:rgba(255,255,255,.6);border-radius:8px;padding:5px 10px;font-size:.7rem;cursor:pointer;display:none;}
+
+/* ── Tab bar ── */
+#tabs{display:flex;background:var(--dark2);flex-shrink:0;}
+.tab{flex:1;padding:11px 0;text-align:center;font-size:.75rem;font-weight:600;color:rgba(255,255,255,.45);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;}
+.tab.active{color:#fff;border-bottom-color:var(--accent);}
+
+/* ── Panels ── */
+#panels{flex:1;overflow:hidden;position:relative;}
+.panel{position:absolute;inset:0;overflow-y:auto;display:none;}
+.panel.active{display:block;}
+
+/* ── Map panel ── */
+#panel-map{overflow:hidden;}
+#map{height:100%;}
+
+/* ── List panel ── */
+#panel-list{background:var(--bg);}
+.list-header{padding:12px 16px 6px;display:flex;align-items:center;justify-content:space-between;}
+.list-header-title{font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--muted);}
+.list-count{font-size:.72rem;color:var(--muted);}
+.ticket-card{background:var(--card);margin:0 12px 10px;border-radius:14px;overflow:hidden;border:1px solid var(--border);box-shadow:0 1px 3px rgba(0,0,0,.06);}
+.ticket-card.priority{border-left:3px solid var(--red);}
+.tc-head{padding:12px 14px 8px;display:flex;align-items:flex-start;gap:10px;}
+.tc-reg{font-size:1rem;font-weight:800;letter-spacing:.5px;}
+.tc-model{font-size:.72rem;color:var(--muted);margin-top:1px;}
+.tc-dist{margin-left:auto;text-align:right;}
+.tc-dist .d{font-size:1.1rem;font-weight:800;color:var(--accent);}
+.tc-dist .dl{font-size:.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;}
+.tc-meta{padding:0 14px 10px;display:grid;grid-template-columns:1fr 1fr;gap:4px 12px;font-size:.72rem;}
+.tc-meta span{color:var(--muted);}
+.tc-meta b{color:var(--text);}
+.age-pill{display:inline-block;font-size:.65rem;font-weight:700;padding:2px 8px;border-radius:8px;margin-top:4px;}
+.age-amber{background:#FEF3C7;color:#92400E;}
+.age-coral{background:#FFEDD5;color:#9A3412;}
+.age-orange{background:#FEE2E2;color:#991B1B;}
+.age-red{background:#FEE2E2;color:#7F1D1D;}
+.gps-stale{font-size:.62rem;color:#92400E;background:#FEF3C7;padding:2px 8px;border-radius:6px;margin:0 14px 6px;display:inline-block;}
+.tc-actions{display:flex;gap:0;border-top:1px solid var(--border);}
+.tc-action{flex:1;padding:11px 6px;text-align:center;font-size:.72rem;font-weight:700;color:var(--text);border:none;background:none;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;border-right:1px solid var(--border);transition:background .12s;}
+.tc-action:last-child{border-right:none;}
+.tc-action:active{background:var(--bg);}
+.tc-action .ai{font-size:1.1rem;line-height:1;}
+.tc-action.call .ai{color:#16A34A;}
+.tc-action.nav .ai{color:var(--accent);}
+.tc-action.found .ai{color:#F59E0B;}
+.tc-action.transit .ai{color:#8B5CF6;}
+.status-chip{display:inline-block;font-size:.62rem;font-weight:700;padding:1px 7px;border-radius:6px;text-transform:capitalize;margin-left:6px;vertical-align:middle;}
+.s-marked{background:#F3F4F6;color:var(--muted);}
+.s-assigned{background:#EFF6FF;color:#1D4ED8;}
+.s-called{background:#ECFDF5;color:#065F46;}
+.s-en_route{background:#FFF7ED;color:#C2410C;}
+.s-mark_found{background:#FEF9C3;color:#713F12;}
+.s-in_transit{background:#EDE9FE;color:#5B21B6;}
+
+/* ── Empty state ── */
+.empty-state{padding:60px 20px;text-align:center;color:var(--muted);}
+.empty-state .ei{font-size:2.5rem;margin-bottom:12px;}
+.empty-state h3{font-size:.9rem;font-weight:700;margin-bottom:4px;color:var(--text);}
+.empty-state p{font-size:.78rem;line-height:1.5;}
+
+/* ── Bottom bar (safe area) ── */
+#bottombar{height:var(--bottom-h);padding-bottom:env(safe-area-inset-bottom);background:var(--dark2);flex-shrink:0;}
+
+/* ── Photo modal ── */
+#photo-modal{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:7000;display:none;align-items:flex-end;}
+#photo-modal.show{display:flex;}
+.photo-sheet{background:#fff;border-radius:20px 20px 0 0;padding:20px;width:100%;max-width:100%;}
+.photo-sheet h3{font-size:1rem;font-weight:700;margin-bottom:4px;}
+.photo-sheet p{font-size:.78rem;color:var(--muted);margin-bottom:16px;}
+.photo-preview{width:100%;height:180px;border-radius:12px;object-fit:cover;border:2px dashed var(--border);display:none;margin-bottom:12px;}
+.photo-preview.show{display:block;}
+.photo-placeholder{width:100%;height:180px;border-radius:12px;border:2px dashed var(--border);display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--muted);margin-bottom:12px;cursor:pointer;font-size:.82rem;gap:6px;background:#F9FAFB;}
+.photo-placeholder .pi{font-size:2rem;}
+.photo-btns{display:flex;gap:10px;}
+.photo-btn{flex:1;padding:13px;border-radius:12px;font-size:.9rem;font-weight:700;border:none;cursor:pointer;}
+.photo-btn.cancel{background:#F3F4F6;color:var(--text);}
+.photo-btn.confirm{background:var(--dark);color:#fff;}
+.photo-btn:disabled{opacity:.5;cursor:not-allowed;}
+
+/* ── Toast ── */
+#toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#111827;color:#fff;font-size:.8rem;font-weight:600;padding:10px 20px;border-radius:20px;z-index:9500;opacity:0;transition:opacity .2s;pointer-events:none;white-space:nowrap;}
+#toast.show{opacity:1;}
+
+/* ── Loading spinner ── */
+.spinner{width:32px;height:32px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;margin:0 auto;}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+@media(min-width:768px){
+  .tc-actions .tc-action{font-size:.75rem;}
+}
+</style>
+</head>
+<body>
+
+<div id="perm-veil"></div>
+
+<!-- Auth -->
+<div id="auth-screen">
+  <div class="auth-card">
+    <div class="auth-logo">
+      <img id="auth-logo-img" src="../logo.jpg" width="44" height="44" style="border-radius:10px;object-fit:cover;flex-shrink:0"/>
+      <div class="auth-logo-text">
+        <div class="t1">FleetPro · FPI Hunter</div>
+        <div class="t2">Trace & Hunter Recovery</div>
+      </div>
+    </div>
+    <div class="auth-title">Sign in</div>
+    <div class="auth-sub">@bounceshare.com only</div>
+    <div id="auth-form">
+      <input id="auth-email" class="auth-input" type="email" placeholder="you@bounceshare.com" autocomplete="email" inputmode="email"/>
+      <button class="auth-btn" onclick="sendMagicLink()">Send Magic Link</button>
+      <div id="auth-msg" class="auth-msg"></div>
+    </div>
+    <div id="auth-sent" style="display:none;">
+      <div class="auth-sent-card">
+        <div class="big">📬</div>
+        <h3>Check your inbox</h3>
+        <p style="color:var(--muted);margin-top:8px;font-size:.82rem">Link sent to<br/><b id="auth-sent-email"></b></p>
+        <button class="resend" onclick="showForm()">← Different email</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Topbar -->
+<header id="topbar">
+  <div style="display:flex;flex-direction:column;">
+    <div class="tb-title">🎯 FPI Hunter</div>
+    <div class="tb-sub">Trace & Hunter</div>
+  </div>
+  <span class="gps-badge" id="gps-badge">Locating…</span>
+  <span id="tb-sync"></span>
+  <button id="logout-btn" onclick="signOut()">Sign out</button>
+</header>
+
+<!-- Tabs -->
+<div id="tabs">
+  <div class="tab active" onclick="switchTab('list',this)">📋 My Queue</div>
+  <div class="tab" onclick="switchTab('map',this)">🗺 Map</div>
+</div>
+
+<!-- Panels -->
+<div id="panels">
+  <!-- List panel -->
+  <div class="panel active" id="panel-list">
+    <div class="list-header">
+      <span class="list-header-title">Assigned Vehicles</span>
+      <span class="list-count" id="list-count">—</span>
+    </div>
+    <div id="ticket-list">
+      <div style="padding:40px;text-align:center;"><div class="spinner"></div></div>
+    </div>
+  </div>
+  <!-- Map panel -->
+  <div class="panel" id="panel-map">
+    <div id="map"></div>
+  </div>
+</div>
+
+<!-- Photo upload modal -->
+<div id="photo-modal" onclick="closePhotoModal(event)">
+  <div class="photo-sheet" onclick="event.stopPropagation()">
+    <h3 id="photo-modal-title">Upload Photo</h3>
+    <p id="photo-modal-sub">Take a clear photo of the vehicle.</p>
+    <input type="file" id="photo-input" accept="image/*" capture="environment" style="display:none" onchange="onPhotoSelected(event)"/>
+    <img id="photo-preview" class="photo-preview" alt="preview"/>
+    <div class="photo-placeholder" id="photo-placeholder" onclick="document.getElementById('photo-input').click()">
+      <span class="pi">📷</span>
+      <span>Tap to take photo</span>
+    </div>
+    <div class="photo-btns">
+      <button class="photo-btn cancel" onclick="closePhotoModal()">Cancel</button>
+      <button class="photo-btn confirm" id="photo-confirm-btn" onclick="confirmPhoto()" disabled>Upload &amp; Confirm</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+var SB_URL='https://clkfvmmlgwcvntxnolsv.supabase.co';
+var ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNsa2Z2bW1sZ3djdm50eG5vbHN2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ1NDQ2NTgsImV4cCI6MjA5MDEyMDY1OH0.FA33GFQisWX_hDeGCWqL5yAZmPcuQRdxZX32I23lyoY';
+var sb=supabase.createClient(SB_URL,ANON_KEY,{auth:{persistSession:true,storageKey:'fleetpro_session',autoRefreshToken:true}});
+
+// Service worker registration
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('trace-hunter-sw.js').catch(function(){});
+}
+
+// ── State ──
+var _userId=null;
+var _tickets=[];
+var _gpsMap={};
+var _hunterLat=null,_hunterLng=null;
+var _gpsWatch=null;
+var _map=null;
+var _mapLayer=null;
+var _mapInit=false;
+var _refreshTimer=null;
+// Photo modal state
+var _photoFile=null;
+var _photoAction=null; // 'mark_found' | 'in_transit'
+var _photoTicketId=null;
+var _photoTicketReg=null;
+
+// ── Auth ──
+function showForm(){
+  document.getElementById('auth-form').style.display='block';
+  document.getElementById('auth-sent').style.display='none';
+  document.getElementById('auth-msg').textContent='';
+}
+async function sendMagicLink(){
+  var email=document.getElementById('auth-email').value.trim().toLowerCase();
+  var msg=document.getElementById('auth-msg');
+  if(!email){msg.textContent='Enter your email.';return;}
+  if(!email.endsWith('@bounceshare.com')&&email!=='vamsee@scalability.club'){
+    msg.textContent='@bounceshare.com only.';return;
+  }
+  msg.textContent='Sending…';
+  var res=await sb.auth.signInWithOtp({email:email,options:{emailRedirectTo:window.location.href}});
+  if(res.error){msg.textContent=res.error.message;}
+  else{
+    document.getElementById('auth-form').style.display='none';
+    document.getElementById('auth-sent').style.display='block';
+    document.getElementById('auth-sent-email').textContent=email;
+    msg.textContent='';
+  }
+}
+document.getElementById('auth-email').addEventListener('keydown',function(e){if(e.key==='Enter')sendMagicLink();});
+async function signOut(){
+  stopGpsWatch();
+  if(_refreshTimer)clearInterval(_refreshTimer);
+  await sb.auth.signOut();
+  document.getElementById('logout-btn').style.display='none';
+  document.getElementById('auth-screen').classList.remove('hidden');
+}
+
+async function loadAndApplyPermissions(userId){
+  var{data:r1}=await sb.from('user_groups').select('group_id').eq('user_id',userId);
+  if(!r1||!r1.length){window.location.href='index.html';return;}
+  var{data:r2}=await sb.from('group_features').select('feature_key').in('group_id',r1.map(function(r){return r.group_id;}));
+  var f={};(r2||[]).forEach(function(r){f[r.feature_key]=true;});
+  if(!f['trace-hunter']){window.location.href='index.html';return;}
+  var v=document.getElementById('perm-veil');if(v)v.remove();
+}
+
+sb.auth.onAuthStateChange(async function(event,session){
+  if(session){
+    _userId=session.user.id;
+    document.getElementById('auth-screen').classList.add('hidden');
+    document.getElementById('logout-btn').style.display='block';
+    await loadAndApplyPermissions(_userId);
+    startGpsWatch();
+    await loadData();
+    if(_refreshTimer)clearInterval(_refreshTimer);
+    _refreshTimer=setInterval(loadData,60000);
+  } else {
+    _userId=null;
+    document.getElementById('auth-screen').classList.remove('hidden');
+    stopGpsWatch();
+  }
+});
+sb.auth.getSession().then(function(res){if(!res.data.session)document.getElementById('auth-screen').classList.remove('hidden');});
+
+// ── GPS ──
+function startGpsWatch(){
+  if(!('geolocation' in navigator))return;
+  _gpsWatch=navigator.geolocation.watchPosition(function(pos){
+    _hunterLat=pos.coords.latitude;
+    _hunterLng=pos.coords.longitude;
+    var badge=document.getElementById('gps-badge');
+    badge.textContent='GPS Live';
+    badge.className='gps-badge live';
+    // Update hunter marker on map if map open
+    if(_mapInit)updateHunterMarker();
+    // Re-sort list by distance
+    if(document.getElementById('panel-list').classList.contains('active')){
+      renderList();
+    }
+  },function(){
+    var badge=document.getElementById('gps-badge');
+    badge.textContent='No GPS';
+    badge.className='gps-badge';
+  },{enableHighAccuracy:true,maximumAge:10000,timeout:15000});
+}
+function stopGpsWatch(){if(_gpsWatch!==null){navigator.geolocation.clearWatch(_gpsWatch);_gpsWatch=null;}}
+
+var _hunterMapMarker=null;
+function updateHunterMarker(){
+  if(!_mapInit||_hunterLat==null)return;
+  var icon=L.divIcon({
+    html:'<div style="width:16px;height:16px;background:#3B82F6;border:3px solid #fff;border-radius:50%;box-shadow:0 0 0 4px rgba(59,130,246,.3)"></div>',
+    className:'',iconSize:[16,16],iconAnchor:[8,8]
+  });
+  if(_hunterMapMarker){_hunterMapMarker.setLatLng([_hunterLat,_hunterLng]);}
+  else{_hunterMapMarker=L.marker([_hunterLat,_hunterLng],{icon:icon,zIndexOffset:1000}).addTo(_mapLayer).bindPopup('📍 You are here');}
+}
+
+// ── Data ──
+async function loadData(){
+  if(!_userId)return;
+  setSyncText('Syncing…');
+  try{
+    // My assigned tickets
+    var{data:tickets,error}=await sb.from('recovery_tickets')
+      .select('id,reg_number,model_name,city_name,city_id,zone,status,marked_at_utc,call_status,last_user_name,last_user_phone,assigned_at,in_transit_at,mark_found_at')
+      .eq('assigned_hunter_id',_userId)
+      .not('status','in','(cancelled,at_hub,in_transit)');
+    if(error)throw error;
+    _tickets=tickets||[];
+
+    // GPS from bike_location_cache
+    var regs=_tickets.map(function(t){return t.reg_number;}).filter(Boolean);
+    var gpsMap={};
+    if(regs.length){
+      var{data:gps}=await sb.from('bike_location_cache')
+        .select('reg_number,lat,lng,baas_location_time')
+        .in('reg_number',regs);
+      (gps||[]).forEach(function(g){
+        if(g.lat!=null&&g.lng!=null)gpsMap[g.reg_number]={lat:+g.lat,lng:+g.lng,ts:g.baas_location_time};
+      });
+    }
+    _gpsMap=gpsMap;
+
+    renderList();
+    if(_mapInit)renderMapPins();
+    setSyncText(fmtTime(new Date()));
+  }catch(e){
+    console.error('[Hunter] loadData error:',e);
+    setSyncText('Error');
+  }
+}
+
+// ── Helpers ──
+function haversineKm(lat1,lng1,lat2,lng2){
+  var R=6371,dLat=(lat2-lat1)*Math.PI/180,dLng=(lng2-lng1)*Math.PI/180;
+  var a=Math.sin(dLat/2)*Math.sin(dLat/2)+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLng/2)*Math.sin(dLng/2);
+  return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+}
+function ageBucketClass(h){return h<24?'age-amber':h<48?'age-coral':h<72?'age-orange':'age-red';}
+function ageBucketLabel(h){return h<24?'<1 day':h<48?'1–2 days':h<72?'2–3 days':'3+ days';}
+function agePinColor(h){return h<24?'#F59E0B':h<48?'#F97316':h<72?'#EF4444':'#991B1B';}
+function statusClass(s){var m={marked:'s-marked',assigned:'s-assigned',called:'s-called',en_route:'s-en_route',mark_found:'s-mark_found',in_transit:'s-in_transit'};return m[s]||'s-marked';}
+function fmtKm(d){return d<1?Math.round(d*1000)+'m':d.toFixed(1)+'km';}
+function fmtTime(d){return d.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',hour12:true,timeZone:'Asia/Kolkata'});}
+function gpsAge(ts){
+  if(!ts)return null;
+  var h=(Date.now()-new Date(ts))/3600000;
+  if(h<1)return null; // fresh, no warning
+  if(h<6)return Math.round(h)+'h old';
+  return Math.round(h/24)+'d old';
+}
+function setSyncText(t){var el=document.getElementById('tb-sync');if(el)el.textContent=t;}
+
+// ── Tabs ──
+function switchTab(name,btn){
+  document.querySelectorAll('.tab').forEach(function(t){t.classList.remove('active');});
+  btn.classList.add('active');
+  document.querySelectorAll('.panel').forEach(function(p){p.classList.remove('active');});
+  document.getElementById('panel-'+name).classList.add('active');
+  if(name==='map'){initMap();setTimeout(function(){if(_map)_map.invalidateSize();},50);}
+}
+
+// ── Map ──
+function initMap(){
+  if(_mapInit)return;
+  _mapInit=true;
+  _map=L.map('map',{zoomControl:false}).setView([20.5937,78.9629],5);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OSM',maxZoom:19}).addTo(_map);
+  _mapLayer=L.layerGroup().addTo(_map);
+  L.control.zoom({position:'bottomright'}).addTo(_map);
+  updateHunterMarker();
+  renderMapPins();
+}
+
+function renderMapPins(){
+  if(!_mapLayer)return;
+  _mapLayer.clearLayers();
+  updateHunterMarker();
+  var bounds=[];
+  _tickets.forEach(function(t){
+    var g=_gpsMap[t.reg_number];
+    if(!g)return;
+    var h=(Date.now()-new Date(t.marked_at_utc))/3600000;
+    var color=agePinColor(h);
+    var svg='<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28">'
+      +'<circle cx="14" cy="14" r="11" fill="'+color+'"/>'
+      +'<circle cx="14" cy="14" r="5" fill="rgba(255,255,255,.9)"/>'
+      +'</svg>';
+    var icon=L.divIcon({html:svg,className:'',iconSize:[28,28],iconAnchor:[14,14]});
+    var marker=L.marker([g.lat,g.lng],{icon:icon}).addTo(_mapLayer);
+    var popup='<div style="font-family:Inter,system-ui;font-size:.78rem;min-width:160px">'
+      +'<div style="font-weight:800;font-size:.9rem;margin-bottom:3px">'+t.reg_number+'</div>'
+      +'<div style="color:#6B7280;margin-bottom:8px">'+ageBucketLabel(h)+'</div>'
+      +'<a href="https://maps.google.com/?q='+g.lat+','+g.lng+'" target="_blank" style="font-size:.7rem;display:block;padding:6px 10px;background:#EFF6FF;border-radius:8px;color:#1D4ED8;font-weight:700;text-align:center">🧭 Navigate</a>'
+      +'</div>';
+    marker.bindPopup(popup,{maxWidth:180});
+    bounds.push([g.lat,g.lng]);
+  });
+  if(bounds.length>=2)_map.fitBounds(L.latLngBounds(bounds),{padding:[48,48]});
+  else if(bounds.length===1)_map.setView(bounds[0],14);
+  else if(_hunterLat!=null)_map.setView([_hunterLat,_hunterLng],12);
+}
+
+// ── List render ──
+function renderList(){
+  var container=document.getElementById('ticket-list');
+  if(!_tickets.length){
+    container.innerHTML='<div class="empty-state"><div class="ei">✅</div><h3>All clear!</h3><p>No vehicles assigned to you right now.<br/>Check back after zone clustering at 6 PM.</p></div>';
+    document.getElementById('list-count').textContent='0 vehicles';
+    return;
+  }
+
+  // Sort by distance from hunter (GPS-eligible first, then by age)
+  var sorted=_tickets.slice().sort(function(a,b){
+    var ga=_gpsMap[a.reg_number],gb=_gpsMap[b.reg_number];
+    if(_hunterLat!=null&&ga&&gb){
+      return haversineKm(_hunterLat,_hunterLng,ga.lat,ga.lng)-haversineKm(_hunterLat,_hunterLng,gb.lat,gb.lng);
+    }
+    if(_hunterLat!=null&&ga&&!gb)return -1;
+    if(_hunterLat!=null&&!ga&&gb)return 1;
+    // Fallback: oldest first
+    return new Date(a.marked_at_utc)-new Date(b.marked_at_utc);
+  });
+
+  document.getElementById('list-count').textContent=sorted.length+' vehicle'+(sorted.length===1?'':'s');
+
+  var html='';
+  sorted.forEach(function(t){
+    var g=_gpsMap[t.reg_number];
+    var h=(Date.now()-new Date(t.marked_at_utc))/3600000;
+    var dist=(_hunterLat!=null&&g)?haversineKm(_hunterLat,_hunterLng,g.lat,g.lng):null;
+    var stale=gpsAge(g&&g.ts);
+    var isPriority=h>=72;
+    var sClass=statusClass(t.status);
+    html+='<div class="ticket-card'+(isPriority?' priority':'')+'">';
+    html+='<div class="tc-head">'
+      +'<div><div class="tc-reg">'+t.reg_number+'<span class="status-chip '+sClass+'">'+t.status+'</span></div>'
+      +'<div class="tc-model">'+(t.model_name||'Vehicle')+(t.city_name?' · '+t.city_name:'')+'</div>'
+      +'<span class="age-pill '+ageBucketClass(h)+'">'+ageBucketLabel(h)+'</span>'
+      +'</div>'
+      +(dist!==null?'<div class="tc-dist"><div class="d">'+fmtKm(dist)+'</div><div class="dl">Away</div></div>'
+        :(g?'<div class="tc-dist"><div class="d" style="color:var(--muted);font-size:.7rem">GPS<br>avail</div></div>':'<div class="tc-dist"><div class="d" style="color:var(--muted);font-size:.8rem">No GPS</div></div>'))
+      +'</div>';
+    if(stale)html+='<span class="gps-stale">📍 GPS '+stale+'</span>';
+    html+='<div class="tc-meta">'
+      +'<span>User</span><b>'+(t.last_user_name||'—')+'</b>'
+      +'<span>Phone</span><b>'+(t.last_user_phone||'—')+'</b>'
+      +'<span>Zone</span><b>'+(t.zone||'—')+'</b>'
+      +'<span>Call</span><b style="text-transform:capitalize">'+(t.call_status||'none')+'</b>'
+      +'</div>';
+    html+='<div class="tc-actions">'
+      +'<button class="tc-action call" onclick="callUser(\''+t.last_user_phone+'\',\''+t.id+'\')">'
+        +'<span class="ai">📞</span><span>Call</span></button>'
+      +(g?'<button class="tc-action nav" onclick="navigate('+g.lat+','+g.lng+')">'
+        +'<span class="ai">🧭</span><span>Navigate</span></button>'
+        :'<button class="tc-action nav" style="opacity:.4;pointer-events:none">'
+        +'<span class="ai">🧭</span><span>No GPS</span></button>')
+      +'<button class="tc-action found" onclick="openPhotoModal(\''+t.id+'\',\''+t.reg_number+'\',\'mark_found\')">'
+        +'<span class="ai">📷</span><span>Mark Found</span></button>'
+      +'<button class="tc-action transit" onclick="openPhotoModal(\''+t.id+'\',\''+t.reg_number+'\',\'in_transit\')">'
+        +'<span class="ai">🚚</span><span>In Transit</span></button>'
+      +'</div>';
+    html+='</div>';
+  });
+  container.innerHTML=html;
+}
+
+// ── Actions ──
+async function callUser(phone,ticketId){
+  if(!phone){showToast('No phone number on file');return;}
+  // Log call event + update call_status
+  try{
+    await sb.from('recovery_tickets').update({call_status:'informed',status:'called'}).eq('id',ticketId).eq('assigned_hunter_id',_userId);
+    await sb.from('recovery_ticket_events').insert({ticket_id:ticketId,event_type:'called',created_by:_userId,metadata:{call_status:'informed'}});
+    await loadData();
+  }catch(e){console.warn('[Hunter] call log error:',e);}
+  window.location.href='tel:'+phone;
+}
+
+function navigate(lat,lng){
+  var url;
+  // Open Google Maps on mobile
+  if(/iPhone|iPad|iPod/i.test(navigator.userAgent)){
+    url='maps://maps.apple.com/?q='+lat+','+lng;
+  } else {
+    url='https://maps.google.com/?q='+lat+','+lng;
+  }
+  window.open(url,'_blank');
+}
+
+// ── Photo modal ──
+function openPhotoModal(ticketId,reg,action){
+  _photoTicketId=ticketId;
+  _photoTicketReg=reg;
+  _photoAction=action;
+  _photoFile=null;
+  var titles={mark_found:'Mark Found — '+reg,in_transit:'In Transit — '+reg};
+  var subs={mark_found:'Take a photo of the recovered vehicle.',in_transit:'Take a photo before loading on the porter.'};
+  document.getElementById('photo-modal-title').textContent=titles[action]||'Upload Photo';
+  document.getElementById('photo-modal-sub').textContent=subs[action]||'';
+  document.getElementById('photo-preview').className='photo-preview';
+  document.getElementById('photo-preview').src='';
+  document.getElementById('photo-placeholder').style.display='flex';
+  document.getElementById('photo-confirm-btn').disabled=true;
+  document.getElementById('photo-input').value='';
+  document.getElementById('photo-modal').classList.add('show');
+}
+function closePhotoModal(e){
+  if(e&&e.target!==document.getElementById('photo-modal'))return;
+  document.getElementById('photo-modal').classList.remove('show');
+  _photoFile=null;_photoTicketId=null;_photoAction=null;
+}
+function onPhotoSelected(e){
+  var file=e.target.files&&e.target.files[0];
+  if(!file)return;
+  _photoFile=file;
+  var reader=new FileReader();
+  reader.onload=function(ev){
+    var preview=document.getElementById('photo-preview');
+    preview.src=ev.target.result;
+    preview.className='photo-preview show';
+    document.getElementById('photo-placeholder').style.display='none';
+    document.getElementById('photo-confirm-btn').disabled=false;
+  };
+  reader.readAsDataURL(file);
+}
+async function confirmPhoto(){
+  if(!_photoFile||!_photoTicketId||!_photoAction){return;}
+  var btn=document.getElementById('photo-confirm-btn');
+  btn.disabled=true;btn.textContent='Uploading…';
+  try{
+    // Upload to recovery-photos bucket
+    var ext=_photoFile.name.split('.').pop()||'jpg';
+    var path=_photoTicketId+'/'+Date.now()+'.'+ext;
+    var{error:uploadErr}=await sb.storage.from('recovery-photos').upload(path,_photoFile,{contentType:_photoFile.type||'image/jpeg',upsert:false});
+    if(uploadErr)throw uploadErr;
+
+    // Get public URL
+    var{data:urlData}=sb.storage.from('recovery-photos').getPublicUrl(path);
+
+    // Update ticket status
+    var now=new Date().toISOString();
+    var updates={status:_photoAction};
+    if(_photoAction==='mark_found')updates.mark_found_at=now;
+    if(_photoAction==='in_transit')updates.in_transit_at=now;
+    var{error:upErr}=await sb.from('recovery_tickets').update(updates).eq('id',_photoTicketId).eq('assigned_hunter_id',_userId);
+    if(upErr)throw upErr;
+
+    // Log event
+    await sb.from('recovery_ticket_events').insert({
+      ticket_id:_photoTicketId,
+      event_type:_photoAction,
+      created_by:_userId,
+      metadata:{photo_url:urlData.publicUrl,action:_photoAction}
+    });
+
+    document.getElementById('photo-modal').classList.remove('show');
+    showToast(_photoAction==='mark_found'?'✅ Marked as Found!':'🚚 Marked In Transit!');
+    await loadData();
+  }catch(e){
+    console.error('[Hunter] confirmPhoto error:',e);
+    showToast('Upload failed: '+(e.message||'unknown error'));
+  }finally{
+    btn.disabled=false;btn.textContent='Upload & Confirm';
+  }
+}
+
+// ── Toast ──
+var _toastTimer=null;
+function showToast(msg){
+  var el=document.getElementById('toast');
+  el.textContent=msg;
+  el.classList.add('show');
+  if(_toastTimer)clearTimeout(_toastTimer);
+  _toastTimer=setTimeout(function(){el.classList.remove('show');},3000);
+}
+</script>
+</body>
+</html>

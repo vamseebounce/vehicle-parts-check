@@ -1,0 +1,25 @@
+{
+  "name": "Trace & Hunter — FleetPro",
+  "short_name": "FPI Hunter",
+  "description": "FPI Recovery Hunter PWA — vehicle recovery ground ops",
+  "start_url": "/v8/trace-hunter.html",
+  "scope": "/v8/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#111827",
+  "theme_color": "#111827",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
