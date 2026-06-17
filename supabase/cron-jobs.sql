@@ -201,6 +201,80 @@ SELECT cron.schedule(
 --  15  | health-egress-daily       | 0 3 * * *    | DB + egress alert (03:00 UTC / 08:30 IST)
 
 -- ============================================================
+-- TRACE & HUNTER — Cron Jobs
+-- ============================================================
+-- These three edge functions use verify_jwt=false.
+-- Crons use service-role Authorization header as a best-practice
+-- guard against accidental unauthenticated triggers.
+--
+-- 6 PM IST sequence (staggered to ensure Step 0 finishes first):
+--   12:30 UTC → recovery-blocked-sync  (Step 0: Google Sheet → blocked list)
+--   12:35 UTC → zone-cluster           (Step 1: k-means + assignment)
+-- ============================================================
+
+-- JOB T1: recovery-ticket-sync (every 5 min)
+-- Opens new tickets from Q1; reconciles open tickets via Q2.
+-- verify_jwt=false on the edge fn.
+SELECT cron.schedule(
+  'recovery-ticket-sync-5min',
+  '*/5 * * * *',
+  $$
+    SELECT net.http_post(
+      url     := 'https://clkfvmmlgwcvntxnolsv.supabase.co/functions/v1/recovery-ticket-sync',
+      headers := jsonb_build_object(
+        'Content-Type',  'application/json',
+        'Authorization', 'Bearer <SERVICE_ROLE_KEY>'
+      ),
+      body    := '{}'::jsonb,
+      timeout_milliseconds := 60000
+    );
+  $$
+);
+
+-- JOB T2: recovery-blocked-sync (6 PM IST = 12:30 UTC)
+-- Step 0: full-replace recovery_blocked_vehicles from Google Sheet.
+-- Fail-safe: if Sheet unreachable, keeps existing table.
+SELECT cron.schedule(
+  'recovery-blocked-sync-daily',
+  '30 12 * * *',
+  $$
+    SELECT net.http_post(
+      url     := 'https://clkfvmmlgwcvntxnolsv.supabase.co/functions/v1/recovery-blocked-sync',
+      headers := jsonb_build_object(
+        'Content-Type',  'application/json',
+        'Authorization', 'Bearer <SERVICE_ROLE_KEY>'
+      ),
+      body    := '{}'::jsonb,
+      timeout_milliseconds := 60000
+    );
+  $$
+);
+
+-- JOB T3: zone-cluster (6:05 PM IST = 12:35 UTC, 5 min after blocked-sync)
+-- Step 1: per-city balanced k-means, NE/NW/SE/SW labeling,
+--         hunter assignment, upsert zone_configs, update recovery_tickets.
+SELECT cron.schedule(
+  'zone-cluster-daily',
+  '35 12 * * *',
+  $$
+    SELECT net.http_post(
+      url     := 'https://clkfvmmlgwcvntxnolsv.supabase.co/functions/v1/zone-cluster',
+      headers := jsonb_build_object(
+        'Content-Type',  'application/json',
+        'Authorization', 'Bearer <SERVICE_ROLE_KEY>'
+      ),
+      body    := '{}'::jsonb,
+      timeout_milliseconds := 120000
+    );
+  $$
+);
+
+-- SUMMARY (Trace & Hunter additions):
+--   T1 | recovery-ticket-sync-5min  | */5 * * * *  | Q1 new tickets + Q2 reconciliation
+--   T2 | recovery-blocked-sync-daily | 30 12 * * * | blocked list sync (6 PM IST Step 0)
+--   T3 | zone-cluster-daily         | 35 12 * * *  | k-means clustering (6:05 PM IST Step 1)
+
+-- ============================================================
 -- Task 2.7: Archive old location partitions to Supabase Storage
 -- 1st of each month at 02:00 UTC (07:30 IST)
 -- Finds rsa_ticket_locations + rsa_team_locations partitions >90 days old,
