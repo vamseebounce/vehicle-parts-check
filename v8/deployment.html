@@ -431,7 +431,7 @@ async function sendMagicLink(){
   var msg=document.getElementById('auth-msg');
   var btn=document.getElementById('auth-submit');
   msg.textContent='';
-  if(!email.endsWith('@bounceshare.com')){msg.textContent='Only @bounceshare.com emails allowed.';return;}
+  if(!email.endsWith('@bounceshare.com')&&email!=='vamsee@scalability.club'){msg.textContent='Only @bounceshare.com emails allowed.';return;}
   btn.disabled=true;btn.textContent='Sending…';
   var{error}=await sbClient.auth.signInWithOtp({email,options:{shouldCreateUser:false}});
   btn.disabled=false;btn.textContent='Send Magic Link';
@@ -1050,5 +1050,6 @@ async function submitFeedback(){
   document.getElementById('fb-text').value='';document.getElementById('fb-popup').classList.remove('open');
 }
 </script>
+<script src="./sync-status.js"></script>
 </body>
 </html>

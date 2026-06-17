@@ -414,7 +414,7 @@ async function sendMagicLink(){
   var msg=document.getElementById('auth-msg');
   var btn=document.getElementById('auth-submit');
   if(!email){msg.textContent='Please enter your email.';return;}
-  if(!email.endsWith('@bounceshare.com')){msg.textContent='Only @bounceshare.com emails are allowed.';return;}
+  if(!email.endsWith('@bounceshare.com')&&email!=='vamsee@scalability.club'){msg.textContent='Only @bounceshare.com emails are allowed.';return;}
   btn.disabled=true;btn.textContent='Sending…';msg.textContent='';
   var res=await sbClient.auth.signInWithOtp({email:email,options:{emailRedirectTo:window.location.origin+window.location.pathname}});
   btn.disabled=false;btn.textContent='Send Magic Link';
@@ -655,5 +655,6 @@ function submitFeedback(){
   }).catch(function(){btn.textContent='Submit';btn.disabled=false;alert('Network error.');});
 }
 </script>
+<script src="./sync-status.js"></script>
 </body>
 </html>
