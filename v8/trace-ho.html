@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Trace & Hunter — HO Dashboard · FleetPro</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+:root{
+  --red:#E8191C;--sidebar-w:240px;--topbar-h:56px;
+  --bg:#F4F5F7;--card:#fff;--border:#E5E7EB;--shadow:0 1px 4px rgba(0,0,0,.07);
+  --muted:#6B7280;--text:#111827;--accent:#1D4ED8;
+  --amber:#F59E0B;--coral:#F97316;--orange:#EF4444;--dark-red:#991B1B;--green:#16A34A;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--text);display:flex;min-height:100vh;}
+a{text-decoration:none;color:inherit;}
+
+/* ── Auth ── */
+#auth-screen{position:fixed;inset:0;background:#fff;display:flex;align-items:center;justify-content:center;z-index:9000;}
+#auth-screen.hidden{display:none;}
+.auth-card{background:#fff;border-radius:20px;padding:40px 36px;width:100%;max-width:400px;box-shadow:0 8px 40px rgba(0,0,0,.12);}
+.auth-logo{display:flex;align-items:center;gap:12px;margin-bottom:24px;}
+.auth-logo-name{font-weight:700;font-size:1rem;color:#111827;}
+.auth-logo-sub{font-size:.75rem;color:var(--muted);}
+.auth-title{font-size:1.4rem;font-weight:700;margin-bottom:6px;}
+.auth-sub{font-size:.85rem;color:var(--muted);margin-bottom:4px;}
+.auth-domain{font-size:.75rem;color:var(--red);font-weight:600;margin-bottom:20px;}
+.auth-input{width:100%;border:1.5px solid var(--border);border-radius:10px;padding:12px 14px;font-size:.9rem;outline:none;transition:border-color .15s;}
+.auth-input:focus{border-color:var(--accent);}
+.auth-btn{width:100%;margin-top:12px;background:var(--accent);color:#fff;border:none;border-radius:10px;padding:13px;font-size:.9rem;font-weight:600;cursor:pointer;transition:opacity .15s;}
+.auth-btn:hover{opacity:.88;}
+.auth-msg{margin-top:8px;font-size:.8rem;color:var(--red);min-height:18px;}
+.auth-sent{text-align:center;padding:10px 0;}
+.big-icon{font-size:2.5rem;margin-bottom:10px;}
+.resend{background:none;border:none;color:var(--accent);cursor:pointer;font-size:.82rem;margin-top:12px;text-decoration:underline;}
+
+/* ── Perm veil ── */
+#perm-veil{position:fixed;inset:0;background:#fff;z-index:8000;}
+
+/* ── Sidebar ── */
+#ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.3);z-index:200;}
+#ov.show{display:block;}
+#sb{position:fixed;left:0;top:0;bottom:0;width:var(--sidebar-w);background:#111827;color:#fff;overflow-y:auto;z-index:300;transform:translateX(-100%);transition:transform .22s;}
+#sb.open{transform:none;}
+@media(min-width:900px){
+  #sb{transform:none;}
+  body.pinned #main{margin-left:var(--sidebar-w);}
+}
+.sb-header{padding:18px 16px 12px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,.08);}
+.sb-brand{display:flex;align-items:center;gap:10px;}
+.sb-brand-text .t1{font-weight:700;font-size:.85rem;}
+.sb-brand-text .t2{font-size:.7rem;color:rgba(255,255,255,.45);}
+.pin-btn{background:rgba(255,255,255,.08);border:none;color:rgba(255,255,255,.5);border-radius:6px;padding:4px 8px;font-size:.68rem;cursor:pointer;display:flex;align-items:center;gap:4px;}
+.pin-btn.pinned{color:#60A5FA;}
+.sb-section{padding:12px 8px 4px;}
+.sb-label{font-size:.6rem;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:rgba(255,255,255,.35);padding:0 8px 6px;}
+.sb-item{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:8px;font-size:.82rem;color:rgba(255,255,255,.7);cursor:pointer;transition:background .12s;}
+.sb-item:hover,.sb-item.active{background:rgba(255,255,255,.1);color:#fff;}
+.si{width:20px;text-align:center;font-size:.95rem;}
+.sb-spacer{flex:1;}
+.sb-footer{padding:12px 16px;font-size:.65rem;color:rgba(255,255,255,.25);}
+
+/* ── Main ── */
+#main{flex:1;display:flex;flex-direction:column;min-height:100vh;padding-top:var(--topbar-h);}
+header#topbar{position:fixed;top:0;right:0;left:0;height:var(--topbar-h);background:#fff;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;padding:0 16px;z-index:150;}
+#hbg{background:none;border:none;cursor:pointer;display:flex;flex-direction:column;gap:5px;padding:4px;}
+#hbg span{display:block;width:20px;height:2px;background:#374151;border-radius:2px;}
+@media(min-width:900px){#hbg{display:none;}}
+.tb-brand{display:flex;align-items:center;gap:8px;font-size:.9rem;}
+.tb-logo{display:flex;align-items:center;gap:8px;font-weight:700;color:#111827;}
+.tb-sep{color:var(--muted);margin:0 2px;}
+.tb-page{color:var(--muted);font-size:.82rem;}
+.tb-right{margin-left:auto;display:flex;align-items:center;gap:10px;}
+.sync-badge{font-size:.68rem;color:var(--muted);padding:3px 10px;border:1px solid var(--border);border-radius:20px;}
+
+/* ── Stats bar ── */
+.stats-bar{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;padding:20px 20px 0;}
+.stat-card{background:var(--card);border-radius:14px;padding:16px 18px;border:1px solid var(--border);box-shadow:var(--shadow);}
+.stat-label{font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--muted);margin-bottom:4px;}
+.stat-val{font-size:2rem;font-weight:800;line-height:1;}
+.stat-sub{font-size:.7rem;color:var(--muted);margin-top:4px;}
+.stat-val.amber{color:var(--amber);}
+.stat-val.green{color:var(--green);}
+.stat-val.blue{color:var(--accent);}
+.stat-val.coral{color:var(--coral);}
+
+/* ── City tabs ── */
+.city-tabs{display:flex;gap:8px;padding:16px 20px 0;}
+.city-tab{padding:8px 20px;border-radius:20px;font-size:.82rem;font-weight:600;cursor:pointer;border:1.5px solid var(--border);background:var(--card);color:var(--muted);transition:all .15s;}
+.city-tab.active{background:var(--accent);color:#fff;border-color:var(--accent);}
+
+/* ── City panel ── */
+.city-panel{display:none;padding:16px 20px 20px;}
+.city-panel.active{display:flex;gap:16px;flex-wrap:wrap;}
+.zone-col{display:flex;flex-direction:column;gap:10px;flex:0 0 260px;}
+.map-col{flex:1;min-width:300px;}
+.zone-card{background:var(--card);border-radius:14px;padding:14px 16px;border:1px solid var(--border);box-shadow:var(--shadow);position:relative;}
+.zone-card .zone-badge{display:inline-block;font-size:.65rem;font-weight:800;padding:3px 10px;border-radius:20px;margin-bottom:8px;background:#EFF6FF;color:var(--accent);}
+.zone-card .hunter-name{font-size:.85rem;font-weight:600;margin-bottom:10px;color:var(--text);}
+.zone-card .zone-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;}
+.zone-stat{text-align:center;}
+.zone-stat .zv{font-size:1.3rem;font-weight:800;line-height:1;}
+.zone-stat .zl{font-size:.6rem;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.5px;}
+.zone-card.no-zone{background:#FFFBEB;border-color:#FCD34D;}
+.zone-cluster-info{font-size:.72rem;color:var(--muted);padding:8px 10px;background:#F9FAFB;border-radius:10px;margin-top:4px;}
+
+/* ── Map ── */
+#map-ncr,#map-blr,#map-hyd{height:480px;border-radius:14px;overflow:hidden;border:1px solid var(--border);}
+.map-wrap{background:var(--card);border-radius:14px;overflow:hidden;border:1px solid var(--border);box-shadow:var(--shadow);}
+.map-header{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--border);}
+.map-title{font-size:.82rem;font-weight:700;}
+.map-legend{display:flex;gap:12px;font-size:.68rem;}
+.legend-dot{width:10px;height:10px;border-radius:50%;display:inline-block;margin-right:4px;}
+.legend-item{display:flex;align-items:center;color:var(--muted);}
+.map-div{height:440px;}
+.filter-row{display:flex;gap:8px;padding:8px 16px;border-bottom:1px solid var(--border);flex-wrap:wrap;}
+.filter-btn{font-size:.68rem;padding:4px 12px;border-radius:16px;border:1.5px solid var(--border);background:#fff;cursor:pointer;font-weight:600;color:var(--muted);transition:all .12s;}
+.filter-btn.active{background:var(--accent);color:#fff;border-color:var(--accent);}
+
+/* ── Unknown section ── */
+.section-title{font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);padding:20px 20px 8px;}
+.unknown-table{margin:0 20px 24px;background:var(--card);border-radius:14px;border:1px solid var(--border);overflow:hidden;box-shadow:var(--shadow);}
+.unknown-table table{width:100%;border-collapse:collapse;font-size:.8rem;}
+.unknown-table th{padding:10px 14px;background:#F9FAFB;font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);border-bottom:1px solid var(--border);text-align:left;}
+.unknown-table td{padding:10px 14px;border-bottom:1px solid var(--border);vertical-align:middle;}
+.unknown-table tr:last-child td{border-bottom:none;}
+.age-chip{display:inline-block;font-size:.65rem;font-weight:700;padding:2px 9px;border-radius:10px;}
+.age-amber{background:#FEF3C7;color:#92400E;}
+.age-coral{background:#FFEDD5;color:#9A3412;}
+.age-orange{background:#FEE2E2;color:#991B1B;}
+.age-red{background:#FEE2E2;color:#7F1D1D;}
+.status-chip{display:inline-block;font-size:.65rem;font-weight:700;padding:2px 9px;border-radius:10px;text-transform:capitalize;}
+.status-marked{background:#F3F4F6;color:var(--muted);}
+.status-assigned{background:#EFF6FF;color:var(--accent);}
+.status-called{background:#ECFDF5;color:#065F46;}
+.status-en_route{background:#FFF7ED;color:#9A3412;}
+.status-mark_found{background:#DCFCE7;color:#166534;}
+
+/* ── Empty states ── */
+.empty-state{padding:40px;text-align:center;color:var(--muted);font-size:.85rem;}
+.empty-icon{font-size:2rem;margin-bottom:8px;}
+
+@media(max-width:768px){
+  .stats-bar{grid-template-columns:repeat(2,1fr);}
+  .city-panel.active{flex-direction:column;}
+  .zone-col{flex:none;width:100%;}
+}
+</style>
+</head>
+<body>
+<div id="perm-veil"></div>
+
+<!-- Auth Screen -->
+<div id="auth-screen">
+  <div class="auth-card">
+    <div class="auth-logo">
+      <img id="auth-logo-img" width="44" height="44" style="border-radius:10px;object-fit:cover;flex-shrink:0"/>
+      <div>
+        <div class="auth-logo-name">Bounce Daily</div>
+        <div class="auth-logo-sub">FleetPro · Trace & Hunter</div>
+      </div>
+    </div>
+    <div class="auth-title">HO Dashboard</div>
+    <div class="auth-sub">Enter your work email to sign in.</div>
+    <div class="auth-domain">@bounceshare.com only</div>
+    <div id="auth-form">
+      <input id="auth-email" class="auth-input" type="email" placeholder="you@bounceshare.com" autocomplete="email"/>
+      <button id="auth-submit" class="auth-btn" onclick="sendMagicLink()">Send Magic Link</button>
+      <div id="auth-msg" class="auth-msg"></div>
+    </div>
+    <div id="auth-sent" style="display:none;">
+      <div class="big-icon">📬</div>
+      <h3>Check your inbox</h3>
+      <p style="color:var(--muted);margin-top:8px;font-size:.85rem;">Magic link sent to<br/><b id="auth-sent-email"></b></p>
+      <button class="resend" onclick="showForm()">← Use a different email</button>
+    </div>
+  </div>
+</div>
+
+<div id="ov" onclick="toggleSidebar()"></div>
+
+<!-- Sidebar -->
+<nav id="sb">
+  <div class="sb-header">
+    <a href="/" class="sb-brand">
+      <img src="../logo.jpg" width="36" height="36" style="border-radius:8px;object-fit:cover;flex-shrink:0"/>
+      <div class="sb-brand-text">
+        <div class="t1">Bounce Daily</div>
+        <div class="t2">FleetPro</div>
+      </div>
+    </a>
+    <button class="pin-btn" id="pinBtn" onclick="togglePin()" title="Pin sidebar">Pin</button>
+  </div>
+  <div class="sb-section">
+    <div class="sb-label">Fleet Tools</div>
+    <a href="index.html" class="sb-item"><span class="si">🏠</span><span>Home</span></a>
+    <a href="maintenance.html" class="sb-item" data-feature="maintenance"><span class="si">🔧</span><span>Maintenance</span></a>
+    <a href="queue.html" class="sb-item" data-feature="oos-queue"><span class="si">📋</span><span>OOS Queue</span></a>
+    <a href="deployment.html" class="sb-item" data-feature="deployment"><span class="si">🚲</span><span>Deployment Queue</span></a>
+    <a href="fw-map.html" class="sb-item" data-feature="fw-map"><span class="si">🗺️</span><span>FW Pending Map</span></a>
+    <a href="rsa.html" class="sb-item" data-feature="rsa-warroom"><span class="si">🦺</span><span>RSA Warroom</span></a>
+  </div>
+  <div class="sb-section">
+    <div class="sb-label">FPI Recovery</div>
+    <a href="trace-ho.html" class="sb-item active" data-feature="trace-ho"><span class="si">🎯</span><span>HO Dashboard</span></a>
+    <a href="trace-hunter.html" class="sb-item" data-feature="trace-hunter"><span class="si">📱</span><span>Hunter View</span></a>
+  </div>
+  <div class="sb-spacer"></div>
+  <div class="sb-footer">FleetPro v8 · Trace & Hunter Phase 1</div>
+</nav>
+
+<!-- Main -->
+<div id="main">
+  <header id="topbar">
+    <button id="hbg" onclick="toggleSidebar()"><span></span><span></span><span></span></button>
+    <div class="tb-brand">
+      <a href="/" class="tb-logo">
+        <img src="../logo.jpg" width="28" height="28" style="border-radius:6px;object-fit:cover;flex-shrink:0"/>
+        FleetPro
+      </a>
+      <span class="tb-sep">›</span>
+      <span class="tb-page">Trace & Hunter · HO Dashboard</span>
+    </div>
+    <div class="tb-right">
+      <span class="sync-badge" id="sync-badge">Syncing…</span>
+      <button onclick="loadData()" style="background:none;border:1.5px solid var(--border);border-radius:8px;padding:5px 12px;font-size:.72rem;font-weight:600;color:var(--muted);cursor:pointer;">↻ Refresh</button>
+      <button id="logout-btn" onclick="signOut()" style="display:none;background:none;border:1px solid var(--border);border-radius:8px;padding:5px 12px;font-size:.72rem;font-weight:600;color:var(--muted);cursor:pointer;">Sign out</button>
+    </div>
+  </header>
+
+  <!-- Stats bar -->
+  <div class="stats-bar">
+    <div class="stat-card">
+      <div class="stat-label">Total Pending</div>
+      <div class="stat-val amber" id="stat-pending">—</div>
+      <div class="stat-sub">across all cities</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Recovered Today</div>
+      <div class="stat-val green" id="stat-recovered">—</div>
+      <div class="stat-sub">marked in-transit</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Calls Made</div>
+      <div class="stat-val blue" id="stat-calls">—</div>
+      <div class="stat-sub">informed + no response</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Agents Active</div>
+      <div class="stat-val coral" id="stat-agents">—</div>
+      <div class="stat-sub">assigned hunters</div>
+    </div>
+  </div>
+
+  <!-- City tabs -->
+  <div class="city-tabs">
+    <button class="city-tab active" onclick="switchCity('ncr',this)" id="tab-ncr">NCR</button>
+    <button class="city-tab" onclick="switchCity('blr',this)" id="tab-blr">Bangalore</button>
+    <button class="city-tab" onclick="switchCity('hyd',this)" id="tab-hyd">Hyderabad</button>
+  </div>
+
+  <!-- NCR panel -->
+  <div class="city-panel active" id="panel-ncr">
+    <div class="zone-col" id="zones-ncr"></div>
+    <div class="map-col" id="mapcol-ncr">
+      <div class="map-wrap">
+        <div class="map-header">
+          <span class="map-title">NCR — Recovery Map</span>
+          <div class="map-legend">
+            <span class="legend-item"><span class="legend-dot" style="background:var(--amber)"></span>0–1d</span>
+            <span class="legend-item"><span class="legend-dot" style="background:var(--coral)"></span>1–2d</span>
+            <span class="legend-item"><span class="legend-dot" style="background:var(--orange)"></span>2–3d</span>
+            <span class="legend-item"><span class="legend-dot" style="background:var(--dark-red)"></span>3d+</span>
+          </div>
+        </div>
+        <div id="map-ncr" class="map-div"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bangalore panel -->
+  <div class="city-panel" id="panel-blr">
+    <div class="zone-col" id="zones-blr"></div>
+    <div class="map-col" id="mapcol-blr">
+      <div class="map-wrap">
+        <div class="map-header">
+          <span class="map-title">Bangalore — Recovery Map</span>
+          <div class="map-legend">
+            <span class="legend-item"><span class="legend-dot" style="background:var(--amber)"></span>0–1d</span>
+            <span class="legend-item"><span class="legend-dot" style="background:var(--coral)"></span>1–2d</span>
+            <span class="legend-item"><span class="legend-dot" style="background:var(--orange)"></span>2–3d</span>
+            <span class="legend-item"><span class="legend-dot" style="background:var(--dark-red)"></span>3d+</span>
+          </div>
+        </div>
+        <div id="map-blr" class="map-div"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Hyderabad panel -->
+  <div class="city-panel" id="panel-hyd">
+    <div class="zone-col" id="zones-hyd"></div>
+    <div class="map-col" id="mapcol-hyd">
+      <div class="map-wrap">
+        <div class="map-header">
+          <span class="map-title">Hyderabad — Recovery Map</span>
+          <div class="map-legend">
+            <span class="legend-item"><span class="legend-dot" style="background:var(--amber)"></span>0–1d</span>
+            <span class="legend-item"><span class="legend-dot" style="background:var(--coral)"></span>1–2d</span>
+            <span class="legend-item"><span class="legend-dot" style="background:var(--orange)"></span>2–3d</span>
+            <span class="legend-item"><span class="legend-dot" style="background:var(--dark-red)"></span>3d+</span>
+          </div>
+        </div>
+        <div id="map-hyd" class="map-div"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Location Unknown -->
+  <div class="section-title">📍 Location Unknown (<span id="unknown-count">0</span> vehicles)</div>
+  <div class="unknown-table">
+    <table>
+      <thead>
+        <tr>
+          <th>Reg No.</th>
+          <th>City</th>
+          <th>Zone</th>
+          <th>Age</th>
+          <th>Status</th>
+          <th>Last User</th>
+          <th>Phone</th>
+          <th>Call Status</th>
+        </tr>
+      </thead>
+      <tbody id="unknown-body">
+        <tr><td colspan="8" style="text-align:center;color:var(--muted);padding:24px;">Loading…</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div><!-- /main -->
+
+<script>
+var SB_URL='https://clkfvmmlgwcvntxnolsv.supabase.co';
+var ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNsa2Z2bW1sZ3djdm50eG5vbHN2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ1NDQ2NTgsImV4cCI6MjA5MDEyMDY1OH0.FA33GFQisWX_hDeGCWqL5yAZmPcuQRdxZX32I23lyoY';
+var K=ANON_KEY;
+var sb=supabase.createClient(SB_URL,ANON_KEY,{auth:{persistSession:true,storageKey:'fleetpro_session',autoRefreshToken:true}});
+
+// City → city_id mapping (must match DMS)
+var CITY_IDS={ncr:1,blr:2,hyd:5};
+var CITY_KEYS={1:'ncr',2:'blr',5:'hyd'};
+var CITY_CENTERS={ncr:[28.6139,77.2090],blr:[12.9716,77.5946],hyd:[17.3850,78.4867]};
+var CITY_ZOOM={ncr:11,blr:11,hyd:11};
+
+// State
+var _tickets=[];
+var _gpsMap={};
+var _zones=[];
+var _maps={};
+var _layers={};
+var _refreshTimer=null;
+var _currentCity='ncr';
+var _mapsInitialized={};
+
+// ── Sidebar ──
+var sbOpen=false,pinned=localStorage.getItem('sb_pinned')==='1';
+if(pinned){document.body.classList.add('pinned');}
+function toggleSidebar(){
+  sbOpen=!sbOpen;
+  document.getElementById('sb').classList.toggle('open',sbOpen);
+  document.getElementById('ov').classList.toggle('show',sbOpen);
+}
+function togglePin(){
+  pinned=!pinned;
+  localStorage.setItem('sb_pinned',pinned?'1':'0');
+  document.body.classList.toggle('pinned',pinned);
+  document.getElementById('pinBtn').classList.toggle('pinned',pinned);
+}
+
+// ── Auth ──
+var ALLOWED_DOMAINS=['@bounceshare.com'];
+function showAuthScreen(){document.getElementById('auth-screen').classList.remove('hidden');}
+function hideAuthScreen(){document.getElementById('auth-screen').classList.add('hidden');}
+function showForm(){
+  document.getElementById('auth-form').style.display='block';
+  document.getElementById('auth-sent').style.display='none';
+  document.getElementById('auth-msg').textContent='';
+}
+async function sendMagicLink(){
+  var email=document.getElementById('auth-email').value.trim().toLowerCase();
+  var msg=document.getElementById('auth-msg');
+  var btn=document.getElementById('auth-submit');
+  if(!email){msg.textContent='Please enter your email.';return;}
+  if(!email.endsWith('@bounceshare.com')&&email!=='vamsee@scalability.club'){
+    msg.textContent='Only @bounceshare.com emails are allowed.';return;
+  }
+  btn.disabled=true;btn.textContent='Sending…';msg.textContent='';
+  var res=await sb.auth.signInWithOtp({email:email,options:{emailRedirectTo:window.location.href}});
+  btn.disabled=false;btn.textContent='Send Magic Link';
+  if(res.error){msg.textContent=res.error.message;}
+  else{
+    document.getElementById('auth-form').style.display='none';
+    document.getElementById('auth-sent').style.display='block';
+    document.getElementById('auth-sent-email').textContent=email;
+  }
+}
+document.getElementById('auth-email').addEventListener('keydown',function(e){if(e.key==='Enter')sendMagicLink();});
+async function signOut(){await sb.auth.signOut();document.getElementById('logout-btn').style.display='none';showAuthScreen();}
+
+async function loadAndApplyPermissions(userId){
+  try{
+    var{data:r1}=await sb.from('user_groups').select('group_id').eq('user_id',userId);
+    if(!r1||!r1.length){window.location.href='index.html';return;}
+    var{data:r2}=await sb.from('group_features').select('feature_key').in('group_id',r1.map(function(r){return r.group_id;}));
+    var f={};(r2||[]).forEach(function(r){f[r.feature_key]=true;});
+    if(!f['trace-ho']){window.location.href='index.html';return;}
+    var v=document.getElementById('perm-veil');if(v)v.remove();
+    // Hide sidebar links user doesn't have access to
+    document.querySelectorAll('[data-feature]').forEach(function(el){
+      if(!f[el.getAttribute('data-feature')])el.style.display='none';
+    });
+    window.FP_FEATURES=f;
+  }catch(e){console.warn('[FP] Permission check failed',e);document.getElementById('perm-veil').remove();}
+}
+
+// ── Boot ──
+sb.auth.onAuthStateChange(async function(event,session){
+  if(session){
+    hideAuthScreen();
+    document.getElementById('logout-btn').style.display='block';
+    document.getElementById('auth-logo-img').src='../logo.jpg';
+    await loadAndApplyPermissions(session.user.id);
+    initMaps();
+    await loadData();
+    // Refresh every 60 seconds
+    if(_refreshTimer)clearInterval(_refreshTimer);
+    _refreshTimer=setInterval(loadData,60000);
+  } else {
+    showAuthScreen();
+    if(_refreshTimer)clearInterval(_refreshTimer);
+  }
+});
+sb.auth.getSession().then(function(res){if(!res.data.session)showAuthScreen();});
+
+// ── Map init ──
+function initMaps(){
+  ['ncr','blr','hyd'].forEach(function(city){
+    if(_mapsInitialized[city])return;
+    var center=CITY_CENTERS[city]||[20.5937,78.9629];
+    var zoom=CITY_ZOOM[city]||10;
+    _maps[city]=L.map('map-'+city,{zoomControl:true}).setView(center,zoom);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+      attribution:'© OpenStreetMap',maxZoom:19
+    }).addTo(_maps[city]);
+    _layers[city]=L.layerGroup().addTo(_maps[city]);
+    _mapsInitialized[city]=true;
+  });
+}
+
+// ── City tab switch ──
+function switchCity(city,btn){
+  _currentCity=city;
+  document.querySelectorAll('.city-tab').forEach(function(t){t.classList.remove('active');});
+  btn.classList.add('active');
+  document.querySelectorAll('.city-panel').forEach(function(p){p.classList.remove('active');});
+  document.getElementById('panel-'+city).classList.add('active');
+  // Invalidate map size after panel becomes visible
+  setTimeout(function(){if(_maps[city])_maps[city].invalidateSize();},50);
+}
+
+// ── Color helpers ──
+function ageBucketColor(hours){
+  if(hours<24)return '#F59E0B';  // amber
+  if(hours<48)return '#F97316';  // coral
+  if(hours<72)return '#EF4444';  // orange
+  return '#991B1B';              // dark red
+}
+function ageBucketClass(hours){
+  if(hours<24)return 'age-amber';
+  if(hours<48)return 'age-coral';
+  if(hours<72)return 'age-orange';
+  return 'age-red';
+}
+function ageBucketLabel(hours){
+  if(hours<24)return '0–1 days';
+  if(hours<48)return '1–2 days';
+  if(hours<72)return '2–3 days';
+  return '3+ days';
+}
+function fmtHours(hours){
+  if(hours<1)return Math.round(hours*60)+'m ago';
+  if(hours<24)return Math.round(hours)+'h ago';
+  return Math.round(hours/24)+'d ago';
+}
+function statusClass(s){
+  var m={marked:'status-marked',assigned:'status-assigned',called:'status-called',en_route:'status-en_route',mark_found:'status-mark_found'};
+  return m[s]||'status-marked';
+}
+
+// ── GPS age ──
+function gpsAgeStr(ts){
+  if(!ts)return 'No GPS';
+  var h=(Date.now()-new Date(ts))/3600000;
+  if(h<1)return 'Live (<1h)';
+  if(h<24)return 'Updated '+Math.round(h)+'h ago';
+  return 'Updated '+Math.round(h/24)+'d ago';
+}
+
+// ── Load data ──
+async function loadData(){
+  setSyncBadge('Syncing…','#F59E0B');
+  try{
+    // 1. Open recovery tickets
+    var{data:tickets,error:te}=await sb.from('recovery_tickets')
+      .select('id,bike_id,reg_number,city_name,city_id,zone,status,assigned_hunter_id,marked_at_utc,call_status,is_base_list,model_name,last_user_name,last_user_phone,is_deprioritized,in_transit_at,at_hub_at,assigned_at')
+      .not('status','in','(cancelled,at_hub)');
+    if(te)throw te;
+
+    // 2. Today's in_transit/at_hub (recovered today)
+    var todayIst=getIstDate();
+    var{data:recovered}=await sb.from('recovery_tickets')
+      .select('id,status,in_transit_at,at_hub_at')
+      .in('status',['in_transit','at_hub'])
+      .gte('updated_at',todayIst+'T00:00:00+05:30');
+
+    _tickets=tickets||[];
+
+    // 3. GPS from bike_location_cache
+    var regs=[...new Set(_tickets.map(function(t){return t.reg_number;}).filter(Boolean))];
+    var gpsMap={};
+    if(regs.length){
+      // Batch in chunks of 200
+      var allGps=[];
+      for(var i=0;i<regs.length;i+=200){
+        var{data:g}=await sb.from('bike_location_cache')
+          .select('reg_number,lat,lng,baas_location_time')
+          .in('reg_number',regs.slice(i,i+200));
+        allGps=allGps.concat(g||[]);
+      }
+      allGps.forEach(function(g){
+        if(g.lat!=null&&g.lng!=null)gpsMap[g.reg_number]={lat:+g.lat,lng:+g.lng,ts:g.baas_location_time};
+      });
+    }
+    _gpsMap=gpsMap;
+
+    // 4. Today's zone configs
+    var{data:zones}=await sb.from('zone_configs')
+      .select('zone_label,hunter_id,centroid_lat,centroid_lng,city_id,vehicle_count,dynamic_center_lat,dynamic_center_lng')
+      .eq('date',todayIst);
+    _zones=zones||[];
+
+    // Render
+    renderStats(_tickets,recovered||[]);
+    ['ncr','blr','hyd'].forEach(function(city){
+      var cityId=CITY_IDS[city];
+      var cityTickets=_tickets.filter(function(t){return resolveCityKey(t.city_name)===city||t.city_id===cityId;});
+      var cityZones=_zones.filter(function(z){return z.city_id===cityId;});
+      renderZoneCards(city,cityZones,cityTickets);
+      renderMap(city,cityTickets,cityZones);
+    });
+    renderUnknownList(_tickets,_gpsMap);
+    setSyncBadge('Updated '+fmtTime(new Date()),'#16A34A');
+  }catch(e){
+    console.error('[T&H] loadData error:',e);
+    setSyncBadge('Error: '+e.message,'#E8191C');
+  }
+}
+
+// ── Stats ──
+function renderStats(tickets,recovered){
+  document.getElementById('stat-pending').textContent=tickets.length;
+  document.getElementById('stat-recovered').textContent=(recovered||[]).length;
+  var calls=tickets.filter(function(t){return t.call_status&&t.call_status!=='none';}).length;
+  document.getElementById('stat-calls').textContent=calls;
+  var agents=new Set(tickets.filter(function(t){return t.assigned_hunter_id;}).map(function(t){return t.assigned_hunter_id;})).size;
+  document.getElementById('stat-agents').textContent=agents;
+}
+
+// ── Zone cards ──
+function renderZoneCards(city,zones,tickets){
+  var el=document.getElementById('zones-'+city);
+  if(!el)return;
+  if(!zones.length){
+    el.innerHTML='<div class="zone-card no-zone">'
+      +'<div style="font-size:.78rem;font-weight:600;color:#92400E;">⏳ Zones not assigned yet</div>'
+      +'<div class="zone-cluster-info">Zone clustering runs daily at 6 PM IST.<br/>Tickets will be assigned to hunters after that.</div>'
+      +'</div>';
+    return;
+  }
+
+  var html='';
+  zones.sort(function(a,b){return a.zone_label<b.zone_label?-1:1;}).forEach(function(z){
+    var zTickets=tickets.filter(function(t){return t.zone===z.zone_label;});
+    var recovered=zTickets.filter(function(t){return t.status==='mark_found'||t.status==='in_transit';}).length;
+    var called=zTickets.filter(function(t){return t.call_status&&t.call_status!=='none';}).length;
+    var hunterLabel=z.hunter_id?'Hunter ('+z.hunter_id.slice(-6)+')':'Unassigned';
+    html+='<div class="zone-card">'
+      +'<div class="zone-badge">Zone '+z.zone_label+'</div>'
+      +'<div class="hunter-name">👤 '+hunterLabel+'</div>'
+      +'<div class="zone-stats">'
+      +'<div class="zone-stat"><div class="zv">'+zTickets.length+'</div><div class="zl">Pending</div></div>'
+      +'<div class="zone-stat"><div class="zv" style="color:var(--green)">'+recovered+'</div><div class="zl">Found</div></div>'
+      +'<div class="zone-stat"><div class="zv" style="color:var(--accent)">'+called+'</div><div class="zl">Called</div></div>'
+      +'</div>'
+      +'</div>';
+  });
+
+  // Unzoned tickets
+  var unzoned=tickets.filter(function(t){return !t.zone;});
+  if(unzoned.length){
+    html+='<div class="zone-card no-zone">'
+      +'<div class="zone-badge" style="background:#FEF3C7;color:#92400E">Unzoned</div>'
+      +'<div class="hunter-name" style="color:#92400E">'+unzoned.length+' vehicles not yet assigned</div>'
+      +'<div class="zone-cluster-info">Missing GPS or zone clustering pending</div>'
+      +'</div>';
+  }
+  el.innerHTML=html;
+}
+
+// ── Map pins ──
+function renderMap(city,tickets,zones){
+  if(!_maps[city])return;
+  _layers[city].clearLayers();
+
+  var pinned=[];
+  tickets.forEach(function(t){
+    var gps=_gpsMap[t.reg_number];
+    if(!gps)return;
+    var hours=(Date.now()-new Date(t.marked_at_utc))/3600000;
+    var color=ageBucketColor(hours);
+    var ringColor=t.call_status==='informed'?'#3B82F6':t.call_status==='no_response'?'#9CA3AF':null;
+
+    // SVG circle pin with optional ring
+    var svgSize=28;
+    var svg='<svg xmlns="http://www.w3.org/2000/svg" width="'+svgSize+'" height="'+svgSize+'">'
+      +(ringColor?'<circle cx="14" cy="14" r="13" fill="none" stroke="'+ringColor+'" stroke-width="2.5" stroke-dasharray="'+(!ringColor?'none':'none')+'"/>':'')
+      +'<circle cx="14" cy="14" r="9" fill="'+color+'"/>'
+      +'<circle cx="14" cy="14" r="4" fill="rgba(255,255,255,.9)"/>'
+      +'</svg>';
+
+    var icon=L.divIcon({
+      html:svg,
+      className:'',
+      iconSize:[svgSize,svgSize],
+      iconAnchor:[svgSize/2,svgSize/2]
+    });
+
+    var gpsAge=gpsAgeStr(gps.ts);
+    var popup='<div style="font-family:Inter,sans-serif;min-width:180px;font-size:.8rem">'
+      +'<div style="font-weight:700;font-size:.9rem;margin-bottom:4px">'+t.reg_number+'</div>'
+      +'<div style="color:#6B7280;margin-bottom:8px">'+ageBucketLabel(hours)+' in recovery</div>'
+      +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 8px;font-size:.72rem">'
+      +'<span style="color:#6B7280">Model</span><span>'+( t.model_name||'—')+'</span>'
+      +'<span style="color:#6B7280">Status</span><span style="text-transform:capitalize">'+t.status+'</span>'
+      +'<span style="color:#6B7280">Zone</span><span>'+(t.zone||'—')+'</span>'
+      +'<span style="color:#6B7280">Call</span><span style="text-transform:capitalize">'+(t.call_status||'none')+'</span>'
+      +'<span style="color:#6B7280">User</span><span>'+(t.last_user_name||'—')+'</span>'
+      +'<span style="color:#6B7280">Phone</span><span>'+(t.last_user_phone||'—')+'</span>'
+      +'<span style="color:#6B7280">GPS</span><span>'+gpsAge+'</span>'
+      +'</div>'
+      +'<div style="margin-top:8px;display:flex;gap:6px">'
+      +'<a href="https://maps.google.com/?q='+gps.lat+','+gps.lng+'" target="_blank" style="font-size:.7rem;padding:3px 8px;background:#EFF6FF;border-radius:6px;color:#1D4ED8;font-weight:600">📍 Maps</a>'
+      +'<a href="tel:'+(t.last_user_phone||'')+'" style="font-size:.7rem;padding:3px 8px;background:#ECFDF5;border-radius:6px;color:#065F46;font-weight:600">📞 Call</a>'
+      +'</div>'
+      +'</div>';
+
+    var marker=L.marker([gps.lat,gps.lng],{icon:icon}).addTo(_layers[city]);
+    marker.bindPopup(popup);
+    pinned.push([gps.lat,gps.lng]);
+  });
+
+  // Fit map to pins
+  if(pinned.length>=2){
+    _maps[city].fitBounds(L.latLngBounds(pinned),{padding:[32,32]});
+  } else if(pinned.length===1){
+    _maps[city].setView(pinned[0],13);
+  }
+}
+
+// ── Unknown list ──
+function renderUnknownList(tickets,gpsMap){
+  var unknown=tickets.filter(function(t){return !gpsMap[t.reg_number];});
+  document.getElementById('unknown-count').textContent=unknown.length;
+  var tbody=document.getElementById('unknown-body');
+  if(!unknown.length){
+    tbody.innerHTML='<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:24px;">All vehicles have GPS — nothing to show</td></tr>';
+    return;
+  }
+  unknown.sort(function(a,b){return new Date(a.marked_at_utc)-new Date(b.marked_at_utc);});
+  var html='';
+  unknown.forEach(function(t){
+    var hours=(Date.now()-new Date(t.marked_at_utc))/3600000;
+    html+='<tr>'
+      +'<td style="font-weight:600">'+t.reg_number+'</td>'
+      +'<td>'+(t.city_name||'—')+'</td>'
+      +'<td>'+(t.zone||'<span style="color:var(--muted)">—</span>')+'</td>'
+      +'<td><span class="age-chip '+ageBucketClass(hours)+'">'+ageBucketLabel(hours)+'</span></td>'
+      +'<td><span class="status-chip '+statusClass(t.status)+'">'+t.status+'</span></td>'
+      +'<td>'+(t.last_user_name||'—')+'</td>'
+      +'<td>'+(t.last_user_phone?'<a href="tel:'+t.last_user_phone+'" style="color:var(--accent)">'+t.last_user_phone+'</a>':'—')+'</td>'
+      +'<td style="text-transform:capitalize;color:var(--muted)">'+(t.call_status||'none')+'</td>'
+      +'</tr>';
+  });
+  tbody.innerHTML=html;
+}
+
+// ── Helpers ──
+function resolveCityKey(name){
+  if(!name)return null;
+  var l=name.toLowerCase();
+  if(l.includes('ncr')||l.includes('delhi')||l.includes('noida')||l.includes('gurugram')||l.includes('gurgaon')||l.includes('faridabad'))return 'ncr';
+  if(l.includes('bangalore')||l.includes('bengaluru'))return 'blr';
+  if(l.includes('hyderabad'))return 'hyd';
+  return null;
+}
+function getIstDate(){
+  var now=new Date();
+  var ist=new Date(now.getTime()+5.5*3600000);
+  return ist.toISOString().slice(0,10);
+}
+function fmtTime(d){
+  return d.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',hour12:true,timeZone:'Asia/Kolkata'});
+}
+function setSyncBadge(text,color){
+  var b=document.getElementById('sync-badge');
+  if(b){b.textContent=text;b.style.color=color||'';}
+}
+</script>
+</body>
+</html>
