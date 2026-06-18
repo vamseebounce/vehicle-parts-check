@@ -386,25 +386,23 @@ body.pinned #hbg{display:none}
         </div>
       </a>
 
-    </div>
-
-    <!-- FPI Recovery — full-width, own row (2→1→2→1 pattern) -->
-    <div class="tile-grid" style="margin-top:0">
-      <a class="tile" href="./trace-ho.html" data-feature="trace-ho" style="grid-column:1/-1;flex-direction:row;align-items:stretch">
-        <div class="tile-accent" style="background:linear-gradient(180deg,#F59E0B,#EF4444);width:5px;height:auto;flex-shrink:0;border-radius:0"></div>
-        <div class="tile-body" style="flex:1;display:flex;flex-direction:row;align-items:center;gap:24px;padding:20px 24px">
-          <div style="font-size:2rem">🎯</div>
-          <div style="flex:1">
+      <!-- FPI Recovery — full-width row (2→1→2→1 pattern) -->
+      <a class="tile" href="./trace-ho.html" data-feature="trace-ho" style="grid-column:1/-1">
+        <div class="tile-accent" style="background:linear-gradient(90deg,#F59E0B,#EF4444)"></div>
+        <div class="tile-body" style="flex-direction:row;align-items:center;gap:20px;flex-wrap:wrap">
+          <div style="flex:1;min-width:180px">
+            <div class="tile-icon">🎯</div>
             <div class="tile-title">FPI Recovery</div>
             <div class="tile-desc">Trace &amp; Hunter — live recovery map, zone cards, hunter dispatch queue</div>
           </div>
-          <div style="display:flex;gap:12px;align-items:center">
-            <div id="fpi-stat" class="tile-stat tile-loading" style="font-size:1.5rem">—</div>
-            <div id="fpi-label" class="tile-stat-label tile-loading" style="font-size:0.75rem">loading…</div>
+          <div style="display:flex;gap:8px;align-items:baseline">
+            <div id="fpi-stat" class="tile-stat tile-loading">—</div>
+            <div id="fpi-label" class="tile-stat-label tile-loading" style="font-size:.75rem">loading…</div>
           </div>
-          <button class="tile-cta" style="background:#FEF3C7;color:#92400E;white-space:nowrap">Open →</button>
+          <button class="tile-cta" style="background:#FEF3C7;color:#92400E;align-self:center">Open →</button>
         </div>
       </a>
+
     </div>
   </section>
 
