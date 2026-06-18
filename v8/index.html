@@ -230,10 +230,10 @@ body.pinned #hbg{display:none}
   <div class="sb-section" style="margin-top:8px" data-feature="trace-ho">
     <div class="sb-label">FPI Recovery</div>
     <a href="./trace-ho.html" class="sb-item" data-feature="trace-ho">
-      <span class="si">🎯</span><span>HO Dashboard</span>
+      <span class="si">🎯</span><span>Trace</span>
     </a>
     <a href="./trace-hunter.html" class="sb-item" data-feature="trace-hunter">
-      <span class="si">📱</span><span>Hunter View</span>
+      <span class="si">📱</span><span>Hunter</span>
     </a>
   </div>
   <div class="sb-section" style="margin-top:8px" data-feature="admin-panel">
@@ -311,9 +311,9 @@ body.pinned #hbg{display:none}
   <section class="tile-section">
     <div class="tile-grid">
 
-      <!-- PM Tile -->
+      <!-- PM Tile — Fleet Health dept → red -->
       <a class="tile" href="./maintenance.html" data-feature="maintenance">
-        <div class="tile-accent" style="background:#E8191C"></div>
+        <div class="tile-accent" style="background:linear-gradient(90deg,#E8191C,#F97316)"></div>
         <div class="tile-body">
           <div class="tile-icon">🔭</div>
           <div class="tile-title">Preventive Maintenance</div>
@@ -325,9 +325,9 @@ body.pinned #hbg{display:none}
         </div>
       </a>
 
-      <!-- OOS Tile -->
+      <!-- OOS Tile — Workshop dept → blue -->
       <a class="tile" href="./queue.html" data-feature="oos-queue">
-        <div class="tile-accent" style="background:#0f2460"></div>
+        <div class="tile-accent" style="background:linear-gradient(90deg,#1D4ED8,#0891B2)"></div>
         <div class="tile-body">
           <div class="tile-icon">🔧</div>
           <div class="tile-title">Pending OOS Vehicles</div>
@@ -376,16 +376,26 @@ body.pinned #hbg{display:none}
           <button class="tile-cta" style="background:#F5F3FF;color:#7C3AED">Open →</button>
         </div>
       </a>
-      <a class="tile" href="./trace-ho.html" data-feature="trace-ho">
-        <div class="tile-accent" style="background:linear-gradient(90deg,#F59E0B,#EF4444)"></div>
-        <div class="tile-body">
-          <div class="tile-icon">🎯</div>
-          <div class="tile-title">FPI Recovery</div>
-          <div class="tile-desc">Trace & Hunter — live recovery map, zone cards, hunter queue</div>
-          <button class="tile-cta" style="background:#FEF3C7;color:#92400E">Open →</button>
+
+    </div>
+
+    <!-- FPI Recovery — full-width, own row (2→1→2→1 pattern) -->
+    <div class="tile-grid" style="margin-top:0">
+      <a class="tile" href="./trace-ho.html" data-feature="trace-ho" style="grid-column:1/-1;flex-direction:row;align-items:stretch">
+        <div class="tile-accent" style="background:linear-gradient(180deg,#F59E0B,#EF4444);width:5px;height:auto;flex-shrink:0;border-radius:0"></div>
+        <div class="tile-body" style="flex:1;display:flex;flex-direction:row;align-items:center;gap:24px;padding:20px 24px">
+          <div style="font-size:2rem">🎯</div>
+          <div style="flex:1">
+            <div class="tile-title">FPI Recovery</div>
+            <div class="tile-desc">Trace &amp; Hunter — live recovery map, zone cards, hunter dispatch queue</div>
+          </div>
+          <div style="display:flex;gap:12px;align-items:center">
+            <div id="fpi-stat" class="tile-stat tile-loading" style="font-size:1.5rem">—</div>
+            <div id="fpi-label" class="tile-stat-label tile-loading" style="font-size:0.75rem">loading…</div>
+          </div>
+          <button class="tile-cta" style="background:#FEF3C7;color:#92400E;white-space:nowrap">Open →</button>
         </div>
       </a>
-
     </div>
   </section>
 
