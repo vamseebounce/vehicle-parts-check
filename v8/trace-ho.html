@@ -407,6 +407,8 @@ function parseUtcTs(ts){if(!ts)return null;var s=ts.toString().trim().replace(' 
 function fmtTime(ts){var d=parseUtcTs(ts);return d?d.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',hour12:true,timeZone:'Asia/Kolkata'}):'--';}
 function fmtDateTime(ts){var d=parseUtcTs(ts);return d?d.toLocaleString('en-IN',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit',hour12:true,timeZone:'Asia/Kolkata'}):'--';}
 function hoursIn(t){var d=parseUtcTs(t.marked_at_utc);return d?(Date.now()-d.getTime())/3600000:0;}
+// Valid only inside India's bbox — guards against 0,0 / out-of-range GPS that would blow up fitBounds
+function validLL(lat,lng){return lat!=null&&lng!=null&&isFinite(+lat)&&isFinite(+lng)&&+lat>=6.5&&+lat<=37.5&&+lng>=68&&+lng<=97.5;}
 function ageColor(h){return h<24?'#F59E0B':h<48?'#F97316':h<72?'#EF4444':'#991B1B';}
 function ageLabel(h){return h<24?'0–1 days':h<48?'1–2 days':h<72?'2–3 days':'3+ days';}
 function ageBg(h){return h<24?'#FEF3C7':h<48?'#FFEDD5':'#FEE2E2';}
@@ -525,7 +527,7 @@ function renderTickets(){
   _filtered=filtered;
 
   filtered.forEach(function(t){
-    if(t.display_lat==null||t.display_lng==null)return;
+    if(!validLL(t.display_lat,t.display_lng))return;
     var h=hoursIn(t);
     L.marker([t.display_lat,t.display_lng],{icon:makeRecoveryIcon(h,t.call_status)})
       .bindPopup(ticketPopup(t,h),{maxWidth:280}).addTo(ticketGroup);
@@ -557,7 +559,7 @@ function renderTiles(citySel){
 }
 
 function renderNoGps(filtered){
-  var unk=filtered.filter(function(t){return t.display_lat==null||t.display_lng==null;});
+  var unk=filtered.filter(function(t){return !validLL(t.display_lat,t.display_lng);});
   document.getElementById('nogps-count').textContent=unk.length;
   document.getElementById('nogps-btn').style.display=unk.length?'block':'none';
   document.getElementById('nogps-list').innerHTML=unk.length?unk.map(function(t){
@@ -569,7 +571,7 @@ function renderNoGps(filtered){
 
 function flashCritical(){
   var citySel=getChecked('ms-city');
-  var matches=_all.filter(function(t){return isOpen(t)&&hoursIn(t)>=72&&t.display_lat!=null&&t.display_lng!=null&&(!citySel.length||citySel.indexOf(cityCodeOf(t))>=0);});
+  var matches=_all.filter(function(t){return isOpen(t)&&hoursIn(t)>=72&&validLL(t.display_lat,t.display_lng)&&(!citySel.length||citySel.indexOf(cityCodeOf(t))>=0);});
   if(!matches.length)return;
   var fg=L.layerGroup().addTo(leafMap),bounds=[];
   matches.forEach(function(t){L.circleMarker([t.display_lat,t.display_lng],{radius:20,color:'#991B1B',weight:3,fillOpacity:0,opacity:.85}).addTo(fg);bounds.push([t.display_lat,t.display_lng]);});
@@ -580,7 +582,7 @@ function searchZoom(){
   var q=(document.getElementById('search-input').value||'').trim().toLowerCase();
   renderTickets();
   if(!q)return;
-  var m=_all.find(function(t){return (t.reg_number||'').toLowerCase().includes(q)&&t.display_lat!=null;});
+  var m=_all.find(function(t){return (t.reg_number||'').toLowerCase().includes(q)&&validLL(t.display_lat,t.display_lng);});
   if(!m)return;
   leafMap.setView([m.display_lat,m.display_lng],16,{animate:true});
   var hl=L.circleMarker([m.display_lat,m.display_lng],{radius:22,color:'#F59E0B',weight:3,fillOpacity:0,opacity:.9}).addTo(leafMap);
@@ -607,14 +609,14 @@ async function loadHubs(){
   var url=SB_URL+'/rest/v1/rental_locations?select=location_name,lat,lng,short_address,city_id&status=eq.active&city_id=in.(1,2,5)';
   var res=await fetch(url,{headers:{apikey:ANON_KEY,Authorization:'Bearer '+K}});
   var hubs=res.ok?await res.json():[];
-  hubs.forEach(function(h){if(h.lat==null||h.lng==null)return;L.marker([h.lat,h.lng],{icon:makeHubIcon(),zIndexOffset:300}).bindPopup('<div style="font-family:Inter,sans-serif;font-size:13px"><b>'+h.location_name+'</b>'+(h.short_address?'<br><span style="font-size:11px;color:#6B7280">'+h.short_address+'</span>':'')+'</div>').addTo(hubGroup);});
+  hubs.forEach(function(h){if(!validLL(h.lat,h.lng))return;L.marker([h.lat,h.lng],{icon:makeHubIcon(),zIndexOffset:300}).bindPopup('<div style="font-family:Inter,sans-serif;font-size:13px"><b>'+h.location_name+'</b>'+(h.short_address?'<br><span style="font-size:11px;color:#6B7280">'+h.short_address+'</span>':'')+'</div>').addTo(hubGroup);});
 }
 async function loadHunterDots(){
   if(!K||K===ANON_KEY)return;
   hunterGroup.clearLayers();
   var res=await fetch(SB_URL+'/rest/v1/hunter_locations_latest?select=hunter_id,lat,lng,synced_at',{headers:{apikey:ANON_KEY,Authorization:'Bearer '+K}});
   var rows=res.ok?await res.json():[];
-  rows.forEach(function(r){if(r.lat==null||r.lng==null)return;L.marker([r.lat,r.lng],{icon:makeHunterIcon(hunterLabel(r.hunter_id)),zIndexOffset:1000}).bindPopup('<div style="font-family:Inter,sans-serif;font-size:13px"><b style="color:#1D4ED8">📱 '+hunterLabel(r.hunter_id)+'</b><br>Last ping: '+fmtTime(r.synced_at)+' IST</div>').addTo(hunterGroup);});
+  rows.forEach(function(r){if(!validLL(r.lat,r.lng))return;L.marker([r.lat,r.lng],{icon:makeHunterIcon(hunterLabel(r.hunter_id)),zIndexOffset:1000}).bindPopup('<div style="font-family:Inter,sans-serif;font-size:13px"><b style="color:#1D4ED8">📱 '+hunterLabel(r.hunter_id)+'</b><br>Last ping: '+fmtTime(r.synced_at)+' IST</div>').addTo(hunterGroup);});
 }
 
 async function fetchAndLoad(forceSync){
@@ -654,12 +656,14 @@ async function loadHunterTrack(){
     var res=await fetch(url,{headers:{apikey:ANON_KEY,Authorization:'Bearer '+K}});
     var rows=res.ok?await res.json():[];
     if(!rows.length){document.getElementById('tp-hunter-info').textContent='No trail for this range.';btn.disabled=false;btn.textContent='Show Trail';return;}
-    var pts=rows.map(function(r){return [r.lat,r.lng];});
+    var trail=rows.filter(function(r){return validLL(r.lat,r.lng);});
+    if(!trail.length){document.getElementById('tp-hunter-info').textContent='No valid GPS points for this range.';btn.disabled=false;btn.textContent='Show Trail';return;}
+    var pts=trail.map(function(r){return [r.lat,r.lng];});
     L.polyline(pts,{color:'#1D4ED8',weight:2.5,opacity:.7}).addTo(_trackLayer);
-    L.circleMarker(pts[0],{radius:7,color:'#22C55E',fillColor:'#22C55E',fillOpacity:1,weight:2}).bindPopup('<b>Start</b><br>'+fmtTime(rows[0].synced_at)).addTo(_trackLayer);
-    L.circleMarker(pts[pts.length-1],{radius:7,color:'#EF4444',fillColor:'#EF4444',fillOpacity:1,weight:2}).bindPopup('<b>Latest</b><br>'+fmtTime(rows[rows.length-1].synced_at)).addTo(_trackLayer);
+    L.circleMarker(pts[0],{radius:7,color:'#22C55E',fillColor:'#22C55E',fillOpacity:1,weight:2}).bindPopup('<b>Start</b><br>'+fmtTime(trail[0].synced_at)).addTo(_trackLayer);
+    L.circleMarker(pts[pts.length-1],{radius:7,color:'#EF4444',fillColor:'#EF4444',fillOpacity:1,weight:2}).bindPopup('<b>Latest</b><br>'+fmtTime(trail[trail.length-1].synced_at)).addTo(_trackLayer);
     leafMap.fitBounds(L.latLngBounds(pts).pad(0.15),{animate:true});
-    document.getElementById('tp-hunter-info').textContent=rows.length+' points · '+from+(from!==to?' → '+to:'');
+    document.getElementById('tp-hunter-info').textContent=trail.length+' points · '+from+(from!==to?' → '+to:'');
   }catch(e){document.getElementById('tp-hunter-info').textContent='Error loading trail.';}
   btn.disabled=false;btn.textContent='Show Trail';
 }
