@@ -39,8 +39,9 @@ v8/
   rsa.html            — RSA Warroom
   trace-ho.html       — Trace HO Dashboard (FPI Recovery, HO view)
   trace-hunter.html   — Hunter PWA (field agent app)
-  manifest.json       — Hunter PWA manifest
-  sw.js               — Hunter service worker
+  trace-hunter-manifest.json — Hunter PWA manifest
+  trace-hunter-sw.js  — Hunter service worker
+  icon-192.png / icon-512.png — Hunter PWA install icons
   admin-techs.html    — Admin: Manage Technicians
   admin-permissions.html — Admin: Permissions
   logo.jpg            — Bounce logo
@@ -58,7 +59,9 @@ All pages use Supabase auth. The pattern:
    - Only then calls `hideAuthScreen()`
 4. NO permission veil (`position:fixed;z-index:8000`) — auth screen IS the cover
 
-**Superadmin short-circuit**: `session.user.app_metadata.is_superadmin` → grants all features, bypasses DB queries.
+All pages including `trace-hunter.html` now follow this exact flow (the Hunter PWA previously used a `#perm-veil` + checked permissions after hiding the auth screen — fixed 2026-06-18 to boot permissions-first like the rest).
+
+**Superadmin short-circuit**: `session.user.app_metadata.is_superadmin` → grants all features, bypasses DB queries. Present on every page including `trace-hunter.html`.
 
 **Feature gating**: `user_groups` → `group_features` → `{key:true}` map → `data-feature` attributes on DOM elements.
 
@@ -113,6 +116,8 @@ Uses `Prefer: count=exact` + `Range: 0-0` header to get counts without fetching 
 
 Full spec in `Trace and Hunter/context.md`.
 
+> **2026-06-18 bug-fix pass** — Phase 1 reviewed end-to-end; 14 fixes landed in code (Hunter actions, auth alignment, HO map/stats, Voronoi zones, `marked_at_utc` timezone, RLS ownership, `user_id`). **Pending deploy** (code written, not yet applied): migrations `…0004` (photo bucket) + `…0005` (RLS ownership); redeploy `zone-cluster` (now imports d3-delaunay) + `recovery-ticket-sync`; re-publish Metabase Q1 (`8ef20d85…`) so it emits `marked_at_utc` and `user_id` (edge fn has a safe fallback for both).
+
 ### Phase 1 — Core Ops
 
 - [x] `recovery_tickets` + `recovery_ticket_events` table migrations
@@ -124,15 +129,20 @@ Full spec in `Trace and Hunter/context.md`.
 - [x] Auto zone + hunter assignment from clustering output
 - [x] FPI groups + feature permissions (`trace-ho`, `trace-hunter`)
 - [x] HO Dashboard (trace-ho.html) — map, color-coded pins, zone cards, stats bar, filter bar, auto-refresh
-- [x] Hunter PWA shell (trace-hunter.html + manifest.json + sw.js)
-- [ ] Hunter PWA: vehicle list sorted by nearest distance (Haversine, Phase 1 = bike GPS as reference)
-- [ ] Hunter PWA: Call action → updates `call_status`
-- [ ] Hunter PWA: Navigate action → sets ticket status to `en_route`
-- [ ] Hunter PWA: Mark Found — photo upload required → sets `mark_found_at`, `mark_found_photo_url`, `hub_id` (nearest hub via Haversine)
-- [ ] Hunter PWA: In Transit — photo upload required → sets `in_transit_at`, `in_transit_photo_url`, writes `bike_operations_log` (`new_vehicle_status = 'recovered'`)
-- [ ] HO Dashboard: "Location unknown" list — bikes with no GPS from either source
-- [ ] GPS fallback logic — `baas_lat/lng` vs `current_lat/lng`, pick whichever timestamp is newer
-- [ ] GPS staleness indicator on vehicle card ("Location updated Xh ago")
+- [x] Hunter PWA shell (trace-hunter.html + trace-hunter-manifest.json + trace-hunter-sw.js)
+- [x] Hunter PWA: vehicle list sorted by nearest distance (Haversine, Phase 1 = bike GPS as reference)
+- [x] Hunter PWA: Call action → dials, then outcome sheet sets `call_status` (informed / no_response); never regresses status
+- [x] Hunter PWA: Navigate action → sets ticket status to `en_route` (+ `en_route_at`, event)
+- [x] Hunter PWA: Mark Found — photo upload required → sets `mark_found_at`, `mark_found_photo_url`, `hub_id` (nearest active `rental_locations` via client-side Haversine)
+- [x] Hunter PWA: In Transit — photo upload required → sets `in_transit_at`, `in_transit_photo_url`. **Does NOT write `bike_operations_log`** — In Transit is Trace & Hunter internal state only (decision 2026-06-18, overrides the spec line that said it writes `recovered`)
+- [x] HO Dashboard: "Location unknown" list — tickets with no GPS in `bike_location_cache`
+- [~] GPS fallback logic — `bike_location_cache` exposes a single resolved `lat/lng` + `baas_location_time` (baas-vs-current fallback happens upstream at cache-sync). Verify upstream; no client-side fallback needed.
+- [x] GPS staleness indicator — `gpsAge()` on Hunter cards + `gpsAgeStr()` in HO popups ("Xh / Xd ago")
+- [x] Voronoi zone boundaries — `zone-cluster` computes GeoJSON (`boundary_polygon`) via d3-delaunay; trace-ho renders dashed colored cells under pins
+- [x] `recovery-photos` storage bucket (public-read, authenticated-write) — migration `…0004`
+- [x] RLS: UPDATE restricted to owner-or-superadmin — migration `…0005`
+- [x] Edge functions redeployed: `zone-cluster` v2 (d3-delaunay), `recovery-ticket-sync` v2 (`marked_at_utc` IST→UTC + `user_id`)
+- [x] Metabase Q1 (`8ef20d85…`) re-published with `marked_at_utc` + `user_id` columns
 
 ### Phase 2 — Ops Quality
 
@@ -175,25 +185,47 @@ Full spec in `Trace and Hunter/context.md`.
 - Map legend overlay + recenter button
 - RSA-quality popups: 2-col grid, action buttons (call, mark found, etc.)
 - Auto-refresh every 60 seconds (`setInterval(loadData, 60000)`)
+- Zone boundaries: Voronoi GeoJSON from `zone_configs.boundary_polygon`, rendered as dashed colored cells (`ZONE_COLORS` per NE/NW/SE/SW), non-interactive, under the pins
+- Map auto-fits **once per city** (`_didFit`), then preserves the user's pan/zoom across refreshes/filters; Recenter button uses `_savedBounds`
+- "Recovered today" stat counts `in_transit_at`/`at_hub_at` landing today — **not** `updated_at` (the touch trigger bumps it on any edit)
 
 ### trace-hunter.html (Hunter PWA — "Hunter")
-- Mobile-first PWA (manifest.json + sw.js)
-- Field agent app for ground team
+- Mobile-first PWA (trace-hunter-manifest.json + trace-hunter-sw.js)
+- Field agent app for ground team; My Queue (list) + Map tabs
+- List sorted nearest-first by Haversine from live phone GPS (`watchPosition`); in-transit tickets sink to the bottom as a collapsed confirmation line
+- Actions: **Call** (dial → outcome sheet: informed/no_response), **Navigate** (opens maps → sets `en_route`), **Mark Found** (photo → `recovery-photos` bucket → `mark_found_photo_url` + nearest `hub_id`), **In Transit** (photo → `in_transit_photo_url`, internal state only)
+- Null phone → disabled "No phone" button; no GPS → disabled "No GPS" Navigate
 
 ### Supabase tables (Trace & Hunter)
-- `recovery_tickets` — core ticket table
-- `bike_location_cache` — live GPS (never join via ticket, always via reg_number)
-- `recovery_zones` — zone definitions
-- `hunter_profiles` — hunter/agent profiles
+- `recovery_tickets` — core ticket table (GPS never stored here)
+- `recovery_ticket_events` — append-only event log
+- `bike_location_cache` — live GPS (never join via ticket, always via reg_number; cols: `reg_number, lat, lng, baas_location_time`)
+- `zone_configs` — daily clustering output (centroids, hunter, `boundary_polygon` GeoJSON, per date/city/zone)
+- `recovery_blocked_vehicles` — police-station / impounded exclusions (6 PM Google Sheet sync)
+- `roster_template` / `roster_overrides` — hunter roster (Phase 2 UI; read by zone-cluster)
+- `rental_locations` — hubs (`id, location_name, lat, lng, city_id, status`); nearest-hub Haversine at Mark Found
+
+### Storage
+- `recovery-photos` bucket — Mark Found / In Transit proof photos (public-read, authenticated-write); path `<ticketId>/<ts>.<ext>`
+
+### Migrations
+- `…0002_trace_hunter_tables.sql` — tables, enums, RLS, triggers
+- `…0003_trace_hunter_groups.sql` — FPI groups + feature keys
+- `…0004_recovery_photos_bucket.sql` — storage bucket + policies
+- `…0005_recovery_tickets_update_ownership.sql` — UPDATE restricted to owner-or-superadmin
 
 ### Edge functions
-- `recovery-ticket-sync` — 5-min cron, syncs Q1+Q2 tickets
+- `recovery-ticket-sync` — 5-min cron, syncs Q1+Q2 tickets (resolves `marked_at_utc` IST→UTC; sets `user_id`)
 - `recovery-blocked-sync` — 6 PM cron, syncs Google Sheets blocked list
-- `zone-cluster` — 6 PM cron, k-means zone clustering + assignment
+- `zone-cluster` — 6 PM cron, balanced k-means + Voronoi (d3-delaunay) + roster-based hunter assignment
 
 ### Feature keys
 - `trace-ho` — HO Dashboard access
 - `trace-hunter` — Hunter PWA access
+
+### Do-not-violate decisions
+- **In Transit never writes `bike_operations_log`** — it's Trace & Hunter internal state (overrides context.md). Do not add an ops_log write.
+- RLS `recovery_tickets` UPDATE = owner-or-superadmin. Phase 2 admin drag-reassign will need a broader policy.
 
 ## Security Constraints
 
