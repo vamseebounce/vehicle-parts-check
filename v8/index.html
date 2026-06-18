@@ -392,7 +392,7 @@ body.pinned #hbg{display:none}
         <div class="tile-body" style="flex-direction:row;align-items:center;gap:20px;flex-wrap:wrap">
           <div style="flex:1;min-width:180px">
             <div class="tile-icon">🎯</div>
-            <div class="tile-title">FPI Recovery</div>
+            <div class="tile-title">Trace</div>
             <div class="tile-desc">Trace &amp; Hunter — live recovery map, zone cards, hunter dispatch queue</div>
           </div>
           <div style="display:flex;gap:8px;align-items:baseline">
@@ -670,7 +670,34 @@ async function loadTileStats(){
     document.getElementById('oos-stat').textContent='—';
     document.getElementById('oos-label').textContent='error loading';
   });
+
+  // Trace stats — count pending recovery tickets (not cancelled/at_hub)
+  // also fetch critical (72h+) for secondary label
+  var traceH={headers:Object.assign({},h.headers,{'Prefer':'count=exact','Range':'0-0'})};
+  var criticalCutoff=new Date(Date.now()-72*3600*1000).toISOString();
+  Promise.all([
+    fetch(base+'recovery_tickets?select=id&status=not.in.(cancelled,at_hub)',traceH),
+    fetch(base+'recovery_tickets?select=id&status=not.in.(cancelled,at_hub)&marked_at_utc=lt.'+encodeURIComponent(criticalCutoff),traceH)
+  ]).then(function(rs){
+    function cnt(r){var cr=r.headers.get('Content-Range');return cr?parseInt(cr.split('/')[1])||0:0;}
+    var total=cnt(rs[0]);
+    var critical=cnt(rs[1]);
+    var el=document.getElementById('fpi-stat');
+    el.textContent=total;
+    el.className='tile-stat';
+    el.style.color='#F59E0B';
+    var lbl=document.getElementById('fpi-label');
+    lbl.className='tile-stat-label';
+    lbl.textContent=critical>0?critical+' critical · pending recovery':'pending recovery';
+    if(critical>0)lbl.style.color='#EF4444';
+  }).catch(function(){
+    document.getElementById('fpi-stat').textContent='—';
+    document.getElementById('fpi-label').textContent='error loading';
+  });
 }
+
+// Refresh all tile stats every 5 minutes
+setInterval(function(){if(K&&K!==ANON_KEY)loadTileStats();},5*60*1000);
 
 // ── Feedback ─────────────────────────────────────────────────────────
 function toggleFeedback(){var p=document.getElementById('fb-popup');p.classList.toggle('open');if(p.classList.contains('open'))document.getElementById('fb-text').focus();}
