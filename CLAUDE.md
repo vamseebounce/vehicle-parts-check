@@ -116,7 +116,15 @@ Uses `Prefer: count=exact` + `Range: 0-0` header to get counts without fetching 
 
 Full spec in `Trace and Hunter/context.md`.
 
-> **2026-06-18 bug-fix pass** — Phase 1 reviewed end-to-end; 14 fixes landed in code (Hunter actions, auth alignment, HO map/stats, Voronoi zones, `marked_at_utc` timezone, RLS ownership, `user_id`). **Pending deploy** (code written, not yet applied): migrations `…0004` (photo bucket) + `…0005` (RLS ownership); redeploy `zone-cluster` (now imports d3-delaunay) + `recovery-ticket-sync`; re-publish Metabase Q1 (`8ef20d85…`) so it emits `marked_at_utc` and `user_id` (edge fn has a safe fallback for both).
+> **2026-06-18 — work PAUSED here.** Two passes landed in code & pushed to GitHub, but **NOT yet applied/deployed to Supabase**:
+> 1. **Bug-fix pass** (commits `6410c87`, `056c837`): 14 Phase-1 fixes — Hunter actions, auth alignment, HO map/stats, Voronoi zones, `marked_at_utc` tz, RLS ownership, `user_id`.
+> 2. **RSA-clone rebuild** (commit `1847e69`): `trace-ho.html` rebuilt from `rsa.html` as a faithful clone + a Micro-RAM cache architecture (HO reads one pre-joined `recovery_tickets_cache`; the GPS join moved into the edge fn). New `hunter_locations` for live agent dots. Hunter PWA got `parseUtcTs` (Safari fix) + breadcrumb writes.
+>
+> **PENDING DEPLOY (do this in Supabase before the dashboard works):**
+> - Apply migrations `…0004` (photo bucket), `…0005` (RLS ownership), **`…0006` (recovery_tickets_cache + hunter_locations) — HO dashboard is blank until this is applied + the edge fn has run once**.
+> - Redeploy edge fns `zone-cluster` (now imports d3-delaunay) and `recovery-ticket-sync` (now rebuilds the cache).
+> - Re-publish Metabase Q1 (`8ef20d85…`) so it emits `marked_at_utc` + `user_id` (edge fn has a safe fallback for both, so non-blocking).
+> - Optional: schedule `cleanup_hunter_locations()` (monthly cron).
 
 ### Phase 1 — Core Ops
 
