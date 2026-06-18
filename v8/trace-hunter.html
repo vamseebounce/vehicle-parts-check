@@ -39,9 +39,6 @@ body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--t
 .auth-sent-card .big{font-size:2.5rem;margin-bottom:10px;}
 .resend{background:none;border:none;color:var(--accent);font-size:.82rem;margin-top:14px;cursor:pointer;text-decoration:underline;}
 
-/* ── Perm veil ── */
-#perm-veil{position:fixed;inset:0;background:#fff;z-index:8000;}
-
 /* ── Topbar ── */
 #topbar{height:var(--topbar-h);background:var(--dark);color:#fff;display:flex;align-items:center;padding:0 16px;gap:10px;flex-shrink:0;padding-top:env(safe-area-inset-top);}
 .tb-title{font-weight:700;font-size:.9rem;flex:1;}
@@ -129,6 +126,10 @@ body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--t
 .photo-btn.confirm{background:var(--dark);color:#fff;}
 .photo-btn:disabled{opacity:.5;cursor:not-allowed;}
 
+/* ── Call outcome sheet ── */
+#call-modal{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:7000;display:none;align-items:flex-end;}
+#call-modal.show{display:flex;}
+
 /* ── Toast ── */
 #toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#111827;color:#fff;font-size:.8rem;font-weight:600;padding:10px 20px;border-radius:20px;z-index:9500;opacity:0;transition:opacity .2s;pointer-events:none;white-space:nowrap;}
 #toast.show{opacity:1;}
@@ -143,8 +144,6 @@ body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--t
 </style>
 </head>
 <body>
-
-<div id="perm-veil"></div>
 
 <!-- Auth -->
 <div id="auth-screen">
@@ -227,6 +226,19 @@ body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--t
   </div>
 </div>
 
+<!-- Call outcome sheet -->
+<div id="call-modal" onclick="closeCallModal(event)">
+  <div class="photo-sheet" onclick="event.stopPropagation()">
+    <h3 id="call-modal-title">Call outcome</h3>
+    <p>How did the call go? This sets the call ring on the HO map.</p>
+    <div class="photo-btns" style="flex-direction:column;gap:8px">
+      <button class="photo-btn confirm" style="background:#16A34A" onclick="chooseCallOutcome('informed')">✅ Informed — pickup coming</button>
+      <button class="photo-btn confirm" style="background:#9A3412" onclick="chooseCallOutcome('no_response')">📵 No response</button>
+      <button class="photo-btn cancel" onclick="closeCallModal()">Skip for now</button>
+    </div>
+  </div>
+</div>
+
 <div id="toast"></div>
 
 <script>
@@ -254,6 +266,9 @@ var _photoFile=null;
 var _photoAction=null; // 'mark_found' | 'in_transit'
 var _photoTicketId=null;
 var _photoTicketReg=null;
+// Call outcome state
+var _callTicketId=null;
+var _callCurStatus=null;
 
 // ── Auth ──
 function showForm(){
@@ -287,32 +302,59 @@ async function signOut(){
   document.getElementById('auth-screen').classList.remove('hidden');
 }
 
-async function loadAndApplyPermissions(userId){
-  var{data:r1}=await sb.from('user_groups').select('group_id').eq('user_id',userId);
-  if(!r1||!r1.length){window.location.href='index.html';return;}
-  var{data:r2}=await sb.from('group_features').select('feature_key').in('group_id',r1.map(function(r){return r.group_id;}));
-  var f={};(r2||[]).forEach(function(r){f[r.feature_key]=true;});
-  if(!f['trace-hunter']){window.location.href='index.html';return;}
-  var v=document.getElementById('perm-veil');if(v)v.remove();
+// Permissions-first: superadmin short-circuit, else group_features lookup.
+// Returns true if the user may use Hunter; redirects + returns false otherwise.
+async function loadAndApplyPermissions(session){
+  try{
+    var f={};
+    if(session.user.app_metadata&&session.user.app_metadata.is_superadmin){
+      f['trace-ho']=true;f['trace-hunter']=true;f['admin-panel']=true;
+    } else {
+      var{data:r1}=await sb.from('user_groups').select('group_id').eq('user_id',session.user.id);
+      if(r1&&r1.length){
+        var{data:r2}=await sb.from('group_features').select('feature_key').in('group_id',r1.map(function(r){return r.group_id;}));
+        (r2||[]).forEach(function(r){f[r.feature_key]=true;});
+      }
+      if(!f['trace-hunter']){window.location.href='index.html';return false;}
+    }
+    document.querySelectorAll('[data-feature]').forEach(function(el){
+      if(!f[el.getAttribute('data-feature')])el.style.display='none';
+    });
+    window.FP_FEATURES=f;
+    return true;
+  }catch(e){console.warn('[Hunter] perm check failed',e);return true;}
 }
 
+// Boot — auth screen IS the cover; permissions resolve before it lifts.
+async function activateSession(session){
+  _userId=session.user.id;
+  var ok=await loadAndApplyPermissions(session);
+  if(!ok)return;
+  document.getElementById('auth-screen').classList.add('hidden');
+  document.getElementById('logout-btn').style.display='block';
+  startGpsWatch();
+  await loadData();
+  if(_refreshTimer)clearInterval(_refreshTimer);
+  _refreshTimer=setInterval(loadData,60000);
+}
+async function bootPage(){
+  try{
+    var{data:{session}}=await sb.auth.getSession();
+    if(session) await activateSession(session);
+    else document.getElementById('auth-screen').classList.remove('hidden');
+  }catch(e){console.warn('[Hunter] boot error',e);document.getElementById('auth-screen').classList.remove('hidden');}
+}
+bootPage();
 sb.auth.onAuthStateChange(async function(event,session){
-  if(session){
-    _userId=session.user.id;
-    document.getElementById('auth-screen').classList.add('hidden');
-    document.getElementById('logout-btn').style.display='block';
-    await loadAndApplyPermissions(_userId);
-    startGpsWatch();
-    await loadData();
-    if(_refreshTimer)clearInterval(_refreshTimer);
-    _refreshTimer=setInterval(loadData,60000);
-  } else {
+  if(event==='SIGNED_IN'&&session) await activateSession(session);
+  else if(event==='SIGNED_OUT'){
     _userId=null;
+    document.getElementById('logout-btn').style.display='none';
     document.getElementById('auth-screen').classList.remove('hidden');
     stopGpsWatch();
+    if(_refreshTimer)clearInterval(_refreshTimer);
   }
 });
-sb.auth.getSession().then(function(res){if(!res.data.session)document.getElementById('auth-screen').classList.remove('hidden');});
 
 // ── GPS ──
 function startGpsWatch(){
@@ -357,7 +399,7 @@ async function loadData(){
     var{data:tickets,error}=await sb.from('recovery_tickets')
       .select('id,reg_number,model_name,city_name,city_id,zone,status,marked_at_utc,call_status,last_user_name,last_user_phone,assigned_at,in_transit_at,mark_found_at')
       .eq('assigned_hunter_id',_userId)
-      .not('status','in','(cancelled,at_hub,in_transit)');
+      .not('status','in','(cancelled,at_hub)');
     if(error)throw error;
     _tickets=tickets||[];
 
@@ -388,6 +430,25 @@ function haversineKm(lat1,lng1,lat2,lng2){
   var R=6371,dLat=(lat2-lat1)*Math.PI/180,dLng=(lng2-lng1)*Math.PI/180;
   var a=Math.sin(dLat/2)*Math.sin(dLat/2)+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLng/2)*Math.sin(dLng/2);
   return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+}
+// Nearest active hub (rental_locations) to the bike's GPS — sets hub_id at Mark Found.
+async function nearestHubId(reg){
+  var t=_tickets.find(function(x){return x.reg_number===reg;});
+  var g=_gpsMap[reg];
+  if(!g)return null;
+  try{
+    var q=sb.from('rental_locations').select('id,lat,lng').eq('status','active');
+    if(t&&t.city_id)q=q.eq('city_id',t.city_id);
+    var{data:hubs}=await q;
+    if(!hubs||!hubs.length)return null;
+    var best=null,bestD=Infinity;
+    hubs.forEach(function(h){
+      if(h.lat==null||h.lng==null)return;
+      var d=haversineKm(g.lat,g.lng,+h.lat,+h.lng);
+      if(d<bestD){bestD=d;best=h;}
+    });
+    return best?best.id:null;
+  }catch(e){console.warn('[Hunter] nearestHub error:',e);return null;}
 }
 function ageBucketClass(h){return h<24?'age-amber':h<48?'age-coral':h<72?'age-orange':'age-red';}
 function ageBucketLabel(h){return h<24?'<1 day':h<48?'1–2 days':h<72?'2–3 days':'3+ days';}
@@ -465,6 +526,9 @@ function renderList(){
 
   // Sort by distance from hunter (GPS-eligible first, then by age)
   var sorted=_tickets.slice().sort(function(a,b){
+    // In-transit (done) tickets sink to the bottom as confirmation lines.
+    var ait=a.status==='in_transit'?1:0,bit=b.status==='in_transit'?1:0;
+    if(ait!==bit)return ait-bit;
     var ga=_gpsMap[a.reg_number],gb=_gpsMap[b.reg_number];
     if(_hunterLat!=null&&ga&&gb){
       return haversineKm(_hunterLat,_hunterLng,ga.lat,ga.lng)-haversineKm(_hunterLat,_hunterLng,gb.lat,gb.lng);
@@ -479,6 +543,16 @@ function renderList(){
 
   var html='';
   sorted.forEach(function(t){
+    // In transit → collapsed confirmation line (no actions).
+    if(t.status==='in_transit'){
+      html+='<div class="ticket-card" style="opacity:.7">'
+        +'<div class="tc-head" style="padding-bottom:12px">'
+        +'<div><div class="tc-reg">'+t.reg_number+'<span class="status-chip s-in_transit">in transit</span></div>'
+        +'<div class="tc-model">🚚 Loaded · awaiting hub</div></div>'
+        +'<div class="tc-dist"><div class="d" style="color:#8B5CF6">✓</div></div>'
+        +'</div></div>';
+      return;
+    }
     var g=_gpsMap[t.reg_number];
     var h=(Date.now()-new Date(t.marked_at_utc))/3600000;
     var dist=(_hunterLat!=null&&g)?haversineKm(_hunterLat,_hunterLng,g.lat,g.lng):null;
@@ -502,9 +576,11 @@ function renderList(){
       +'<span>Call</span><b style="text-transform:capitalize">'+(t.call_status||'none')+'</b>'
       +'</div>';
     html+='<div class="tc-actions">'
-      +'<button class="tc-action call" onclick="callUser(\''+t.last_user_phone+'\',\''+t.id+'\')">'
+      +(t.last_user_phone?'<button class="tc-action call" onclick="callUser(\''+t.last_user_phone+'\',\''+t.id+'\',\''+t.status+'\')">'
         +'<span class="ai">📞</span><span>Call</span></button>'
-      +(g?'<button class="tc-action nav" onclick="navigate('+g.lat+','+g.lng+')">'
+        :'<button class="tc-action call" style="opacity:.4;pointer-events:none">'
+        +'<span class="ai">📞</span><span>No phone</span></button>')
+      +(g?'<button class="tc-action nav" onclick="navigate('+g.lat+','+g.lng+',\''+t.id+'\',\''+t.status+'\')">'
         +'<span class="ai">🧭</span><span>Navigate</span></button>'
         :'<button class="tc-action nav" style="opacity:.4;pointer-events:none">'
         +'<span class="ai">🧭</span><span>No GPS</span></button>')
@@ -519,26 +595,50 @@ function renderList(){
 }
 
 // ── Actions ──
-async function callUser(phone,ticketId){
-  if(!phone){showToast('No phone number on file');return;}
-  // Log call event + update call_status
-  try{
-    await sb.from('recovery_tickets').update({call_status:'informed',status:'called'}).eq('id',ticketId).eq('assigned_hunter_id',_userId);
-    await sb.from('recovery_ticket_events').insert({ticket_id:ticketId,event_type:'called',created_by:_userId,metadata:{call_status:'informed'}});
-    await loadData();
-  }catch(e){console.warn('[Hunter] call log error:',e);}
+// Tap Call → dial immediately, then surface the outcome sheet so the hunter
+// records Informed / No response when they return from the call.
+function callUser(phone,ticketId,curStatus){
+  if(!phone||phone==='null'){showToast('No phone number on file');return;}
+  _callTicketId=ticketId;
+  _callCurStatus=curStatus;
   window.location.href='tel:'+phone;
+  document.getElementById('call-modal').classList.add('show');
+}
+function closeCallModal(e){
+  if(e&&e.target!==document.getElementById('call-modal'))return;
+  document.getElementById('call-modal').classList.remove('show');
+  _callTicketId=null;_callCurStatus=null;
+}
+async function chooseCallOutcome(outcome){
+  var tid=_callTicketId,cur=_callCurStatus;
+  document.getElementById('call-modal').classList.remove('show');
+  _callTicketId=null;_callCurStatus=null;
+  if(!tid)return;
+  try{
+    // Never regress: only advance marked/assigned → called.
+    var upd={call_status:outcome,called_at:new Date().toISOString()};
+    if(cur==='marked'||cur==='assigned')upd.status='called';
+    await sb.from('recovery_tickets').update(upd).eq('id',tid).eq('assigned_hunter_id',_userId);
+    await sb.from('recovery_ticket_events').insert({ticket_id:tid,event_type:'called',created_by:_userId,metadata:{call_status:outcome}});
+    await loadData();
+    showToast(outcome==='informed'?'✅ Logged: Informed':'📵 Logged: No response');
+  }catch(e){console.warn('[Hunter] call log error:',e);showToast('Could not save outcome');}
 }
 
-function navigate(lat,lng){
-  var url;
-  // Open Google Maps on mobile
-  if(/iPhone|iPad|iPod/i.test(navigator.userAgent)){
-    url='maps://maps.apple.com/?q='+lat+','+lng;
-  } else {
-    url='https://maps.google.com/?q='+lat+','+lng;
-  }
+function navigate(lat,lng,ticketId,curStatus){
+  // Open maps first — keeps the user-gesture so the popup isn't blocked.
+  var url=/iPhone|iPad|iPod/i.test(navigator.userAgent)
+    ? 'maps://maps.apple.com/?q='+lat+','+lng
+    : 'https://maps.google.com/?q='+lat+','+lng;
   window.open(url,'_blank');
+  // Advance to en_route (only from pre-travel states — never regress).
+  if(ticketId&&['marked','assigned','called'].indexOf(curStatus)>=0){
+    sb.from('recovery_tickets').update({status:'en_route',en_route_at:new Date().toISOString()})
+      .eq('id',ticketId).eq('assigned_hunter_id',_userId)
+      .then(function(){return sb.from('recovery_ticket_events').insert({ticket_id:ticketId,event_type:'en_route',created_by:_userId,metadata:{source:'hunter_navigate'}});})
+      .then(function(){loadData();})
+      .catch(function(e){console.warn('[Hunter] en_route update error:',e);});
+  }
 }
 
 // ── Photo modal ──
@@ -594,8 +694,13 @@ async function confirmPhoto(){
     // Update ticket status
     var now=new Date().toISOString();
     var updates={status:_photoAction};
-    if(_photoAction==='mark_found')updates.mark_found_at=now;
-    if(_photoAction==='in_transit')updates.in_transit_at=now;
+    if(_photoAction==='mark_found'){
+      updates.mark_found_at=now;
+      updates.mark_found_photo_url=urlData.publicUrl;
+      var hubId=await nearestHubId(_photoTicketReg); // nearest active hub via Haversine
+      if(hubId!=null)updates.hub_id=hubId;
+    }
+    if(_photoAction==='in_transit'){updates.in_transit_at=now;updates.in_transit_photo_url=urlData.publicUrl;}
     var{error:upErr}=await sb.from('recovery_tickets').update(updates).eq('id',_photoTicketId).eq('assigned_hunter_id',_userId);
     if(upErr)throw upErr;
 

@@ -360,9 +360,10 @@ var sb=supabase.createClient(SB_URL,ANON_KEY,{auth:{persistSession:true,storageK
 var CITY_IDS={ncr:1,blr:2,hyd:5};
 var CITY_CENTERS={ncr:[28.6139,77.2090],blr:[12.9716,77.5946],hyd:[17.3850,78.4867]};
 var CITY_ZOOM={ncr:11,blr:11,hyd:11};
+var ZONE_COLORS={NE:'#2563EB',NW:'#7C3AED',SE:'#059669',SW:'#D97706'};
 
 var _tickets=[],_gpsMap={},_zones=[];
-var _maps={},_layers={},_savedBounds={};
+var _maps={},_layers={},_savedBounds={},_didFit={};
 var _refreshTimer=null;
 var _currentCity='ncr';
 var _filterAge='all',_filterStatus='all',_filterSearch='';
@@ -534,9 +535,12 @@ async function loadData(){
       .not('status','in','(cancelled,at_hub)');
     if(te)throw te;
     var todayIst=getIstDate();
+    var dayStart=todayIst+'T00:00:00+05:30';
+    // Recovered today = reached in_transit (loaded) or at_hub today.
+    // Use the stage timestamps, NOT updated_at (which bumps on any edit).
     var{data:recovered}=await sb.from('recovery_tickets')
-      .select('id,status').in('status',['in_transit','at_hub'])
-      .gte('updated_at',todayIst+'T00:00:00+05:30');
+      .select('id')
+      .or('in_transit_at.gte.'+dayStart+',at_hub_at.gte.'+dayStart);
     _tickets=tickets||[];
     // GPS from bike_location_cache
     var regs=[...new Set(_tickets.map(function(t){return t.reg_number;}).filter(Boolean))];
@@ -547,7 +551,7 @@ async function loadData(){
     }
     _gpsMap=gpsMap;
     // Zone configs
-    var{data:zones}=await sb.from('zone_configs').select('zone_label,hunter_id,centroid_lat,centroid_lng,city_id,vehicle_count').eq('date',todayIst);
+    var{data:zones}=await sb.from('zone_configs').select('zone_label,hunter_id,centroid_lat,centroid_lng,city_id,vehicle_count,boundary_polygon').eq('date',todayIst);
     _zones=zones||[];
     // Render
     renderStats(_tickets,recovered||[]);
@@ -606,6 +610,13 @@ function renderZoneCards(city,zones,tickets){
 function renderMap(city,tickets){
   if(!_maps[city])return;
   _layers[city].clearLayers();
+  // Zone boundaries (Voronoi) — drawn under the pins, non-interactive.
+  _zones.filter(function(z){return z.city_id===CITY_IDS[city]&&z.boundary_polygon;}).forEach(function(z){
+    try{
+      var col=ZONE_COLORS[z.zone_label]||'#6366F1';
+      L.geoJSON(z.boundary_polygon,{interactive:false,style:{color:col,weight:2,fillColor:col,fillOpacity:.06,dashArray:'5 4'}}).addTo(_layers[city]);
+    }catch(e){}
+  });
   var pinned=[];
   tickets.forEach(function(t){
     var gps=_gpsMap[t.reg_number];if(!gps)return;
@@ -639,8 +650,16 @@ function renderMap(city,tickets){
     L.marker([gps.lat,gps.lng],{icon:icon}).addTo(_layers[city]).bindPopup(popup,{maxWidth:260});
     pinned.push([gps.lat,gps.lng]);
   });
-  if(pinned.length>=2){var b=L.latLngBounds(pinned);_savedBounds[city]=b;_maps[city].fitBounds(b,{padding:[40,40]});}
-  else if(pinned.length===1){_savedBounds[city]=null;_maps[city].setView(pinned[0],13);}
+  // Auto-fit only on first render per city — afterwards preserve the user's
+  // manual pan/zoom (refreshes/filters update markers without moving the map).
+  // _savedBounds still tracks the latest extent so the Recenter button works.
+  if(pinned.length>=2){
+    var b=L.latLngBounds(pinned);_savedBounds[city]=b;
+    if(!_didFit[city]){_maps[city].fitBounds(b,{padding:[40,40]});_didFit[city]=true;}
+  } else if(pinned.length===1){
+    _savedBounds[city]=L.latLngBounds([pinned[0]]);
+    if(!_didFit[city]){_maps[city].setView(pinned[0],13);_didFit[city]=true;}
+  }
 }
 
 // ── Unknown list ──
