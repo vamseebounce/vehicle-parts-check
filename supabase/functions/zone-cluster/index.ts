@@ -17,6 +17,7 @@
  */
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { Delaunay } from 'https://esm.sh/d3-delaunay@6'
 
 const SB_URL = Deno.env.get('SUPABASE_URL')!
 const SB_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
@@ -433,6 +434,36 @@ Deno.serve(async (_req) => {
       // Assign hunters to zones
       const zoneHunterMap = assignHuntersToZones(hunters.slice(0, effectiveK), zoneLabels)
 
+      // ── Voronoi tessellation (MECE zone boundaries) ──
+      // Cells are computed for the cluster centroids, clipped to a padded
+      // bounding box around the city's vehicles. Stored as GeoJSON Polygons
+      // ([lng,lat] rings) in boundary_polygon.
+      const cellPolys: (number[][] | null)[] = new Array(effectiveK).fill(null)
+      try {
+        const pad = 0.15 // ~16 km padding so cells cover the whole city
+        const lats = points.map(p => p.lat)
+        const lngs = points.map(p => p.lng)
+        const bbox: [number, number, number, number] = [
+          Math.min(...lngs) - pad, Math.min(...lats) - pad,
+          Math.max(...lngs) + pad, Math.max(...lats) + pad,
+        ]
+        if (effectiveK === 1) {
+          // Single zone → the whole bbox is its cell.
+          const [x0, y0, x1, y1] = bbox
+          cellPolys[0] = [[x0, y0], [x1, y0], [x1, y1], [x0, y1], [x0, y0]]
+        } else {
+          const vpts = centroids.map(c => [c.lng, c.lat]) // [x=lng, y=lat]
+          const delaunay = Delaunay.from(vpts)
+          const voronoi = delaunay.voronoi(bbox)
+          for (let ci = 0; ci < effectiveK; ci++) {
+            const poly = voronoi.cellPolygon(ci) // closed ring of [lng,lat] or null
+            cellPolys[ci] = poly ? poly.map((pt: number[]) => [pt[0], pt[1]]) : null
+          }
+        }
+      } catch (e) {
+        console.error(`Voronoi failed for city ${cityId}:`, (e as any)?.message)
+      }
+
       // ── Upsert zone_configs ──
       const zoneConfigRows = zoneLabels.map((label, ci) => ({
         date:               todayDateStr,
@@ -444,6 +475,7 @@ Deno.serve(async (_req) => {
         dynamic_center_lat: dynamicCenter.lat,
         dynamic_center_lng: dynamicCenter.lng,
         vehicle_count:      clusterPoints[ci].length,
+        boundary_polygon:   cellPolys[ci] ? { type: 'Polygon', coordinates: [cellPolys[ci]] } : null,
       }))
 
       const { error: upsertErr } = await sb

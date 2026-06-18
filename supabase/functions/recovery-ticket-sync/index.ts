@@ -97,6 +97,24 @@ function str(v: string | undefined): string | null {
   return (!v || v === '' || v === 'null') ? null : v
 }
 
+// Resolve the marked-at instant as a true UTC ISO string.
+// Prefers marked_at_utc; if only marked_at_ist (IST wall-clock, no tz) is
+// present, interprets it as +05:30 and converts to UTC — never stores IST raw.
+function resolveMarkedAtUtc(utcVal: string | null, istVal: string | null): string | null {
+  const hasTz = (s: string) => /[zZ]$|[+\-]\d{2}:?\d{2}$/.test(s)
+  if (utcVal) {
+    const v = utcVal.trim().replace(' ', 'T')
+    const d = new Date(hasTz(v) ? v : v + 'Z') // bare = already UTC
+    return isNaN(d.getTime()) ? null : d.toISOString()
+  }
+  if (istVal) {
+    const v = istVal.trim().replace(' ', 'T')
+    const d = new Date(hasTz(v) ? v : v + '+05:30') // bare = IST wall-clock
+    return isNaN(d.getTime()) ? null : d.toISOString()
+  }
+  return null
+}
+
 // ── Heartbeat ────────────────────────────────────────────────────────────────
 async function writeHeartbeat(
   sb: ReturnType<typeof createClient>,
@@ -154,14 +172,13 @@ Deno.serve(async (_req) => {
         const bikeId = num(row['bike_id'])
         if (!bikeId) continue
 
-        const markedAtUtc = str(row['marked_at_utc']) // set from created_at_utc via Metabase name
-                         ?? str(row['marked_at_ist'])  // fallback if field name differs
+        const markedAtUtc = resolveMarkedAtUtc(str(row['marked_at_utc']), str(row['marked_at_ist']))
         if (!markedAtUtc) continue
 
         toInsert.push({
           bike_id:            bikeId,
           source_ops_log_id:  Number(sourceOpsLogId),
-          user_id:            null, // resolved via booking join in Q1 — not a UUID column in Q1
+          user_id:            str(row['user_id']), // latest booking's user_id from Q1
           marked_at_utc:      markedAtUtc,
           status:             'marked',
           call_status:        'none',
