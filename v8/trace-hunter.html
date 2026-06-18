@@ -362,6 +362,7 @@ function startGpsWatch(){
   _gpsWatch=navigator.geolocation.watchPosition(function(pos){
     _hunterLat=pos.coords.latitude;
     _hunterLng=pos.coords.longitude;
+    writeHunterLocation();
     var badge=document.getElementById('gps-badge');
     badge.textContent='GPS Live';
     badge.className='gps-badge live';
@@ -378,6 +379,17 @@ function startGpsWatch(){
   },{enableHighAccuracy:true,maximumAge:10000,timeout:15000});
 }
 function stopGpsWatch(){if(_gpsWatch!==null){navigator.geolocation.clearWatch(_gpsWatch);_gpsWatch=null;}}
+
+// Throttled breadcrumb write so the HO dashboard can show live hunter dots + trail.
+var _lastLocWrite=0;
+function writeHunterLocation(){
+  if(!_userId||_hunterLat==null)return;
+  if(Date.now()-_lastLocWrite<45000)return; // ~45s throttle — keep DB writes light
+  _lastLocWrite=Date.now();
+  sb.from('hunter_locations').insert({hunter_id:_userId,lat:_hunterLat,lng:_hunterLng}).then(function(){},function(){});
+}
+function parseUtcTs(ts){if(!ts)return null;var s=(''+ts).trim().replace(' ','T').replace(/(Z|[+-]\d{2}(?::?\d{2})?)$/,'');var d=new Date(s+'Z');return isNaN(d.getTime())?null:d;}
+function recAgeH(t){var d=parseUtcTs(t.marked_at_utc);return d?(Date.now()-d.getTime())/3600000:0;}
 
 var _hunterMapMarker=null;
 function updateHunterMarker(){
@@ -457,8 +469,9 @@ function statusClass(s){var m={marked:'s-marked',assigned:'s-assigned',called:'s
 function fmtKm(d){return d<1?Math.round(d*1000)+'m':d.toFixed(1)+'km';}
 function fmtTime(d){return d.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',hour12:true,timeZone:'Asia/Kolkata'});}
 function gpsAge(ts){
-  if(!ts)return null;
-  var h=(Date.now()-new Date(ts))/3600000;
+  var d=parseUtcTs(ts);
+  if(!d)return null;
+  var h=(Date.now()-d.getTime())/3600000;
   if(h<1)return null; // fresh, no warning
   if(h<6)return Math.round(h)+'h old';
   return Math.round(h/24)+'d old';
@@ -494,7 +507,7 @@ function renderMapPins(){
   _tickets.forEach(function(t){
     var g=_gpsMap[t.reg_number];
     if(!g)return;
-    var h=(Date.now()-new Date(t.marked_at_utc))/3600000;
+    var h=recAgeH(t);
     var color=agePinColor(h);
     var svg='<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28">'
       +'<circle cx="14" cy="14" r="11" fill="'+color+'"/>'
@@ -536,7 +549,7 @@ function renderList(){
     if(_hunterLat!=null&&ga&&!gb)return -1;
     if(_hunterLat!=null&&!ga&&gb)return 1;
     // Fallback: oldest first
-    return new Date(a.marked_at_utc)-new Date(b.marked_at_utc);
+    return (parseUtcTs(a.marked_at_utc)||0)-(parseUtcTs(b.marked_at_utc)||0);
   });
 
   document.getElementById('list-count').textContent=sorted.length+' vehicle'+(sorted.length===1?'':'s');
@@ -554,7 +567,7 @@ function renderList(){
       return;
     }
     var g=_gpsMap[t.reg_number];
-    var h=(Date.now()-new Date(t.marked_at_utc))/3600000;
+    var h=recAgeH(t);
     var dist=(_hunterLat!=null&&g)?haversineKm(_hunterLat,_hunterLng,g.lat,g.lng):null;
     var stale=gpsAge(g&&g.ts);
     var isPriority=h>=72;

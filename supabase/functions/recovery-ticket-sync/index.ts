@@ -135,6 +135,67 @@ async function writeHeartbeat(
   } catch (_) {}
 }
 
+// ── HO dashboard cache rebuild ─────────────────────────────────────────────────
+// Denormalised snapshot of open + today-recovered tickets with GPS pre-joined.
+// Runs here (edge fn) so the HO dashboard reads ONE table — no client-side join,
+// minimal Postgres RAM on Micro. Delete + reinsert (RSA pattern).
+async function rebuildHoCache(sb: ReturnType<typeof createClient>): Promise<number> {
+  const nowIst = new Date(Date.now() + 5.5 * 60 * 60 * 1000)
+  const dayStart = nowIst.toISOString().slice(0, 10) + 'T00:00:00+05:30'
+  const COLS = 'id,bike_id,reg_number,city_id,city_name,zone,status,assigned_hunter_id,call_status,marked_at_utc,is_base_list,model_name,last_user_name,last_user_phone,mark_found_at,in_transit_at,at_hub_at'
+
+  // Open tickets + today's at_hub (for the "Recovered today" tile)
+  const { data: open } = await sb.from('recovery_tickets').select(COLS)
+    .not('status', 'in', '("cancelled","at_hub")')
+  const { data: atHubToday } = await sb.from('recovery_tickets').select(COLS)
+    .eq('status', 'at_hub').gte('at_hub_at', dayStart)
+
+  const byId = new Map<string, any>()
+  for (const r of [...(open ?? []), ...(atHubToday ?? [])]) byId.set(r.id, r)
+  const tickets = [...byId.values()]
+
+  const EMPTY = '00000000-0000-0000-0000-000000000000'
+  if (tickets.length === 0) {
+    await sb.from('recovery_tickets_cache').delete().neq('ticket_id', EMPTY)
+    return 0
+  }
+
+  // GPS from bike_location_cache (batched IN — runs once per cron, not per client)
+  const regs = [...new Set(tickets.map(t => t.reg_number).filter(Boolean))]
+  const gps = new Map<string, { lat: number; lng: number; ts: string | null }>()
+  for (let i = 0; i < regs.length; i += 200) {
+    const { data: g } = await sb.from('bike_location_cache')
+      .select('reg_number,lat,lng,baas_location_time')
+      .in('reg_number', regs.slice(i, i + 200))
+    for (const r of (g ?? [])) {
+      if (r.lat != null && r.lng != null) gps.set(r.reg_number, { lat: Number(r.lat), lng: Number(r.lng), ts: r.baas_location_time })
+    }
+  }
+
+  const now = new Date().toISOString()
+  const rows = tickets.map(t => {
+    const p = gps.get(t.reg_number)
+    return {
+      ticket_id: t.id, bike_id: t.bike_id, reg_number: t.reg_number,
+      city_id: t.city_id, city_name: t.city_name, zone: t.zone, status: t.status,
+      assigned_hunter_id: t.assigned_hunter_id, call_status: t.call_status,
+      marked_at_utc: t.marked_at_utc, is_base_list: t.is_base_list, model_name: t.model_name,
+      last_user_name: t.last_user_name, last_user_phone: t.last_user_phone,
+      mark_found_at: t.mark_found_at, in_transit_at: t.in_transit_at, at_hub_at: t.at_hub_at,
+      display_lat: p?.lat ?? null, display_lng: p?.lng ?? null, gps_ts: p?.ts ?? null,
+      refreshed_at: now,
+    }
+  })
+
+  await sb.from('recovery_tickets_cache').delete().neq('ticket_id', EMPTY)
+  const BATCH = 200
+  for (let i = 0; i < rows.length; i += BATCH) {
+    const { error } = await sb.from('recovery_tickets_cache').insert(rows.slice(i, i + BATCH))
+    if (error) console.error('HO cache insert error:', error.message)
+  }
+  return rows.length
+}
+
 // ── Main ─────────────────────────────────────────────────────────────────────
 Deno.serve(async (_req) => {
   const t0 = Date.now()
@@ -355,8 +416,13 @@ Deno.serve(async (_req) => {
       }
     }
 
+    // ── STEP 3: Rebuild HO dashboard cache (GPS-enriched snapshot) ────────────
+    let cached = 0
+    try { cached = await rebuildHoCache(sb) }
+    catch (e: any) { console.error('rebuildHoCache failed:', e?.message) }
+
     await writeHeartbeat(sb, 'ok', Date.now() - t0, totalChanged)
-    return new Response(JSON.stringify({ ok: true, changed: totalChanged }), {
+    return new Response(JSON.stringify({ ok: true, changed: totalChanged, cached }), {
       headers: { 'Content-Type': 'application/json' }
     })
 

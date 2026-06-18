@@ -176,25 +176,25 @@ Full spec in `Trace and Hunter/context.md`.
 - Build only Phase 1 items
 
 ### trace-ho.html (HO Dashboard — "Trace")
-- CARTO tiles, Inter font, Leaflet map
-- Filter bar: age chips (0–24h, 24–48h, 48–72h, 72h+) + status chips + search
-- Filter state: `_filterAge`, `_filterStatus`, `_filterSearch` → `filterTickets()` → `rerender()`
-- Pin colors: amber=#F59E0B (0–24h), coral=#F97316 (24–48h), orange=#EF4444 (48–72h), dark-red=#991B1B (72h+)
-- Call-status ring on pins: blue=#3B82F6 (informed), grey=#9CA3AF (no_response)
-- Summary stat tiles: total, critical, calls made, active agents — clickable to filter
-- Map legend overlay + recenter button
-- RSA-quality popups: 2-col grid, action buttons (call, mark found, etc.)
-- Auto-refresh every 60 seconds (`setInterval(loadData, 60000)`)
-- Zone boundaries: Voronoi GeoJSON from `zone_configs.boundary_polygon`, rendered as dashed colored cells (`ZONE_COLORS` per NE/NW/SE/SW), non-interactive, under the pins
-- Map auto-fits **once per city** (`_didFit`), then preserves the user's pan/zoom across refreshes/filters; Recenter button uses `_savedBounds`
-- "Recovered today" stat counts `in_transit_at`/`at_hub_at` landing today — **not** `updated_at` (the touch trigger bumps it on any edit)
+**Rebuilt 2026-06-18 as a full RSA-Warroom clone** (`v8/rsa.html` is the base template) — same shell/components/interactions, adapted to recovery data. Single full-screen map (no more city-tab/zone-card sidebar layout).
+- Layout mirrors RSA: global bar (City multiselect + Marked-date range + Refresh + sync badge) → clickable tiles → map-filter row (Zone NE/NW/SE/SW + Status + Age + Hunter multiselects + search) → full map.
+- **Reads ONE table: `recovery_tickets_cache`** (GPS pre-joined by the edge fn). localStorage cache (`trace_ho_v1`, 60s TTL) + 60s poll. No client-side join, no per-client GPS fan-out — Micro-RAM friendly.
+- `parseUtcTs()` (copied from RSA) for all timestamp parsing — fixes Safari/iOS `NaN` on `+00` offsets.
+- Pin colors by `hoursIn(t)`: amber<24h, coral<48h, orange<72h, dark-red 3d+. Call-status ring: blue=informed, grey=no_response.
+- Tiles (city-scoped, clickable): Total Pending, Critical 3d+ (flashes pins), Recovered Today, Calls Made, Hunters Active.
+- Layers panel: Zones (Voronoi from `zone_configs.boundary_polygon`) / Hubs (`rental_locations`) / Hunters (live dots from `hunter_locations_latest`).
+- Track panel: Hunter Trail (`hunter_locations` polyline) / Ticket Events (`recovery_ticket_events` timeline by reg).
+- Location-Unknown: slide-in panel (no-GPS tickets), opened from a map-control button.
+- Auth: permissions-first + superadmin short-circuit (NO perm-veil — matches the documented pattern, not RSA's older veil).
 
 ### trace-hunter.html (Hunter PWA — "Hunter")
 - Mobile-first PWA (trace-hunter-manifest.json + trace-hunter-sw.js)
 - Field agent app for ground team; My Queue (list) + Map tabs
+- Reads `recovery_tickets` directly (own small slice — real-time for own actions), NOT the cache.
 - List sorted nearest-first by Haversine from live phone GPS (`watchPosition`); in-transit tickets sink to the bottom as a collapsed confirmation line
 - Actions: **Call** (dial → outcome sheet: informed/no_response), **Navigate** (opens maps → sets `en_route`), **Mark Found** (photo → `recovery-photos` bucket → `mark_found_photo_url` + nearest `hub_id`), **In Transit** (photo → `in_transit_photo_url`, internal state only)
 - Null phone → disabled "No phone" button; no GPS → disabled "No GPS" Navigate
+- `parseUtcTs()` for age parsing (Safari fix). Writes a throttled (~45s) breadcrumb to `hunter_locations` on `watchPosition` → HO live dots + Track trail.
 
 ### Supabase tables (Trace & Hunter)
 - `recovery_tickets` — core ticket table (GPS never stored here)
@@ -204,6 +204,8 @@ Full spec in `Trace and Hunter/context.md`.
 - `recovery_blocked_vehicles` — police-station / impounded exclusions (6 PM Google Sheet sync)
 - `roster_template` / `roster_overrides` — hunter roster (Phase 2 UI; read by zone-cluster)
 - `rental_locations` — hubs (`id, location_name, lat, lng, city_id, status`); nearest-hub Haversine at Mark Found
+- `recovery_tickets_cache` — **denormalised HO snapshot** (open + today-recovered, GPS pre-joined). Rebuilt by `recovery-ticket-sync` every 5 min (delete+reinsert). The HO dashboard's only read source — keeps the GPS join off the client (Micro RAM).
+- `hunter_locations` (+ `hunter_locations_latest` view) — hunter GPS breadcrumbs from the PWA; HO live dots + Track trail. 7-day retention.
 
 ### Storage
 - `recovery-photos` bucket — Mark Found / In Transit proof photos (public-read, authenticated-write); path `<ticketId>/<ts>.<ext>`
@@ -213,9 +215,10 @@ Full spec in `Trace and Hunter/context.md`.
 - `…0003_trace_hunter_groups.sql` — FPI groups + feature keys
 - `…0004_recovery_photos_bucket.sql` — storage bucket + policies
 - `…0005_recovery_tickets_update_ownership.sql` — UPDATE restricted to owner-or-superadmin
+- `…0006_recovery_ho_cache.sql` — `recovery_tickets_cache` + `hunter_locations` (+ latest view) + 7-day cleanup fn
 
 ### Edge functions
-- `recovery-ticket-sync` — 5-min cron, syncs Q1+Q2 tickets (resolves `marked_at_utc` IST→UTC; sets `user_id`)
+- `recovery-ticket-sync` — 5-min cron, syncs Q1+Q2 tickets (resolves `marked_at_utc` IST→UTC; sets `user_id`); **Step 3 rebuilds `recovery_tickets_cache`** (GPS-enriched snapshot for the HO dashboard)
 - `recovery-blocked-sync` — 6 PM cron, syncs Google Sheets blocked list
 - `zone-cluster` — 6 PM cron, balanced k-means + Voronoi (d3-delaunay) + roster-based hunter assignment
 
