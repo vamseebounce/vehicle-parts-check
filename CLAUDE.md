@@ -109,6 +109,55 @@ Tile accent bars are 5px top gradient, department-based:
 
 Uses `Prefer: count=exact` + `Range: 0-0` header to get counts without fetching rows.
 
+## Trace & Hunter — Build Status
+
+Full spec in `Trace and Hunter/context.md`.
+
+### Phase 1 — Core Ops
+
+- [x] `recovery_tickets` + `recovery_ticket_events` table migrations
+- [x] `recovery_blocked_vehicles` table
+- [x] Edge function: Q1 — new ticket creation (5-min cron)
+- [x] Edge function: Q2 — open ticket reconciliation (5-min cron)
+- [x] Edge function: blocked-sync — Google Sheet → table (6 PM cron)
+- [x] Edge function: zone-cluster — k-means + Voronoi per city (6 PM cron)
+- [x] Auto zone + hunter assignment from clustering output
+- [x] FPI groups + feature permissions (`trace-ho`, `trace-hunter`)
+- [x] HO Dashboard (trace-ho.html) — map, color-coded pins, zone cards, stats bar, filter bar, auto-refresh
+- [x] Hunter PWA shell (trace-hunter.html + manifest.json + sw.js)
+- [ ] Hunter PWA: vehicle list sorted by nearest distance (Haversine, Phase 1 = bike GPS as reference)
+- [ ] Hunter PWA: Call action → updates `call_status`
+- [ ] Hunter PWA: Navigate action → sets ticket status to `en_route`
+- [ ] Hunter PWA: Mark Found — photo upload required → sets `mark_found_at`, `mark_found_photo_url`, `hub_id` (nearest hub via Haversine)
+- [ ] Hunter PWA: In Transit — photo upload required → sets `in_transit_at`, `in_transit_photo_url`, writes `bike_operations_log` (`new_vehicle_status = 'recovered'`)
+- [ ] HO Dashboard: "Location unknown" list — bikes with no GPS from either source
+- [ ] GPS fallback logic — `baas_lat/lng` vs `current_lat/lng`, pick whichever timestamp is newer
+- [ ] GPS staleness indicator on vehicle card ("Location updated Xh ago")
+
+### Phase 2 — Ops Quality
+
+- [ ] Cool-off mechanism — hunter-initiated, 2hr, one-time per ticket; `cooloff_expires_at` countdown in UI
+- [ ] Deprioritize vehicle — hunter flags, sinks to bottom of list, HO sees deprioritized count per hunter
+- [ ] Admin live override panel — drag-reassign vehicles between hunters on HO map
+- [ ] Roster system UI — Mon–Sun matrix (Hunter × 7 days), template + overrides
+- [ ] Bulk reassign — mark absent → covering hunter inherits all open tickets
+- [ ] Instant push notification to hunter when customer renews while `en_route` (Q2 special case, <5min lag)
+- [ ] PWA push notifications — new vehicle added to zone mid-day
+- [ ] Newly added vehicle pulsing pin animation on HO map
+- [ ] Base list / Added today filter toggle
+- [ ] Re-cluster now button (Super admin only)
+
+### Phase 3 — Intelligence
+
+- [ ] Porter booking (in-system, replaces WhatsApp)
+- [ ] Key metrics dashboard (avg recovery time, hunter productivity, zone performance)
+- [ ] Call attempts tracking (`call_attempts` count + `last_called_at`)
+- [ ] Damage fee exposure tracking
+- [ ] Historical zone performance analytics
+- [ ] Zone config history viewer
+
+---
+
 ## Trace & Hunter Module
 
 ### Key rules (do not violate)
