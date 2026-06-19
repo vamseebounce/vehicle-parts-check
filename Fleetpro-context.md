@@ -1,5 +1,27 @@
 # Fleetpro — Context File
-*Last updated: 2026-06-18 (sessions 15–16 — Trace & Hunter Phase 1 complete: 3 edge fns, 3 cron jobs, 6 new tables, FPI groups, HO Dashboard, Hunter PWA)*
+*Last updated: 2026-06-20 (session 17 — sync audit: backends verified LIVE; fixed git source-of-truth confusion; jc-approval source committed)*
+
+## 🔎 2026-06-20 — Sync Audit (corrects the stale "PENDING DEPLOY" notes below)
+
+Audited live DB + the real GitHub repo. Findings:
+
+- **Local `fleetpro/.git` is an UNRELATED git history** to the production repo
+  (`vehicle-parts-check`, 96 commits). No common ancestor — the local repo is an
+  artifact of the FUSE-push workaround. **Source of truth = the GitHub repo only**
+  (cloned to `/tmp` for pushes). Never commit to the local `fleetpro/.git`; it deploys nothing.
+- **Trace & Hunter backend is LIVE**, not pending: `recovery_tickets` 346 rows,
+  `recovery_tickets_cache` 346 rows (HO dashboard source populated — NOT blank).
+  All 5 T&H migrations applied; 3 T&H edge fns + frontend committed & live (HTTP 200).
+- **jc-approval is LIVE**: `jc_approval_status` 11,122 rows, `jc-approval-sync` cron
+  succeeding every 5 min. Frontend committed + sidebar link present (superadmin-only via
+  `admin-panel`/`is_superadmin` — kept that way, decision 2026-06-20). The two missing
+  *source* files (migration `20260619000001_jc_approval.sql` + `functions/jc-approval-sync/`)
+  were committed to the real repo this session (commit `e11f198`).
+- **`zone_configs` empty** is expected, not a bug: zone-cluster runs once daily (12:35 UTC)
+  AND both roster tables are empty (`roster_template`/`roster_overrides` = 0 rows).
+  No roster → no hunter assignment → no zones. Roster UI is an unbuilt Phase 2 item.
+- **`recovery-ticket-sync` DOES write heartbeats** (off-hours guard skips midnight–6am IST).
+
 
 ## 🏗 Architecture Roadmap (session 5)
 - `ARCHITECTURE-PROPOSAL.md` created at repo root — 6-phase productization roadmap (PROPOSAL ONLY, nothing executed)
