@@ -8,49 +8,57 @@
 <style>
   *{box-sizing:border-box;margin:0;padding:0}
   :root{
-    --bg:#0a0f1e;--card:#111827;--border:#1e2d45;--teal:#14b8a6;--red:#E8191C;
-    --muted:#64748b;--text:#f1f5f9;--amber:#F59E0B;--green:#10B981;--blue:#3B82F6;--violet:#8B5CF6;
+    --brand:#E8191C;--brand-dark:#B01010;
+    --bg:#F5F6FA;--card:#fff;--border:#E5E7EB;--text:#111827;--muted:#6B7280;
+    --shadow:0 1px 3px rgba(0,0,0,.08),0 1px 2px rgba(0,0,0,.04);
+    --shadow-md:0 4px 16px rgba(0,0,0,.1);
   }
-  body{background:var(--bg);color:var(--text);font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh}
+  body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
 
-  /* ── Auth screen (verbatim pattern from index.html) ── */
-  #auth-screen{position:fixed;inset:0;z-index:1000;background:linear-gradient(135deg,#1A1A2E 0%,#0f2460 100%);display:flex;align-items:center;justify-content:center}
+  /* ── Auth screen (verbatim pattern from queue.html) ── */
+  #auth-screen{position:fixed;inset:0;z-index:1000;background:linear-gradient(135deg,#1A1A2E 0%,#0f2460 100%);display:flex;align-items:center;justify-content:center;font-family:'Inter',sans-serif}
   #auth-screen.hidden{display:none!important}
-  .auth-card{background:#fff;border-radius:16px;padding:36px 32px;width:380px;max-width:92vw;box-shadow:0 20px 60px rgba(0,0,0,.4)}
-  .auth-logo{display:flex;align-items:center;gap:12px;margin-bottom:24px}
+  .auth-card{background:#fff;border-radius:24px;padding:40px 36px;width:100%;max-width:380px;box-shadow:0 24px 80px rgba(0,0,0,.3);text-align:center}
+  .auth-logo{display:flex;align-items:center;gap:12px;margin-bottom:24px;justify-content:center}
   .auth-logo-name{font-size:1rem;font-weight:800;color:#0F172A}
-  .auth-logo-sub{font-size:.72rem;font-weight:600;color:#E8191C;letter-spacing:.5px}
+  .auth-logo-sub{font-size:.72rem;font-weight:600;color:var(--brand);letter-spacing:.5px}
   .auth-title{font-size:1.3rem;font-weight:800;color:#0F172A;margin-bottom:6px}
   .auth-sub{font-size:.84rem;color:#6B7280;line-height:1.5;margin-bottom:14px}
-  .auth-domain{font-size:.72rem;font-weight:600;color:#9CA3AF;margin-bottom:18px}
-  .auth-input{width:100%;border:1.5px solid #E5E7EB;border-radius:10px;padding:12px 14px;font-size:.9rem;color:#0F172A;outline:none;font-family:'Inter',sans-serif}
-  .auth-input:focus{border-color:#E8191C}
-  .auth-btn{width:100%;margin-top:12px;background:#E8191C;color:#fff;border:none;border-radius:10px;padding:13px;font-size:.9rem;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif}
+  .auth-domain{display:inline-block;background:#F0FDF4;color:#16A34A;border:1px solid #BBF7D0;border-radius:8px;padding:4px 12px;font-size:.75rem;font-weight:600;margin-bottom:20px}
+  .auth-input{width:100%;padding:13px 16px;border:1.5px solid #E5E7EB;border-radius:12px;font-size:.9rem;font-family:'Inter',sans-serif;color:#111827;outline:none;transition:border-color .15s}
+  .auth-input:focus{border-color:var(--brand)}
+  .auth-btn{width:100%;margin-top:12px;padding:13px;background:var(--brand);color:#fff;border:none;border-radius:12px;font-size:.9rem;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;transition:background .15s}
+  .auth-btn:hover{background:var(--brand-dark)}
   .auth-btn:disabled{opacity:.5;cursor:not-allowed}
   .auth-msg{font-size:.78rem;margin-top:12px;min-height:18px;line-height:1.5;color:#DC2626}
   .auth-sent{display:none;text-align:center}
   .auth-sent .big-icon{font-size:3rem;margin-bottom:12px}
   .auth-sent h3{font-size:1.1rem;font-weight:800;color:#0F172A;margin-bottom:8px}
   .auth-sent p{font-size:.82rem;color:#6B7280;line-height:1.6}
-  .auth-sent .resend{background:none;border:none;color:#E8191C;font-size:.8rem;font-weight:600;cursor:pointer;margin-top:16px;font-family:'Inter',sans-serif}
+  .auth-sent .resend{background:none;border:none;color:var(--brand);font-size:.8rem;font-weight:600;cursor:pointer;margin-top:16px;font-family:'Inter',sans-serif}
 
-  /* ── App ── */
-  #app{display:none;max-width:880px;margin:0 auto;padding:28px 20px 60px}
-  .topbar{display:flex;align-items:center;gap:12px;margin-bottom:6px}
-  .topbar a.back{color:var(--muted);text-decoration:none;font-size:.82rem;font-weight:600}
-  .topbar a.back:hover{color:var(--text)}
-  h1{font-size:1.4rem;font-weight:800;margin:8px 0 4px}
-  .subtitle{color:var(--muted);font-size:.86rem;margin-bottom:22px;line-height:1.5}
-  #logout-btn{margin-left:auto;background:none;border:1px solid var(--border);border-radius:8px;padding:5px 12px;font-size:.72rem;font-weight:600;color:var(--muted);cursor:pointer;font-family:'Inter',sans-serif}
+  /* ── Hero header (matches queue.html curved hero) ── */
+  #app{display:none}
+  .hero{position:relative;background:linear-gradient(135deg,#1A1A2E 0%,#0f2460 100%);padding:26px 20px 56px;text-align:center;color:#fff}
+  .hero::after{content:'';position:absolute;bottom:-1px;left:0;right:0;height:40px;background:var(--bg);clip-path:ellipse(55% 100% at 50% 100%)}
+  .hero-top{display:flex;align-items:center;max-width:880px;margin:0 auto 18px;gap:12px}
+  .hero-top a.back{color:rgba(255,255,255,.7);text-decoration:none;font-size:.82rem;font-weight:600}
+  .hero-top a.back:hover{color:#fff}
+  #logout-btn{margin-left:auto;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);border-radius:8px;padding:5px 12px;font-size:.72rem;font-weight:600;color:#fff;cursor:pointer;font-family:'Inter',sans-serif}
+  .hero h1{font-size:1.5rem;font-weight:800;margin-bottom:4px}
+  .hero .subtitle{color:rgba(255,255,255,.7);font-size:.86rem;line-height:1.5}
 
-  .search-row{display:flex;gap:10px;margin-bottom:8px;flex-wrap:wrap}
-  .search-row input{flex:1;min-width:200px;background:#0f172a;border:1.5px solid var(--border);border-radius:10px;padding:13px 16px;font-size:.95rem;color:var(--text);outline:none;font-family:'Inter',sans-serif}
-  .search-row input:focus{border-color:var(--teal)}
-  .search-row button{background:var(--teal);color:#001b18;border:none;border-radius:10px;padding:0 24px;font-size:.9rem;font-weight:700;cursor:pointer}
+  .wrap{max-width:880px;margin:0 auto;padding:0 20px 60px;position:relative}
+
+  .search-row{display:flex;gap:10px;margin:-18px 0 8px;flex-wrap:wrap;position:relative;z-index:5}
+  .search-row input{flex:1;min-width:200px;background:#fff;border:1.5px solid var(--border);border-radius:12px;padding:14px 16px;font-size:.95rem;color:var(--text);outline:none;font-family:'Inter',sans-serif;box-shadow:var(--shadow)}
+  .search-row input:focus{border-color:var(--brand)}
+  .search-row button{background:var(--brand);color:#fff;border:none;border-radius:12px;padding:0 26px;font-size:.9rem;font-weight:700;cursor:pointer;box-shadow:var(--shadow);transition:background .15s}
+  .search-row button:hover{background:var(--brand-dark)}
   .search-row button:disabled{opacity:.5;cursor:not-allowed}
   .hint{font-size:.74rem;color:var(--muted);margin-bottom:24px}
 
-  .verdict-card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:0;overflow:hidden;margin-bottom:16px;display:none}
+  .verdict-card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:0;overflow:hidden;margin-bottom:16px;display:none;box-shadow:var(--shadow-md)}
   .verdict-head{padding:22px 24px;display:flex;align-items:center;gap:18px;border-bottom:1px solid var(--border)}
   .tier-chip{font-size:1.4rem;font-weight:800;padding:10px 16px;border-radius:12px;min-width:64px;text-align:center;letter-spacing:.5px}
   .verdict-text{font-size:1.25rem;font-weight:800;line-height:1.2}
@@ -60,11 +68,11 @@
   .meta-cell{padding:14px 24px;border-bottom:1px solid var(--border)}
   .meta-cell:nth-child(odd){border-right:1px solid var(--border)}
   .meta-label{font-size:.68rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
-  .meta-val{font-size:.92rem;font-weight:600;word-break:break-word}
+  .meta-val{font-size:.92rem;font-weight:600;word-break:break-word;color:var(--text)}
   .meta-val.dim{color:var(--muted);font-weight:500}
 
   .state-msg{text-align:center;padding:40px;color:var(--muted);font-size:.9rem;display:none}
-  .spin{display:inline-block;width:16px;height:16px;border:2px solid var(--border);border-top-color:var(--teal);border-radius:50%;animation:spin .6s linear infinite;vertical-align:middle;margin-right:8px}
+  .spin{display:inline-block;width:16px;height:16px;border:2px solid var(--border);border-top-color:var(--brand);border-radius:50%;animation:spin .6s linear infinite;vertical-align:middle;margin-right:8px}
   @keyframes spin{to{transform:rotate(360deg)}}
   .denied{text-align:center;padding:60px 20px;color:var(--muted)}
   .denied h2{color:var(--text);font-size:1.2rem;margin-bottom:8px}
@@ -101,13 +109,16 @@
 
 <!-- ── APP ── -->
 <div id="app">
-  <div class="topbar">
-    <a class="back" href="index.html">← FleetPro</a>
-    <button id="logout-btn" onclick="signOut()" style="display:none">Sign out</button>
+  <div class="hero">
+    <div class="hero-top">
+      <a class="back" href="index.html">← FleetPro</a>
+      <button id="logout-btn" onclick="signOut()" style="display:none">Sign out</button>
+    </div>
+    <h1>🔧 Manual JC Approval Check</h1>
+    <div class="subtitle">Search a vehicle to see whether a manual draft JC should be approved.</div>
   </div>
-  <h1>🔧 Manual JC Approval Check</h1>
-  <div class="subtitle">Search a vehicle to see whether a manual draft JC should be approved. Superadmin only.</div>
 
+  <div class="wrap">
   <div id="superadmin-zone" style="display:none">
     <div class="search-row">
       <input id="reg-input" type="text" placeholder="Reg number or chassis number…" autocomplete="off"
@@ -136,27 +147,23 @@
     <h2>Access restricted</h2>
     <p>This tool is available to superadmins only.</p>
   </div>
+  </div><!-- /.wrap -->
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 // ════════════════════════════════════════════════════════════════════════
-//  CONFIG — fill METABASE_CARD after publishing the public card in Metabase.
+//  Reads the jc_approval_status Supabase table (session-authed, RLS) — the
+//  jc-approval-sync edge fn keeps it fresh (~5 min) from the Metabase query.
+//  No Metabase URL/UUID lives in this page — the data sits behind Supabase auth.
 //  Query source: sql/rrr/RRR_Manual_JC_Approval_Check.sql
-//  The card MUST expose two optional Text params: reg_number, chassis_number.
 // ════════════════════════════════════════════════════════════════════════
 var SB_URL='https://clkfvmmlgwcvntxnolsv.supabase.co';
 var ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNsa2Z2bW1sZ3djdm50eG5vbHN2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ1NDQ2NTgsImV4cCI6MjA5MDEyMDY1OH0.FA33GFQisWX_hDeGCWqL5yAZmPcuQRdxZX32I23lyoY';
 
-// ⚠️ REPLACE with the published public card UUID (Metabase → query → Sharing → Public link).
-var METABASE_PUBLIC_BASE='https://metabaselatest-dy7gqwqrma-el.a.run.app';
-var METABASE_CARD_UUID='REPLACE_WITH_PUBLISHED_CARD_UUID';
-// Metabase param slugs (must match the {{reg_number}} / {{chassis_number}} template tags)
-var PARAM_REG='reg_number';
-var PARAM_CHASSIS='chassis_number';
-
 var sbClient=supabase.createClient(SB_URL,ANON_KEY,{auth:{persistSession:true,storageKey:'fleetpro_session',autoRefreshToken:true}});
 var CURRENT_USER_EMAIL=null;
+var K=ANON_KEY; // session access token once signed in (for REST reads)
 
 // ── Auth screen helpers (verbatim from index.html) ──
 function showAuthScreen(){document.getElementById('auth-screen').classList.remove('hidden');showForm();}
@@ -188,6 +195,7 @@ function isSuperadmin(session){
 }
 function applyGate(session){
   CURRENT_USER_EMAIL=session.user.email;
+  K=session.access_token;
   hideAuthScreen();
   document.getElementById('app').style.display='block';
   document.getElementById('logout-btn').style.display='block';
@@ -217,15 +225,15 @@ function applyGate(session){
 // ── The check ──
 // Tier → display colour + label. Codes are STABLE (sql/rrr/RRR_Manual_JC_Approval_Check.sql).
 var TIER_STYLE={
-  'T1' :{bg:'#3b1010',fg:'#f87171',label:'Booking in progress'},
-  'T2' :{bg:'#3a2a08',fg:'#fbbf24',label:'Prior JC deleted'},
-  'T3' :{bg:'#0d2e28',fg:'#34d399',label:'Draft already exists'},
-  'T4' :{bg:'#3b1010',fg:'#f87171',label:'DMS push failed'},
-  'T5a':{bg:'#1e2d45',fg:'#94a3b8',label:'Payment pending'},
-  'T5b':{bg:'#3a2a08',fg:'#fbbf24',label:'Push stuck'},
-  'T5c':{bg:'#11243f',fg:'#60a5fa',label:'Push in flight'},
-  'T0' :{bg:'#1e2d45',fg:'#94a3b8',label:'No JC found'},
-  'T6' :{bg:'#2a1840',fg:'#c4b5fd',label:'Needs manual review'}
+  'T1' :{bg:'#FEF2F2',fg:'#DC2626',label:'Booking in progress'},
+  'T2' :{bg:'#FFFBEB',fg:'#D97706',label:'Prior JC deleted'},
+  'T3' :{bg:'#ECFDF5',fg:'#059669',label:'Draft already exists'},
+  'T4' :{bg:'#FEF2F2',fg:'#DC2626',label:'DMS push failed'},
+  'T5a':{bg:'#F1F5F9',fg:'#475569',label:'Payment pending'},
+  'T5b':{bg:'#FFFBEB',fg:'#D97706',label:'Push stuck'},
+  'T5c':{bg:'#EFF6FF',fg:'#2563EB',label:'Push in flight'},
+  'T0' :{bg:'#F1F5F9',fg:'#475569',label:'No JC found'},
+  'T6' :{bg:'#F5F3FF',fg:'#7C3AED',label:'Needs manual review'}
 };
 
 function showState(id,html){
@@ -234,40 +242,40 @@ function showState(id,html){
   if(id){var el=document.getElementById(id);if(html!==undefined)el.textContent=html;el.style.display='block';}
 }
 
-// Decide whether the typed value is a chassis (alphanumeric, long, no typical reg pattern)
-// or a reg number. We don't have to be perfect — the query matches both as substrings.
-// Heuristic: if it contains only A-Z0-9 and is > 10 chars, treat as chassis; else reg.
-// Either way we only ever set ONE param (the query ANDs them, so setting both would
-// require both to match the same bike).
-function buildParams(q){
-  var v=q.trim();
-  var isChassis=/^[A-Za-z0-9]{11,}$/.test(v);
-  var slug=isChassis?PARAM_CHASSIS:PARAM_REG;
-  return [{type:'category',target:['variable',['template-tag',slug]],value:v}];
+// Map a jc_approval_status table row (snake_case) → the display labels render() uses.
+function mapRow(r){
+  return {
+    'Reg Number':r.reg_number,'Chassis Number':r.chassis_number,
+    'Latest Draft JC':r.latest_draft_jc,'Latest JC Status':r.latest_jc_status,
+    'JC Created (IST)':r.jc_created_ist,'Current Booking Status':r.current_booking_status,
+    'Current Booking Ended (IST)':r.current_booking_ended_ist,"JC's Trip Ended (IST)":r.jc_trip_ended_ist,
+    'DMS JSON':r.dms_json,'JC Age (min)':r.jc_age_minutes,
+    'Rental Status':r.rental_status,'Vehicle Status':r.vehicle_status,'Vehicle Sub-Status':r.vehicle_sub_status,
+    'Tier':r.tier,'Verdict':r.verdict,'Reason':r.reason,'_refreshed':r.refreshed_at
+  };
 }
 
 async function runCheck(){
   var q=document.getElementById('reg-input').value.trim();
   if(!q)return;
-  if(METABASE_CARD_UUID==='REPLACE_WITH_PUBLISHED_CARD_UUID'){
-    showState('error','Metabase card not configured yet. Publish the public card and set METABASE_CARD_UUID in this page.');
-    return;
-  }
   document.getElementById('search-btn').disabled=true;
   showState('loading');
   try{
-    var params=encodeURIComponent(JSON.stringify(buildParams(q)));
-    var url=METABASE_PUBLIC_BASE+'/api/public/card/'+METABASE_CARD_UUID+'/query/json?parameters='+params;
-    var r=await fetch(url);
-    if(!r.ok)throw new Error('Metabase returned '+r.status);
+    // Read the Supabase snapshot table with the user's session token (RLS-gated).
+    // Match reg OR chassis as a case-insensitive substring.
+    var enc=encodeURIComponent('*'+q+'*');
+    var url=SB_URL+'/rest/v1/jc_approval_status'
+          +'?select=*&or=(reg_number.ilike.'+enc+',chassis_number.ilike.'+enc+')&limit=25';
+    var r=await fetch(url,{headers:{apikey:ANON_KEY,Authorization:'Bearer '+K}});
+    if(!r.ok)throw new Error('Supabase returned '+r.status);
     var rows=await r.json();
     if(!Array.isArray(rows)||rows.length===0){showState('empty');return;}
-    // If multiple match (partial reg), prefer an exact match, else take the first.
-    var row=rows.find(function(x){
-      var rn=(x['Reg Number']||'').toLowerCase(), cn=(x['Chassis Number']||'').toLowerCase();
-      return rn===q.toLowerCase()||cn===q.toLowerCase();
+    // Prefer an exact reg/chassis match, else the first row.
+    var hit=rows.find(function(x){
+      return (x.reg_number||'').toLowerCase()===q.toLowerCase()
+          || (x.chassis_number||'').toLowerCase()===q.toLowerCase();
     })||rows[0];
-    render(row, rows.length);
+    render(mapRow(hit), rows.length);
   }catch(e){
     showState('error','Lookup failed: '+(e.message||e));
   }finally{
@@ -306,6 +314,11 @@ function render(row, matchCount){
   g+=cell('Vehicle Status', row['Vehicle Status']);
   g+=cell('Vehicle Sub-Status', row['Vehicle Sub-Status']);
   if(matchCount>1) g+=cell('Note', matchCount+' vehicles matched — showing best match', true);
+  if(row['_refreshed']){
+    var d=new Date(row['_refreshed']);
+    var ago=d.toLocaleString('en-IN',{timeZone:'Asia/Kolkata',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
+    g+=cell('Data refreshed', ago+' IST', true);
+  }
   document.getElementById('meta-grid').innerHTML=g;
   document.getElementById('verdict-card').style.display='block';
 }
