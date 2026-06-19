@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FleetPro — Manual JC Approval Check</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --bg:#0a0f1e;--card:#111827;--border:#1e2d45;--teal:#14b8a6;--red:#E8191C;
+    --muted:#64748b;--text:#f1f5f9;--amber:#F59E0B;--green:#10B981;--blue:#3B82F6;--violet:#8B5CF6;
+  }
+  body{background:var(--bg);color:var(--text);font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh}
+
+  /* ── Auth screen (verbatim pattern from index.html) ── */
+  #auth-screen{position:fixed;inset:0;z-index:1000;background:linear-gradient(135deg,#1A1A2E 0%,#0f2460 100%);display:flex;align-items:center;justify-content:center}
+  #auth-screen.hidden{display:none!important}
+  .auth-card{background:#fff;border-radius:16px;padding:36px 32px;width:380px;max-width:92vw;box-shadow:0 20px 60px rgba(0,0,0,.4)}
+  .auth-logo{display:flex;align-items:center;gap:12px;margin-bottom:24px}
+  .auth-logo-name{font-size:1rem;font-weight:800;color:#0F172A}
+  .auth-logo-sub{font-size:.72rem;font-weight:600;color:#E8191C;letter-spacing:.5px}
+  .auth-title{font-size:1.3rem;font-weight:800;color:#0F172A;margin-bottom:6px}
+  .auth-sub{font-size:.84rem;color:#6B7280;line-height:1.5;margin-bottom:14px}
+  .auth-domain{font-size:.72rem;font-weight:600;color:#9CA3AF;margin-bottom:18px}
+  .auth-input{width:100%;border:1.5px solid #E5E7EB;border-radius:10px;padding:12px 14px;font-size:.9rem;color:#0F172A;outline:none;font-family:'Inter',sans-serif}
+  .auth-input:focus{border-color:#E8191C}
+  .auth-btn{width:100%;margin-top:12px;background:#E8191C;color:#fff;border:none;border-radius:10px;padding:13px;font-size:.9rem;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif}
+  .auth-btn:disabled{opacity:.5;cursor:not-allowed}
+  .auth-msg{font-size:.78rem;margin-top:12px;min-height:18px;line-height:1.5;color:#DC2626}
+  .auth-sent{display:none;text-align:center}
+  .auth-sent .big-icon{font-size:3rem;margin-bottom:12px}
+  .auth-sent h3{font-size:1.1rem;font-weight:800;color:#0F172A;margin-bottom:8px}
+  .auth-sent p{font-size:.82rem;color:#6B7280;line-height:1.6}
+  .auth-sent .resend{background:none;border:none;color:#E8191C;font-size:.8rem;font-weight:600;cursor:pointer;margin-top:16px;font-family:'Inter',sans-serif}
+
+  /* ── App ── */
+  #app{display:none;max-width:880px;margin:0 auto;padding:28px 20px 60px}
+  .topbar{display:flex;align-items:center;gap:12px;margin-bottom:6px}
+  .topbar a.back{color:var(--muted);text-decoration:none;font-size:.82rem;font-weight:600}
+  .topbar a.back:hover{color:var(--text)}
+  h1{font-size:1.4rem;font-weight:800;margin:8px 0 4px}
+  .subtitle{color:var(--muted);font-size:.86rem;margin-bottom:22px;line-height:1.5}
+  #logout-btn{margin-left:auto;background:none;border:1px solid var(--border);border-radius:8px;padding:5px 12px;font-size:.72rem;font-weight:600;color:var(--muted);cursor:pointer;font-family:'Inter',sans-serif}
+
+  .search-row{display:flex;gap:10px;margin-bottom:8px;flex-wrap:wrap}
+  .search-row input{flex:1;min-width:200px;background:#0f172a;border:1.5px solid var(--border);border-radius:10px;padding:13px 16px;font-size:.95rem;color:var(--text);outline:none;font-family:'Inter',sans-serif}
+  .search-row input:focus{border-color:var(--teal)}
+  .search-row button{background:var(--teal);color:#001b18;border:none;border-radius:10px;padding:0 24px;font-size:.9rem;font-weight:700;cursor:pointer}
+  .search-row button:disabled{opacity:.5;cursor:not-allowed}
+  .hint{font-size:.74rem;color:var(--muted);margin-bottom:24px}
+
+  .verdict-card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:0;overflow:hidden;margin-bottom:16px;display:none}
+  .verdict-head{padding:22px 24px;display:flex;align-items:center;gap:18px;border-bottom:1px solid var(--border)}
+  .tier-chip{font-size:1.4rem;font-weight:800;padding:10px 16px;border-radius:12px;min-width:64px;text-align:center;letter-spacing:.5px}
+  .verdict-text{font-size:1.25rem;font-weight:800;line-height:1.2}
+  .verdict-reason{font-size:.88rem;color:var(--muted);margin-top:6px;line-height:1.5}
+
+  .meta-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:0}
+  .meta-cell{padding:14px 24px;border-bottom:1px solid var(--border)}
+  .meta-cell:nth-child(odd){border-right:1px solid var(--border)}
+  .meta-label{font-size:.68rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
+  .meta-val{font-size:.92rem;font-weight:600;word-break:break-word}
+  .meta-val.dim{color:var(--muted);font-weight:500}
+
+  .state-msg{text-align:center;padding:40px;color:var(--muted);font-size:.9rem;display:none}
+  .spin{display:inline-block;width:16px;height:16px;border:2px solid var(--border);border-top-color:var(--teal);border-radius:50%;animation:spin .6s linear infinite;vertical-align:middle;margin-right:8px}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .denied{text-align:center;padding:60px 20px;color:var(--muted)}
+  .denied h2{color:var(--text);font-size:1.2rem;margin-bottom:8px}
+</style>
+</head>
+<body>
+
+<!-- ── AUTH SCREEN ── -->
+<div id="auth-screen" class="hidden">
+  <div class="auth-card">
+    <div class="auth-logo">
+      <img id="auth-logo-img" src="logo.jpg" width="44" height="44" style="border-radius:10px;object-fit:cover;flex-shrink:0"/>
+      <div>
+        <div class="auth-logo-name">Bounce Daily</div>
+        <div class="auth-logo-sub">FleetPro</div>
+      </div>
+    </div>
+    <div class="auth-title">Welcome to FleetPro</div>
+    <div class="auth-sub">Enter your work email and we'll send you a one-click sign-in link.</div>
+    <div class="auth-domain">@bounceshare.com only</div>
+    <div id="auth-form">
+      <input id="auth-email" class="auth-input" type="email" placeholder="you@bounceshare.com" autocomplete="email"/>
+      <button id="auth-submit" class="auth-btn" onclick="sendMagicLink()">Send Magic Link</button>
+      <div id="auth-msg" class="auth-msg"></div>
+    </div>
+    <div id="auth-sent" class="auth-sent">
+      <div class="big-icon">📬</div>
+      <h3>Check your inbox</h3>
+      <p>Magic link sent to<br/><b id="auth-sent-email"></b><br/>Click it to sign in — expires in 15 min.</p>
+      <button class="resend" onclick="showForm()">← Use a different email</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── APP ── -->
+<div id="app">
+  <div class="topbar">
+    <a class="back" href="index.html">← FleetPro</a>
+    <button id="logout-btn" onclick="signOut()" style="display:none">Sign out</button>
+  </div>
+  <h1>🔧 Manual JC Approval Check</h1>
+  <div class="subtitle">Search a vehicle to see whether a manual draft JC should be approved. Superadmin only.</div>
+
+  <div id="superadmin-zone" style="display:none">
+    <div class="search-row">
+      <input id="reg-input" type="text" placeholder="Reg number or chassis number…" autocomplete="off"
+             onkeydown="if(event.key==='Enter')runCheck()"/>
+      <button id="search-btn" onclick="runCheck()">Check</button>
+    </div>
+    <div class="hint">Type a registration number (e.g. KA01AB1234) or a chassis number. Either works.</div>
+
+    <div id="loading" class="state-msg"><span class="spin"></span>Checking…</div>
+    <div id="empty" class="state-msg">No vehicle matched that reg / chassis number.</div>
+    <div id="error" class="state-msg"></div>
+
+    <div id="verdict-card" class="verdict-card">
+      <div class="verdict-head">
+        <div id="tier-chip" class="tier-chip">—</div>
+        <div>
+          <div id="verdict-text" class="verdict-text">—</div>
+          <div id="verdict-reason" class="verdict-reason">—</div>
+        </div>
+      </div>
+      <div id="meta-grid" class="meta-grid"></div>
+    </div>
+  </div>
+
+  <div id="not-superadmin" class="denied" style="display:none">
+    <h2>Access restricted</h2>
+    <p>This tool is available to superadmins only.</p>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+// ════════════════════════════════════════════════════════════════════════
+//  CONFIG — fill METABASE_CARD after publishing the public card in Metabase.
+//  Query source: sql/rrr/RRR_Manual_JC_Approval_Check.sql
+//  The card MUST expose two optional Text params: reg_number, chassis_number.
+// ════════════════════════════════════════════════════════════════════════
+var SB_URL='https://clkfvmmlgwcvntxnolsv.supabase.co';
+var ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNsa2Z2bW1sZ3djdm50eG5vbHN2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ1NDQ2NTgsImV4cCI6MjA5MDEyMDY1OH0.FA33GFQisWX_hDeGCWqL5yAZmPcuQRdxZX32I23lyoY';
+
+// ⚠️ REPLACE with the published public card UUID (Metabase → query → Sharing → Public link).
+var METABASE_PUBLIC_BASE='https://metabaselatest-dy7gqwqrma-el.a.run.app';
+var METABASE_CARD_UUID='REPLACE_WITH_PUBLISHED_CARD_UUID';
+// Metabase param slugs (must match the {{reg_number}} / {{chassis_number}} template tags)
+var PARAM_REG='reg_number';
+var PARAM_CHASSIS='chassis_number';
+
+var sbClient=supabase.createClient(SB_URL,ANON_KEY,{auth:{persistSession:true,storageKey:'fleetpro_session',autoRefreshToken:true}});
+var CURRENT_USER_EMAIL=null;
+
+// ── Auth screen helpers (verbatim from index.html) ──
+function showAuthScreen(){document.getElementById('auth-screen').classList.remove('hidden');showForm();}
+function hideAuthScreen(){document.getElementById('auth-screen').classList.add('hidden');}
+function showForm(){
+  document.getElementById('auth-form').style.display='block';
+  document.getElementById('auth-sent').style.display='none';
+  document.getElementById('auth-msg').textContent='';
+  document.getElementById('auth-email').value='';
+}
+async function sendMagicLink(){
+  var email=document.getElementById('auth-email').value.trim().toLowerCase();
+  var msg=document.getElementById('auth-msg');
+  var btn=document.getElementById('auth-submit');
+  if(!email){msg.textContent='Please enter your email.';return;}
+  if(!email.endsWith('@bounceshare.com')&&email!=='vamsee@scalability.club'){msg.textContent='Only @bounceshare.com emails are allowed.';return;}
+  btn.disabled=true;btn.textContent='Sending…';msg.textContent='';
+  var res=await sbClient.auth.signInWithOtp({email:email,options:{emailRedirectTo:window.location.origin+window.location.pathname}});
+  btn.disabled=false;btn.textContent='Send Magic Link';
+  if(res.error){msg.textContent=res.error.message||'Failed to send link. Please try again.';}
+  else{document.getElementById('auth-form').style.display='none';document.getElementById('auth-sent').style.display='block';document.getElementById('auth-sent-email').textContent=email;}
+}
+document.getElementById('auth-email').addEventListener('keydown',function(e){if(e.key==='Enter')sendMagicLink();});
+async function signOut(){await sbClient.auth.signOut();document.getElementById('logout-btn').style.display='none';showAuthScreen();}
+
+// ── Superadmin gate ──
+function isSuperadmin(session){
+  return !!(session&&session.user&&session.user.app_metadata&&session.user.app_metadata.is_superadmin);
+}
+function applyGate(session){
+  CURRENT_USER_EMAIL=session.user.email;
+  hideAuthScreen();
+  document.getElementById('app').style.display='block';
+  document.getElementById('logout-btn').style.display='block';
+  document.getElementById('logout-btn').title='Signed in as '+CURRENT_USER_EMAIL;
+  if(isSuperadmin(session)){
+    document.getElementById('superadmin-zone').style.display='block';
+    document.getElementById('not-superadmin').style.display='none';
+    document.getElementById('reg-input').focus();
+  }else{
+    document.getElementById('superadmin-zone').style.display='none';
+    document.getElementById('not-superadmin').style.display='block';
+  }
+}
+
+// ── Boot (same shape as index.html) ──
+(async function(){
+  var{data:{session}}=await sbClient.auth.getSession();
+  var _authReady=false;
+  if(session){applyGate(session);_authReady=true;}
+  else{_authReady=true;showAuthScreen();}
+  sbClient.auth.onAuthStateChange(function(event,session){
+    if(event==='SIGNED_IN'&&session){applyGate(session);}
+    else if(event==='SIGNED_OUT'){document.getElementById('logout-btn').style.display='none';if(_authReady)showAuthScreen();}
+  });
+})();
+
+// ── The check ──
+// Tier → display colour + label. Codes are STABLE (sql/rrr/RRR_Manual_JC_Approval_Check.sql).
+var TIER_STYLE={
+  'T1' :{bg:'#3b1010',fg:'#f87171',label:'Booking in progress'},
+  'T2' :{bg:'#3a2a08',fg:'#fbbf24',label:'Prior JC deleted'},
+  'T3' :{bg:'#0d2e28',fg:'#34d399',label:'Draft already exists'},
+  'T4' :{bg:'#3b1010',fg:'#f87171',label:'DMS push failed'},
+  'T5a':{bg:'#1e2d45',fg:'#94a3b8',label:'Payment pending'},
+  'T5b':{bg:'#3a2a08',fg:'#fbbf24',label:'Push stuck'},
+  'T5c':{bg:'#11243f',fg:'#60a5fa',label:'Push in flight'},
+  'T0' :{bg:'#1e2d45',fg:'#94a3b8',label:'No JC found'},
+  'T6' :{bg:'#2a1840',fg:'#c4b5fd',label:'Needs manual review'}
+};
+
+function showState(id,html){
+  ['loading','empty','error'].forEach(function(s){document.getElementById(s).style.display='none';});
+  document.getElementById('verdict-card').style.display='none';
+  if(id){var el=document.getElementById(id);if(html!==undefined)el.textContent=html;el.style.display='block';}
+}
+
+// Decide whether the typed value is a chassis (alphanumeric, long, no typical reg pattern)
+// or a reg number. We don't have to be perfect — the query matches both as substrings.
+// Heuristic: if it contains only A-Z0-9 and is > 10 chars, treat as chassis; else reg.
+// Either way we only ever set ONE param (the query ANDs them, so setting both would
+// require both to match the same bike).
+function buildParams(q){
+  var v=q.trim();
+  var isChassis=/^[A-Za-z0-9]{11,}$/.test(v);
+  var slug=isChassis?PARAM_CHASSIS:PARAM_REG;
+  return [{type:'category',target:['variable',['template-tag',slug]],value:v}];
+}
+
+async function runCheck(){
+  var q=document.getElementById('reg-input').value.trim();
+  if(!q)return;
+  if(METABASE_CARD_UUID==='REPLACE_WITH_PUBLISHED_CARD_UUID'){
+    showState('error','Metabase card not configured yet. Publish the public card and set METABASE_CARD_UUID in this page.');
+    return;
+  }
+  document.getElementById('search-btn').disabled=true;
+  showState('loading');
+  try{
+    var params=encodeURIComponent(JSON.stringify(buildParams(q)));
+    var url=METABASE_PUBLIC_BASE+'/api/public/card/'+METABASE_CARD_UUID+'/query/json?parameters='+params;
+    var r=await fetch(url);
+    if(!r.ok)throw new Error('Metabase returned '+r.status);
+    var rows=await r.json();
+    if(!Array.isArray(rows)||rows.length===0){showState('empty');return;}
+    // If multiple match (partial reg), prefer an exact match, else take the first.
+    var row=rows.find(function(x){
+      var rn=(x['Reg Number']||'').toLowerCase(), cn=(x['Chassis Number']||'').toLowerCase();
+      return rn===q.toLowerCase()||cn===q.toLowerCase();
+    })||rows[0];
+    render(row, rows.length);
+  }catch(e){
+    showState('error','Lookup failed: '+(e.message||e));
+  }finally{
+    document.getElementById('search-btn').disabled=false;
+  }
+}
+
+function cell(label,val,dim){
+  var v=(val===null||val===undefined||val==='')?'—':val;
+  return '<div class="meta-cell"><div class="meta-label">'+label+'</div>'+
+         '<div class="meta-val'+(dim||v==='—'?' dim':'')+'">'+v+'</div></div>';
+}
+
+function render(row, matchCount){
+  showState(null);
+  var tier=row['Tier']||'T6';
+  var st=TIER_STYLE[tier]||TIER_STYLE['T6'];
+  var chip=document.getElementById('tier-chip');
+  chip.textContent=tier;chip.style.background=st.bg;chip.style.color=st.fg;
+  var vt=document.getElementById('verdict-text');
+  vt.textContent=row['Verdict']||'—';vt.style.color=st.fg;
+  document.getElementById('verdict-reason').textContent=row['Reason']||'';
+
+  var g='';
+  g+=cell('Reg Number', row['Reg Number']);
+  g+=cell('Chassis Number', row['Chassis Number']);
+  g+=cell('Latest Draft JC', row['Latest Draft JC']);
+  g+=cell('Latest JC Status', row['Latest JC Status']);
+  g+=cell('JC Created (IST)', row['JC Created (IST)']);
+  g+=cell('JC Age (min)', row['JC Age (min)']);
+  g+=cell('Current Booking Status', row['Current Booking Status']);
+  g+=cell('Current Booking Ended (IST)', row['Current Booking Ended (IST)']);
+  g+=cell("JC's Trip Ended (IST)", row["JC's Trip Ended (IST)"]);
+  g+=cell('DMS JSON', row['DMS JSON']);
+  g+=cell('Rental Status', row['Rental Status']);
+  g+=cell('Vehicle Status', row['Vehicle Status']);
+  g+=cell('Vehicle Sub-Status', row['Vehicle Sub-Status']);
+  if(matchCount>1) g+=cell('Note', matchCount+' vehicles matched — showing best match', true);
+  document.getElementById('meta-grid').innerHTML=g;
+  document.getElementById('verdict-card').style.display='block';
+}
+</script>
+</body>
+</html>
