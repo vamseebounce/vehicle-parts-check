@@ -27,6 +27,51 @@ Legend: ⬜ TODO · 🔄 IN PROGRESS · ✅ DONE · ⏸ BLOCKED
 
 ---
 
+## Admin Tools
+
+Superadmin-only operational tooling. Sits with Manage Technicians + Permissions in the
+sidebar's **Admin** section.
+
+| # | Feature | Status | Notes |
+|---|---------|--------|-------|
+| A1 | Manual JC Approval Check (`jc-approval.html`) | ✅ | Search a vehicle → automated verdict (T0–T6) on whether to approve a manual draft-JC creation request. Replaces manual manager review. |
+
+### A1 — Manual JC Approval Check
+
+**What it does.** A manager searches a vehicle (reg or chassis) and gets a stable
+tier verdict instead of manually checking booking/payment/DMS state. Tiers:
+
+| Tier | Verdict | Meaning |
+|---|---|---|
+| T1 | NOT APPROVED | Booking in progress — rider is out now; never JC a live trip |
+| T2 | APPROVED | Prior JC was deleted — safe to recreate |
+| T3 | NO ACTION | Draft already exists for this trip |
+| T4 | APPROVED | DMS push failed — recreate is the fix |
+| T5a/b/c | PENDING | Payment pending / push stuck / push in flight |
+| T6 | MANUAL REVIEW | Insufficient data |
+
+**Architecture (security-reviewed — no public Metabase card in client).**
+- **Query**: `sql/rrr/RRR_Manual_JC_Approval_Check.sql` — dual-booking model
+  (current booking = "is rider out now?"; JC's own `booking_id` = "was a draft made for
+  this trip?"). Lives in a **private** Metabase card.
+- **Edge fn**: `jc-approval-sync` (cron **every 5 min**, JOB 20) fetches the card CSV
+  server-side, rebuilds `jc_approval_status` (one row/vehicle, delete+reinsert) and diffs
+  `jc_approval_alerts` (append-only log of T4/T5b/T6). Card UUID lives ONLY in the edge fn.
+- **Frontend**: `jc-approval.html` reads `jc_approval_status` with the user's session
+  token (RLS authenticated-read). Superadmin-gated via `is_superadmin` app_metadata.
+  Design language mirrors `maintenance.html` (centered search hero, FleetPro topbar,
+  random "Try:" pills, last-synced line, site-footer).
+
+**Migration**: `supabase/migrations/20260619000001_jc_approval.sql`
+(`jc_approval_status` + `jc_approval_alerts`, RLS + indexes).
+
+**Pending**
+- ⬜ Email notification on new T4/T5b/T6 alerts (`TODO(email)` in edge fn — transport
+  not yet wired; the append-only log works without it).
+- ⬜ Alert Centre page (reads `jc_approval_alerts`, lists actionable situations).
+
+---
+
 ## Phase 0 — Get everything into git (½ day)
 *Prerequisite for all else*
 
