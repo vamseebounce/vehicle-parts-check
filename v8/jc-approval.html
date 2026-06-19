@@ -4,18 +4,58 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>FleetPro — Manual JC Approval Check</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <style>
-  *{box-sizing:border-box;margin:0;padding:0}
-  :root{
-    --brand:#E8191C;--brand-dark:#B01010;
-    --bg:#F5F6FA;--card:#fff;--border:#E5E7EB;--text:#111827;--muted:#6B7280;
-    --shadow:0 1px 3px rgba(0,0,0,.08),0 1px 2px rgba(0,0,0,.04);
-    --shadow-md:0 4px 16px rgba(0,0,0,.1);
-  }
-  body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+:root{
+  --brand:#E8191C;--brand-dark:#B01010;
+  --sb-bg:#1A1A2E;--sb-text:rgba(255,255,255,.7);--sb-active:#fff;
+  --sb-hover:rgba(255,255,255,.08);--sb-width:260px;--topbar-h:56px;
+  --bg:#F5F6FA;--card:#fff;--border:#E5E7EB;--text:#111827;--muted:#6B7280;
+  --shadow:0 1px 3px rgba(0,0,0,.08),0 1px 2px rgba(0,0,0,.04);
+  --shadow-md:0 4px 16px rgba(0,0,0,.1);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
 
-  /* ── Auth screen (verbatim pattern from queue.html) ── */
+#ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:150;backdrop-filter:blur(2px)}
+#ov.show{display:block}
+
+#sb{position:fixed;top:0;left:0;bottom:0;width:var(--sb-width);background:var(--sb-bg);z-index:200;transform:translateX(-100%);transition:transform .25s ease;display:flex;flex-direction:column;overflow:hidden;}
+#sb.open{transform:translateX(0)}
+body.pinned #sb{transform:translateX(0)}
+body.pinned #main{margin-left:var(--sb-width)}
+body.pinned #hbg{display:none}
+.sb-header{padding:20px 16px 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,.06)}
+.sb-brand{display:flex;align-items:center;gap:10px;text-decoration:none}
+.sb-brand-text .t1{font-size:.6rem;font-weight:700;color:rgba(255,255,255,.5);letter-spacing:.5px;text-transform:uppercase}
+.sb-brand-text .t2{font-size:.78rem;font-weight:800;color:#fff;letter-spacing:-.01em}
+.pin-btn{background:none;border:none;cursor:pointer;color:rgba(255,255,255,.35);font-size:.8rem;padding:4px 6px;border-radius:6px;transition:all .15s;display:flex;align-items:center;gap:3px;font-family:inherit}
+.pin-btn:hover{color:#fff;background:rgba(255,255,255,.08)}
+.pin-btn.pinned{color:var(--brand)}
+.sb-section{padding:12px 8px 4px}
+.sb-label{font-size:.6rem;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:rgba(255,255,255,.25);padding:0 8px 8px}
+.sb-item{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:10px;text-decoration:none;color:var(--sb-text);font-size:.82rem;font-weight:500;transition:all .15s;margin-bottom:2px}
+.sb-item:hover{background:var(--sb-hover);color:var(--sb-active)}
+.sb-item.active{background:rgba(232,25,28,.18);color:#fff;font-weight:600}
+.sb-item.active .si{color:var(--brand)}
+.si{font-size:1rem;width:20px;text-align:center;flex-shrink:0}
+.sb-spacer{flex:1}
+.sb-footer{padding:12px 16px;border-top:1px solid rgba(255,255,255,.06)}
+.sb-ver{font-size:.65rem;color:rgba(255,255,255,.25);font-weight:500}
+
+#main{transition:margin-left .25s ease;min-height:100vh;display:flex;flex-direction:column}
+#topbar{position:sticky;top:0;z-index:100;height:var(--topbar-h);background:#fff;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;padding:0 16px;box-shadow:var(--shadow);}
+#hbg{width:36px;height:36px;background:none;border:none;cursor:pointer;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:5px;border-radius:8px;transition:background .15s;flex-shrink:0;}
+#hbg:hover{background:#F3F4F6}
+#hbg span{display:block;width:18px;height:2px;background:var(--text);border-radius:2px;transition:all .2s}
+.tb-brand{display:flex;align-items:center;gap:6px;flex:1;min-width:0}
+.tb-logo{display:flex;align-items:center;gap:7px;font-size:.85rem;font-weight:800;color:var(--brand);letter-spacing:-.01em;white-space:nowrap;text-decoration:none}
+.tb-sep{color:var(--border);font-size:.9rem}
+.tb-page{font-size:.82rem;font-weight:600;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tb-right{display:flex;align-items:center;gap:8px;margin-left:auto;flex-shrink:0}
+
+  /* ── Auth screen ── */
   #auth-screen{position:fixed;inset:0;z-index:1000;background:linear-gradient(135deg,#1A1A2E 0%,#0f2460 100%);display:flex;align-items:center;justify-content:center;font-family:'Inter',sans-serif}
   #auth-screen.hidden{display:none!important}
   .auth-card{background:#fff;border-radius:24px;padding:40px 36px;width:100%;max-width:380px;box-shadow:0 24px 80px rgba(0,0,0,.3);text-align:center}
@@ -37,26 +77,24 @@
   .auth-sent p{font-size:.82rem;color:#6B7280;line-height:1.6}
   .auth-sent .resend{background:none;border:none;color:var(--brand);font-size:.8rem;font-weight:600;cursor:pointer;margin-top:16px;font-family:'Inter',sans-serif}
 
-  /* ── Hero header (matches queue.html curved hero) ── */
-  #app{display:none}
-  .hero{position:relative;background:linear-gradient(135deg,#1A1A2E 0%,#0f2460 100%);padding:26px 20px 56px;text-align:center;color:#fff}
+  #app{display:none;flex:1}
+
+  /* ── Hero ── */
+  .hero{background:linear-gradient(135deg,var(--sb-bg) 0%,#0f2460 100%);padding:28px 24px 52px;position:relative;overflow:hidden}
   .hero::after{content:'';position:absolute;bottom:-1px;left:0;right:0;height:40px;background:var(--bg);clip-path:ellipse(55% 100% at 50% 100%)}
-  .hero-top{display:flex;align-items:center;max-width:880px;margin:0 auto 18px;gap:12px}
-  .hero-top a.back{color:rgba(255,255,255,.7);text-decoration:none;font-size:.82rem;font-weight:600}
-  .hero-top a.back:hover{color:#fff}
-  #logout-btn{margin-left:auto;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);border-radius:8px;padding:5px 12px;font-size:.72rem;font-weight:600;color:#fff;cursor:pointer;font-family:'Inter',sans-serif}
-  .hero h1{font-size:1.5rem;font-weight:800;margin-bottom:4px}
-  .hero .subtitle{color:rgba(255,255,255,.7);font-size:.86rem;line-height:1.5}
+  .hero-inner{max-width:1400px;margin:0 auto}
+  .hero h1{font-size:1.35rem;font-weight:900;color:#fff;letter-spacing:-.02em;margin-bottom:4px}
+  .hero p{font-size:.8rem;color:rgba(255,255,255,.45)}
 
-  .wrap{max-width:880px;margin:0 auto;padding:0 20px 60px;position:relative}
+  .content-wrap{flex:1;max-width:1400px;margin:0 auto;padding:16px 24px 60px;width:100%}
 
-  .search-row{display:flex;gap:10px;margin:-18px 0 8px;flex-wrap:wrap;position:relative;z-index:5}
-  .search-row input{flex:1;min-width:200px;background:#fff;border:1.5px solid var(--border);border-radius:12px;padding:14px 16px;font-size:.95rem;color:var(--text);outline:none;font-family:'Inter',sans-serif;box-shadow:var(--shadow)}
+  .search-row{display:flex;gap:10px;margin:0 0 8px;flex-wrap:wrap;position:relative;z-index:5}
+  .search-row input{flex:1;min-width:200px;background:#fff;border:1.5px solid var(--border);border-radius:12px;padding:12px 14px;font-size:.9rem;color:var(--text);outline:none;font-family:'Inter',sans-serif;box-shadow:var(--shadow)}
   .search-row input:focus{border-color:var(--brand)}
-  .search-row button{background:var(--brand);color:#fff;border:none;border-radius:12px;padding:0 26px;font-size:.9rem;font-weight:700;cursor:pointer;box-shadow:var(--shadow);transition:background .15s}
+  .search-row button{background:var(--brand);color:#fff;border:none;border-radius:12px;padding:0 24px;font-size:.85rem;font-weight:700;cursor:pointer;box-shadow:var(--shadow);transition:background .15s}
   .search-row button:hover{background:var(--brand-dark)}
   .search-row button:disabled{opacity:.5;cursor:not-allowed}
-  .hint{font-size:.74rem;color:var(--muted);margin-bottom:24px}
+  .hint{font-size:.72rem;color:var(--muted);margin-bottom:20px}
 
   .verdict-card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:0;overflow:hidden;margin-bottom:16px;display:none;box-shadow:var(--shadow-md)}
   .verdict-head{padding:22px 24px;display:flex;align-items:center;gap:18px;border-bottom:1px solid var(--border)}
@@ -107,25 +145,66 @@
   </div>
 </div>
 
-<!-- ── APP ── -->
-<div id="app">
-  <div class="hero">
-    <div class="hero-top">
-      <a class="back" href="index.html">← FleetPro</a>
-      <button id="logout-btn" onclick="signOut()" style="display:none">Sign out</button>
+<div id="ov" onclick="toggleSidebar()"></div>
+
+<!-- ── SIDEBAR ── -->
+<div id="sb">
+  <div class="sb-header">
+    <a class="sb-brand" href="index.html">
+      <img src="logo.jpg" width="36" height="36" style="border-radius:8px;object-fit:cover"/>
+      <div class="sb-brand-text"><div class="t1">Bounce Daily</div><div class="t2">FleetPro</div></div>
+    </a>
+    <button class="pin-btn" onclick="togglePin()" id="pin-btn">📌</button>
+  </div>
+  <div style="flex:1;overflow-y:auto">
+    <div class="sb-section">
+      <div class="sb-label">Service Operations</div>
+      <a href="./queue.html" class="sb-item" data-feature="admin-panel"><span class="si">🚗</span><span>OOS Queue</span></a>
     </div>
-    <h1>🔧 Manual JC Approval Check</h1>
-    <div class="subtitle">Search a vehicle to see whether a manual draft JC should be approved.</div>
+    <div class="sb-section">
+      <div class="sb-label">Admin</div>
+      <a href="./admin-techs.html" class="sb-item" data-feature="admin-panel"><span class="si">👥</span><span>Technicians</span></a>
+      <a href="./admin-permissions.html" class="sb-item" data-feature="admin-panel"><span class="si">🔐</span><span>Permissions</span></a>
+      <a href="./jc-approval.html" class="sb-item active" data-feature="admin-panel"><span class="si">🔧</span><span>JC Approval Check</span></a>
+    </div>
+  </div>
+  <div class="sb-footer">
+    <div class="sb-ver">© 2024 Bounce Daily</div>
+  </div>
+</div>
+
+<!-- ── MAIN ── -->
+<div id="main">
+  <div id="topbar">
+    <button id="hbg" onclick="toggleSidebar()"><span></span><span></span><span></span></button>
+    <div class="tb-brand">
+      <a href="index.html" class="tb-logo">🚀 Bounce Daily</a>
+      <div class="tb-sep">/</div>
+      <div class="tb-page">JC Approval Check</div>
+    </div>
+    <div class="tb-right">
+      <button id="logout-btn" onclick="signOut()" style="background:none;border:none;color:var(--muted);font-size:.8rem;font-weight:600;cursor:pointer;display:none">Sign out</button>
+    </div>
   </div>
 
-  <div class="wrap">
-  <div id="superadmin-zone" style="display:none">
+  <!-- ── APP ── -->
+  <div id="app" style="display:none;flex-direction:column;flex:1">
+    <div style="background:linear-gradient(135deg,var(--sb-bg) 0%,#0f2460 100%);padding:28px 24px 52px;position:relative;overflow:hidden">
+      <div style="position:absolute;bottom:-1px;left:0;right:0;height:40px;background:var(--bg);clip-path:ellipse(55% 100% at 50% 100%)"></div>
+      <div style="max-width:1400px;margin:0 auto">
+        <h1 style="font-size:1.35rem;font-weight:900;color:#fff;letter-spacing:-.02em;margin-bottom:4px">🔧 Manual JC Approval Check</h1>
+        <p style="font-size:.8rem;color:rgba(255,255,255,.45)">Search a vehicle to see whether a manual draft JC should be approved.</p>
+      </div>
+    </div>
+
+    <div class="content-wrap" style="flex:1">
+      <div id="superadmin-zone" style="display:none">
     <div class="search-row">
       <input id="reg-input" type="text" placeholder="Reg number or chassis number…" autocomplete="off"
              onkeydown="if(event.key==='Enter')runCheck()"/>
       <button id="search-btn" onclick="runCheck()">Check</button>
     </div>
-    <div class="hint">Type a registration number (e.g. KA01AB1234) or a chassis number. Either works.</div>
+    <div class="hint">Type a registration number (e.g. KA01AB1234) or a chassis number. Either works. <span id="sample-hint" style="display:none"><br/>Or try one: <span id="sample-vehicles"></span></span></div>
 
     <div id="loading" class="state-msg"><span class="spin"></span>Checking…</div>
     <div id="empty" class="state-msg">No vehicle matched that reg / chassis number.</div>
@@ -143,11 +222,13 @@
     </div>
   </div>
 
-  <div id="not-superadmin" class="denied" style="display:none">
-    <h2>Access restricted</h2>
-    <p>This tool is available to superadmins only.</p>
+      <div id="not-superadmin" class="denied" style="display:none">
+        <h2>Access restricted</h2>
+        <p>This tool is available to superadmins only.</p>
+      </div>
+    </div>
   </div>
-  </div><!-- /.wrap -->
+</div><!-- /#main -->
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -197,7 +278,8 @@ function applyGate(session){
   CURRENT_USER_EMAIL=session.user.email;
   K=session.access_token;
   hideAuthScreen();
-  document.getElementById('app').style.display='block';
+  document.getElementById('main').style.display='flex';
+  document.getElementById('app').style.display='flex';
   document.getElementById('logout-btn').style.display='block';
   document.getElementById('logout-btn').title='Signed in as '+CURRENT_USER_EMAIL;
   if(isSuperadmin(session)){
@@ -322,6 +404,41 @@ function render(row, matchCount){
   document.getElementById('meta-grid').innerHTML=g;
   document.getElementById('verdict-card').style.display='block';
 }
+
+// ── Sidebar helpers ──
+function toggleSidebar(){
+  document.getElementById('sb').classList.toggle('open');
+  document.getElementById('ov').classList.toggle('show');
+}
+function togglePin(){
+  document.body.classList.toggle('pinned');
+  var pinned=document.body.classList.contains('pinned');
+  localStorage.setItem('sb_pinned',pinned?'1':'0');
+  document.getElementById('pin-btn').style.color=pinned?'var(--brand)':'rgba(255,255,255,.35)';
+}
+// Restore pin state from localStorage
+(function(){
+  if(localStorage.getItem('sb_pinned')==='1'){
+    document.body.classList.add('pinned');
+    document.getElementById('pin-btn').style.color='var(--brand)';
+  }
+})();
+
+// ── Load sample vehicles from jc_approval_status ──
+(async function loadSamples(){
+  try{
+    var{data:{session}}=await sbClient.auth.getSession();
+    if(!session)return;
+    var h={headers:{apikey:ANON_KEY,Authorization:'Bearer '+session.access_token}};
+    var r=await fetch(SB_URL+'/rest/v1/jc_approval_status?select=reg_number&limit=5&order=reg_number', h);
+    if(!r.ok)return;
+    var rows=await r.json();
+    if(!rows||rows.length===0)return;
+    var samples=rows.map(function(x){return '<a href="javascript:void(0)" onclick="document.getElementById(\'reg-input\').value=\''+x.reg_number+'\';runCheck();return false" style="color:var(--brand);text-decoration:none;font-weight:600">'+x.reg_number+'</a>'}).join(' • ');
+    document.getElementById('sample-vehicles').innerHTML=samples;
+    document.getElementById('sample-hint').style.display='inline';
+  }catch(e){}
+})();
 </script>
 </body>
 </html>
