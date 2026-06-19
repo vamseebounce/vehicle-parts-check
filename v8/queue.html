@@ -498,7 +498,9 @@ function highlight(text,terms){
   terms.forEach(function(kw){if(!kw)return;var re=new RegExp('('+kw.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+')','gi');result=result.replace(re,'<span class="hi">$1</span>');});
   return result;
 }
-function estMins(r){return (r.labour_mins||0)+30;}
+// estimated_mins (from SQL) already = labour time + 60 min parts-coordination overhead.
+// Fall back to labour_mins, then a 30-min default when no estimate is logged.
+function estMins(r){var v=r.estimated_mins;if(v==null||v<=0)v=r.labour_mins;if(v==null||v<=0)v=30;return v;}
 
 // ── Hub multiselect ───────────────────────────────────────────────────
 function populateHubMultiSelect(){
@@ -542,7 +544,7 @@ document.addEventListener('click',function(e){
 // ── Load ──────────────────────────────────────────────────────────────
 async function loadQueue(){
   try{
-    var res=await fetch(SB_URL+'/rest/v1/oos_work_queue?select=id,hub,queue_position,reg_number,dms_jc_id,oos_since,days_in_oos,labour_items,has_parts,estimated_mins,cumulative_mins,parts_items&order=hub.asc,queue_position.asc&limit=10000',
+    var res=await fetch(SB_URL+'/rest/v1/oos_work_queue?select=id,hub,queue_position,reg_number,dms_jc_id,oos_since,days_in_oos,labour_items,has_parts,labour_mins,estimated_mins,cumulative_mins,parts_items&order=hub.asc,queue_position.asc&limit=10000',
       {headers:{apikey:ANON_KEY,Authorization:'Bearer '+K,'Range':'0-9999'}});
     if(!res.ok)throw new Error('HTTP '+res.status);
     allData=await res.json();
