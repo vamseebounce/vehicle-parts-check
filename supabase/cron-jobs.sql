@@ -293,3 +293,26 @@ SELECT cron.schedule(
   $$SELECT public.schedule_partition_archival()$$
 );
 --  19  | archive-old-location-partitions | 0 2 1 * *  | location partition archival (02:00 UTC / 07:30 IST)
+
+-- ============================================================
+-- JOB 20: jc-approval-sync (every 5 min)
+-- Rebuilds jc_approval_status + diffs jc_approval_alerts from the Manual JC
+-- Approval Check query (sql/rrr/RRR_Manual_JC_Approval_Check.sql).
+-- Powers fleetpro/v8/jc-approval.html + the Alert Centre.
+-- ============================================================
+SELECT cron.schedule(
+  'jc-approval-sync-5min',
+  '*/5 * * * *',
+  $$
+    SELECT net.http_post(
+      url     := 'https://clkfvmmlgwcvntxnolsv.supabase.co/functions/v1/jc-approval-sync',
+      headers := jsonb_build_object(
+        'Content-Type',  'application/json',
+        'Authorization', 'Bearer <SERVICE_ROLE_KEY>'
+      ),
+      body    := '{}'::jsonb,
+      timeout_milliseconds := 60000
+    );
+  $$
+);
+--  20  | jc-approval-sync-5min     | */5 * * * *  | jc_approval_status + alerts (every 5 min)
