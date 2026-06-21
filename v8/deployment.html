@@ -840,7 +840,11 @@ function computeRowStatus(cust){
   if(!cust.assigned_bike_id||cust.assigned_rfd_age_days==null)return null;
   // Best pipeline bike for this customer's model+tier
   var custTier=cust.completed_count===0?'Standard':(cust.tier||'Standard');
-  var pipelineBikes=LAST_QUEUE_DATA.filter(function(b){return b.bike_model_id==cust.bike_model_id&&b.tier===custTier;});
+  var pipelineBikes=LAST_QUEUE_DATA.filter(function(b){
+    return b.bike_model_id==cust.bike_model_id
+      && b.tier===custTier
+      && !(b.rental_status&&b.rental_status.toLowerCase().indexOf('blocked for booking')===0);
+  });
   // Approx score for allocated bike using its peer group
   var allocEntry=LAST_QUEUE_DATA.filter(function(b){return b.reg_number===cust.assigned_reg;})[0];
   var approxScore=allocEntry&&allocEntry.allotment_score!=null?parseFloat(allocEntry.allotment_score):null;
