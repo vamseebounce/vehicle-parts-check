@@ -418,6 +418,7 @@ var sbClient = supabase.createClient(SB_URL, ANON_KEY, {auth:{persistSession:tru
 var LAST_QUEUE_DATA = null;
 var LAST_QUEUE_HUB  = '';
 var ALLOC_DATA      = [];
+var _refreshTimer   = null;
 
 /* ── Auth ─────────────────────────────────────────────────────────── */
 function showAuthScreen(){document.getElementById('auth-screen').classList.remove('hidden');showForm();}
@@ -689,6 +690,16 @@ function loadQueue(){
     document.getElementById('refresh-btn').disabled=false;
     board.innerHTML='<div class="state-box"><div class="icon">⚠️</div><p>Error: '+esc(err.message)+'</p></div>';
   });
+  startAutoRefresh();  // (re)arm the 5-min auto-refresh on every load
+}
+
+/* ── Auto-refresh (5 min, pauses when tab hidden) ───────────────── */
+function startAutoRefresh(){
+  if(_refreshTimer)clearInterval(_refreshTimer);
+  _refreshTimer=setInterval(function(){
+    var hub=document.getElementById('hub-select').value;
+    if(hub)loadQueue();
+  },5*60*1000);
 }
 
 /* ── Kanban render ───────────────────────────────────────────────── */
@@ -1058,6 +1069,16 @@ async function submitFeedback(){
   await sbClient.from('feedback').insert([{page:'deployment-v8',message:t,user_email:CURRENT_USER_EMAIL,created_at:new Date().toISOString()}]).catch(function(){});
   document.getElementById('fb-text').value='';document.getElementById('fb-popup').classList.remove('open');
 }
+
+/* ── Pause auto-refresh when tab hidden; resume + refresh when visible ─ */
+document.addEventListener('visibilitychange',function(){
+  if(document.hidden){
+    if(_refreshTimer){clearInterval(_refreshTimer);_refreshTimer=null;}
+  } else {
+    var hub=document.getElementById('hub-select').value;
+    if(hub){loadQueue();startAutoRefresh();}
+  }
+});
 </script>
 <script src="./sync-status.js"></script>
 </body>
