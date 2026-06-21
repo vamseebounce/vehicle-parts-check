@@ -221,7 +221,7 @@ Two GPS sources on `bike` table. Use whichever has the **most recent timestamp**
 | `baas_lat`, `baas_long` | BaaS (primary) | `baas_location_time` |
 | `current_lat`, `current_long` | IoT/Intellicar (fallback) | `latlong_updated_time` |
 
-Logic: compare `baas_location_time` vs `latlong_updated_time` → use the more recent pair. If both NULL → bike shows as "Location unknown" in a separate list on HO Dashboard (not on map).
+Logic: compare `baas_location_time` vs `latlong_updated_time` → use the more recent pair. If both NULL — **or the resolved coords fall outside India's bbox (lat 6.5–37.5, lng 68–97.5), per the HO map's `validLL()` guard** — bike shows as "Location unknown" in a separate list on HO Dashboard (not on map).
 
 ---
 
@@ -231,7 +231,7 @@ Logic: compare `baas_location_time` vs `latlong_updated_time` → use the more r
 - Live stats bar: total pending, recovered today, calls made, agents active
 - Zone summary cards per city (hunter name, vehicle count, recovered count)
 - Map: all zones + color-coded vehicle pins + hunter live location dots
-- "Location unknown" list — bikes with no GPS from either source (visibility only; admin fixes GPS via telemetry portal / central dashboard — no action in Trace & Hunter)
+- "Location unknown" list — bikes with no GPS from either source **or with out-of-India coords (failed `validLL()`)** (visibility only; admin fixes GPS via telemetry portal / central dashboard — no action in Trace & Hunter)
 - Vehicle list panel: sortable by urgency, filterable by zone + base/added toggle
 - Live override panel (Admin): drag vehicle from one hunter to another
 

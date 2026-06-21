@@ -54,6 +54,7 @@ Keep recovery-specific bits: pin colors by `hours_in_recovery` (amber/coral/oran
 1. **Safari/iOS NaN timestamp bug.** `new Date('2026-06-18 14:15:57+00')` → `NaN` in Safari. Trace uses raw `new Date(marked_at_utc)` everywhere (trace-ho + Hunter PWA, which is iOS-installable) → ages/pin colors break on iPhone. **Adopt RSA's `parseUtcTs()`.** High impact, low effort.
 2. **Hunter location never persisted** — `watchPosition` updates only the local marker; HO can't show agent dots. Add `hunter_locations` table; Hunter writes throttled GPS; HO renders dots (RSA team-dot parity).
 3. **No localStorage cache** on either Trace page → every refresh/tab-switch is a fresh DB hit (RAM + egress).
+4. **Out-of-range GPS distorted the HO map (FIXED 2026-06-19, deployed `6ca86db`).** The only marker guard was `display_lat==null`, so a ticket with `0,0` / swapped / out-of-range coords still plotted a pin **and** entered `bounds` → `fitBounds` zoomed out to world view. Added `validLL(lat,lng)` (India bbox lat 6.5–37.5, lng 68–97.5) on every marker / `fitBounds` path (tickets, hubs, hunter dots, hunter trail, critical-flash, search-zoom); invalid-GPS tickets now route to the Location-Unknown list.
 
 ---
 

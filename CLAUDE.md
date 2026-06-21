@@ -2,6 +2,19 @@
 
 Bounce Daily's internal fleet operations hub. Static HTML/JS frontend deployed via GitHub Pages at **bounceops.online**. Backend is Supabase (Postgres + Edge Functions).
 
+## 🔒 Edit Lock Protocol (all windows + Cowork)
+
+Before editing any page/feature, **claim its row in `LOCKS.md`** (owner + UTC timestamp +
+note) and commit that change first. If the row is already locked by another window →
+**STOP and wait.** Release it (`(free)`) when done. This keeps terminal windows and Cowork
+desktop from clobbering each other on the shared folder.
+
+## 📑 Docs map
+
+Every FleetPro doc is indexed in `docs/INDEX.md` — one canonical context file + one
+checklist per area. This is the deploy repo (`vehicle-parts-check`); edit & commit here,
+push via the `/tmp` clone (see Repo & Deployment below).
+
 ## Repo & Deployment
 
 - **Repo**: `vamseebounce/vehicle-parts-check` (main branch → GitHub Pages)
