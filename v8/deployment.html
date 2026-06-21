@@ -139,6 +139,7 @@ body.pinned #main{margin-left:var(--sb-width)}
 .bike-card.flag-star::before{background:var(--star)}
 .bike-card.flag-over::before{background:var(--over)}
 .bike-card.flag-ok::before{background:#D1FAE5}
+.bike-card.flag-alloc::before{background:#2563EB}
 .bc-top{display:flex;align-items:center;gap:7px;margin-bottom:6px}
 .bc-rank{width:20px;height:20px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:.62rem;font-weight:900;flex-shrink:0}
 .bc-rank.r1{background:#FEF3C7;color:#92400E}
@@ -151,6 +152,7 @@ body.pinned #main{margin-left:var(--sb-width)}
 .bc-flag.star{background:var(--star-bg);color:var(--star)}
 .bc-flag.over{background:var(--over-bg);color:var(--over)}
 .bc-flag.ok{background:var(--ok-bg);color:var(--ok)}
+.bc-flag.alloc{background:rgba(37,99,235,.15);color:#2563EB}
 .bc-tag{display:inline-flex;padding:2px 6px;border-radius:5px;font-size:.6rem;font-weight:700}
 .bc-tag.ls{background:var(--ls-bg);color:var(--ls)}
 .bc-tag.hs{background:var(--hs-bg);color:var(--hs)}
@@ -649,20 +651,60 @@ function loadQueue(){
   document.getElementById('queue-meta').textContent='';
   document.getElementById('refresh-btn').disabled=true;
 
-  sbGet('deployment_queue_cache',
-    'hub_name=eq.'+encodeURIComponent(hub)
-    +'&order=sort_group.asc,allotment_score.desc.nullslast'
-  ).then(function(data){
+  Promise.all([
+    sbGet('deployment_queue_cache',
+      'hub_name=eq.'+encodeURIComponent(hub)
+      +'&order=sort_group.asc,allotment_score.desc.nullslast'),
+    sbGet('pending_bookings_cache',
+      'hub_name=eq.'+encodeURIComponent(hub)
+      +'&assigned_reg=not.is.null&limit=500')
+  ]).then(function(results){
     document.getElementById('refresh-btn').disabled=false;
-    if(!data||!data.length){
+    var rfdData=results[0]||[];
+    var pendingData=results[1]||[];
+
+    // Build synthetic allocated-bike objects from pending customers with assigned bikes
+    // Deduplicate by reg_number (multiple customers can be linked to same bike)
+    var seenReg={};
+    var allocBikes=[];
+    pendingData.forEach(function(c){
+      if(!c.assigned_reg||seenReg[c.assigned_reg])return;
+      seenReg[c.assigned_reg]=true;
+      allocBikes.push({
+        reg_number:       c.assigned_reg,
+        model_name:       c.assigned_model||'',
+        rfd_age_days:     c.assigned_rfd_age_days,
+        tier:             c.tier||'Standard',
+        guardrail:        'ALLOCATED',
+        rental_status:    'allocated',
+        deploy_rank:      '—',
+        allotment_score:  null,
+        hub_name:         hub,
+        _allocated_to:    c.full_name||'',
+        sort_group:       999,
+        refreshed_at:     rfdData[0]&&rfdData[0].refreshed_at||null
+      });
+    });
+
+    var data=[...rfdData,...allocBikes];
+
+    if(!rfdData.length&&!allocBikes.length){
       board.innerHTML='<div class="state-box"><div class="icon">✅</div><p>No bikes in queue for <b>'+esc(hub)+'</b>.<br/>Cache may be empty — edge function runs every 15 min.</p></div>';
       LAST_QUEUE_DATA=[];LAST_QUEUE_HUB=hub;
+      // Reset stats strip to zero
+      var statsEl=document.getElementById('pipeline-stats');
+      statsEl.innerHTML=
+        psChip(0,'Total RFD','var(--text)')+
+        psChip(0,'Starvation','#DC2626')+
+        psChip(0,'Overuse','#D97706')+
+        psChip('0d','Avg RFD Age','var(--text)');
+      statsEl.style.display='flex';
       return;
     }
-    var ts=data[0]&&data[0].refreshed_at?new Date(data[0].refreshed_at).toLocaleString('en-IN',{timeZone:'Asia/Kolkata',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):'';
+
+    var ts=rfdData[0]&&rfdData[0].refreshed_at?new Date(rfdData[0].refreshed_at).toLocaleString('en-IN',{timeZone:'Asia/Kolkata',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):'';
     document.getElementById('queue-meta').textContent=ts?'Synced '+ts:'';
-    // Store for Summary / stats
-    LAST_QUEUE_DATA=data;LAST_QUEUE_HUB=hub;
+    LAST_QUEUE_DATA=rfdData;LAST_QUEUE_HUB=hub;  // keep only RFD in LAST_QUEUE_DATA (used by Allocate tab scoring)
     renderKanban(data,board);
   }).catch(function(err){
     document.getElementById('refresh-btn').disabled=false;
@@ -692,11 +734,14 @@ function renderKanban(data,board){
         var rClass=rank===1||rank==='1'?'r1':rank===2||rank==='2'?'r2':rank===3||rank==='3'?'r3':'rn';
         var fCls=flag==='STARVATION'?'star':flag==='OVERUSE'?'over':'ok';
         var fIcon=flag==='STARVATION'?'🔴':flag==='OVERUSE'?'🟡':'🟢';
+        var isAlloc=(flag==='ALLOCATED');
+        if(isAlloc){fCls='alloc';fIcon='🔵';}
         var cardData=encodeURIComponent(JSON.stringify(b));
         html+='<div class="bike-card flag-'+fCls+'" onclick="openDetail(this)" data-bike="'+esc(cardData)+'">';
         html+='<div class="bc-top">';
         html+='<span class="bc-rank '+rClass+'">'+rank+'</span>';
         html+='<span class="bc-reg">'+esc(b.reg_number||'—')+'</span>';
+        if(isAlloc&&b._allocated_to)html+='<div style="font-size:.6rem;color:#2563EB;margin-top:2px;padding:0 2px">→ '+esc(b._allocated_to)+'</div>';
         html+='</div>';
         html+='<div class="bc-bottom">';
         html+='<span class="bc-flag '+fCls+'">'+fIcon+' '+esc(flag)+'</span>';
@@ -718,17 +763,20 @@ function renderKanban(data,board){
   board.innerHTML=html;
 
   // Pipeline stats strip
-  var total=data.length;
-  var starv=data.filter(function(b){return b.guardrail==='STARVATION';}).length;
-  var over=data.filter(function(b){return b.guardrail==='OVERUSE';}).length;
-  var rfdSum=data.reduce(function(s,b){return s+(b.rfd_age_days||0);},0);
+  var rfdOnly=data.filter(function(b){return b.guardrail!=='ALLOCATED';});
+  var total=rfdOnly.length;
+  var starv=rfdOnly.filter(function(b){return b.guardrail==='STARVATION';}).length;
+  var over=rfdOnly.filter(function(b){return b.guardrail==='OVERUSE';}).length;
+  var rfdSum=rfdOnly.reduce(function(s,b){return s+(b.rfd_age_days||0);},0);
   var avgRfd=total?Math.round(rfdSum/total):0;
+  var allocCount=data.filter(function(b){return b.guardrail==='ALLOCATED';}).length;
   var statsEl=document.getElementById('pipeline-stats');
   statsEl.innerHTML=
     psChip(total,'Total RFD','var(--text)')+
     psChip(starv,'Starvation','#DC2626')+
     psChip(over,'Overuse','#D97706')+
-    psChip(avgRfd+'d','Avg RFD Age','var(--text)');
+    psChip(avgRfd+'d','Avg RFD Age','var(--text)')+
+    psChip(allocCount,'Allocated','#2563EB');
   statsEl.style.display='flex';
 }
 function psChip(val,label,color){
