@@ -138,6 +138,8 @@ Full spec in `Trace and Hunter/context.md`.
 > - Redeploy edge fns `zone-cluster` (now imports d3-delaunay) and `recovery-ticket-sync` (now rebuilds the cache).
 > - Re-publish Metabase Q1 (`8ef20d85…`) so it emits `marked_at_utc` + `user_id` (edge fn has a safe fallback for both, so non-blocking).
 > - Optional: schedule `cleanup_hunter_locations()` (monthly cron).
+>
+> **2026-06-19 — hotfix deployed (commit `6ca86db`, frontend-only):** `trace-ho.html` gained a `validLL()` India-bbox guard on every map marker / `fitBounds` path. Fixes the map zooming out to world view when one ticket had bad GPS (`0,0` / swapped / out-of-range). No Supabase change — independent of the paused deploy above.
 
 ### Phase 1 — Core Ops
 
@@ -205,7 +207,8 @@ Full spec in `Trace and Hunter/context.md`.
 - Tiles (city-scoped, clickable): Total Pending, Critical 3d+ (flashes pins), Recovered Today, Calls Made, Hunters Active.
 - Layers panel: Zones (Voronoi from `zone_configs.boundary_polygon`) / Hubs (`rental_locations`) / Hunters (live dots from `hunter_locations_latest`).
 - Track panel: Hunter Trail (`hunter_locations` polyline) / Ticket Events (`recovery_ticket_events` timeline by reg).
-- Location-Unknown: slide-in panel (no-GPS tickets), opened from a map-control button.
+- Location-Unknown: slide-in panel (tickets with no GPS **or out-of-India GPS** — see coordinate guard below), opened from a map-control button.
+- **Coordinate guard `validLL(lat,lng)` (2026-06-19):** every marker / `fitBounds` path (ticket pins, hubs, live hunter dots, hunter trail, Critical-flash, reg search-zoom) requires coords inside India's bbox (lat 6.5–37.5, lng 68–97.5). A `0,0` / swapped / out-of-range GPS no longer plots an ocean pin or blows `fitBounds` out to world view — it routes to the Location-Unknown list instead.
 - Auth: permissions-first + superadmin short-circuit (NO perm-veil — matches the documented pattern, not RSA's older veil).
 
 ### trace-hunter.html (Hunter PWA — "Hunter")
@@ -249,6 +252,7 @@ Full spec in `Trace and Hunter/context.md`.
 
 ### Do-not-violate decisions
 - **In Transit never writes `bike_operations_log`** — it's Trace & Hunter internal state (overrides context.md). Do not add an ops_log write.
+- **All map markers must pass `validLL()`** (India bbox lat 6.5–37.5, lng 68–97.5) before `L.marker` / `fitBounds`. One out-of-range GPS row otherwise distorts the whole map to world view.
 - RLS `recovery_tickets` UPDATE = owner-or-superadmin. Phase 2 admin drag-reassign will need a broader policy.
 
 ## Security Constraints
