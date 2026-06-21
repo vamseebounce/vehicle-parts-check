@@ -101,8 +101,13 @@ Audited live DB + the real GitHub repo. Findings:
 
 - **Repo:** https://github.com/vamseebounce/vehicle-parts-check
 - **Branch:** `main` → GitHub Pages → bounceops.online
-- **PAT:** embedded in remote URL for sandbox-autonomous pushes. Regenerated session 7 (old token revoked).
-- **Lock file gotcha:** Sandbox creates `.git/index.lock` / `.git/HEAD.lock` on macOS FUSE mount but cannot delete them. Workaround: user runs `rm -f .git/HEAD.lock .git/index.lock` + `git add` + `git commit` + `git push` from Terminal. Sandbox cannot reliably run any git write operation — tell user the exact commands to copy-paste.
+- **PAT:** never stored in any file. Pass inline to the clone URL only, then scrub. (The
+  old leaked token in the deleted phantom `.git/config` was retired 2026-06-20 — rotate before next push.)
+- **Push workflow (2026-06-20 onward):** the mounted `fleetpro/` folder is NO LONGER a git repo
+  (phantom local `.git` deleted — it was an unrelated history that deployed nothing). To deploy:
+  `git clone https://<PAT>@github.com/vamseebounce/vehicle-parts-check.git /tmp/fleetpro-push`,
+  copy changed files in, `git add/commit/push origin main` from `/tmp`, then scrub the token + `rm -rf /tmp/fleetpro-push`.
+  This GitHub repo is the SINGLE source of truth — there is no longer any local git history to drift from.
 - **Rollback tags:** `phase-0.0`, `v8-final`, `phase-0.3`, `phase-0.4`, `phase-0.5`, `phase-0.6`, `phase-2half-additive` (vehicles, sync_heartbeats, fw_pending_history), `phase-2half-additive-2` (ticket_status_history)
 - **Latest commits (session 11):** fa2f545 (2.6 partition), e574773 (2.7 archival), bbe4d29 (vault fix)
 - **Latest commits (session 14):** 27e9759 (perm-veil all 5 pages), 32c5117 (Realtime→polling), 146d5c4 (5.2 heartbeats wired to all 7 edge fns), fdb1dc3 (5.3 health-check reads sync_heartbeats)
