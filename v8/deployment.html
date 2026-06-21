@@ -599,12 +599,19 @@ function loadHubs(){
     var hubs=[];
     (results[0]||[]).forEach(function(r){if(r.hub_name&&!seen[r.hub_name]){seen[r.hub_name]=true;hubs.push(r.hub_name);}});
     (results[1]||[]).forEach(function(r){if(r.hub&&!seen[r.hub]){seen[r.hub]=true;hubs.push(r.hub);}});
+    // "All Hubs" first, then individual hubs
+    var allOpt=document.createElement('option');allOpt.value='all';allOpt.textContent='All Hubs';sel.appendChild(allOpt);
+    var allOpt2=document.createElement('option');allOpt2.value='all';allOpt2.textContent='All Hubs';sel2.appendChild(allOpt2);
     hubs.sort().forEach(function(h){
       var o=document.createElement('option');o.value=h;o.textContent=h;sel.appendChild(o);
       var o2=document.createElement('option');o2.value=h;o2.textContent=h;sel2.appendChild(o2);
     });
-    var last=localStorage.getItem('last_hub');
-    if(last){sel.value=last;if(sel.value)loadQueue();}
+    // Auto-select saved hub (default 'all' if none saved)
+    var last=localStorage.getItem('last_hub')||'all';
+    sel.value=last;
+    if(!sel.value)sel.value='all';   // saved hub no longer exists → fall back to All
+    sel2.value=sel.value;
+    loadQueue();
   }).catch(function(){});
 }
 
@@ -651,15 +658,17 @@ function loadQueue(){
   document.getElementById('queue-meta').textContent='';
   document.getElementById('refresh-btn').disabled=true;
 
-  sbGet('deployment_queue_cache',
-    'hub_name=eq.'+encodeURIComponent(hub)
-    +'&order=sort_group.asc,allotment_score.desc.nullslast')
+  var queueFilter=(hub==='all')
+    ? 'order=hub_name.asc,sort_group.asc,allotment_score.desc.nullslast'
+    : 'hub_name=eq.'+encodeURIComponent(hub)+'&order=sort_group.asc,allotment_score.desc.nullslast';
+  sbGet('deployment_queue_cache', queueFilter)
   .then(function(rfdData){
     document.getElementById('refresh-btn').disabled=false;
     var data=rfdData||[];
 
     if(!data.length){
-      board.innerHTML='<div class="state-box"><div class="icon">✅</div><p>No bikes in queue for <b>'+esc(hub)+'</b>.<br/>Cache may be empty — edge function runs every 15 min.</p></div>';
+      var hubLabel=(hub==='all'?'any hub':esc(hub));
+      board.innerHTML='<div class="state-box"><div class="icon">✅</div><p>No bikes in queue for <b>'+hubLabel+'</b>.<br/>Cache may be empty — edge function runs every 15 min.</p></div>';
       LAST_QUEUE_DATA=[];LAST_QUEUE_HUB=hub;
       // Reset stats strip to zero
       var statsEl=document.getElementById('pipeline-stats');
@@ -675,7 +684,7 @@ function loadQueue(){
     var ts=data[0]&&data[0].refreshed_at?new Date(data[0].refreshed_at).toLocaleString('en-IN',{timeZone:'Asia/Kolkata',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):'';
     document.getElementById('queue-meta').textContent=ts?'Synced '+ts:'';
     LAST_QUEUE_DATA=data;LAST_QUEUE_HUB=hub;
-    renderKanban(data,board);
+    renderKanban(data,board,hub);
   }).catch(function(err){
     document.getElementById('refresh-btn').disabled=false;
     board.innerHTML='<div class="state-box"><div class="icon">⚠️</div><p>Error: '+esc(err.message)+'</p></div>';
@@ -683,7 +692,7 @@ function loadQueue(){
 }
 
 /* ── Kanban render ───────────────────────────────────────────────── */
-function renderKanban(data,board){
+function renderKanban(data,board,hub){
   var html='';
   COLUMNS.forEach(function(col){
     var bikes=data.filter(col.filter);
@@ -705,15 +714,18 @@ function renderKanban(data,board){
         var fCls=flag==='STARVATION'?'star':flag==='OVERUSE'?'over':'ok';
         var fIcon=flag==='STARVATION'?'🔴':flag==='OVERUSE'?'🟡':'🟢';
         var isAlloc=b.rental_status&&b.rental_status.toLowerCase().indexOf('blocked for booking')===0;
-        if(isAlloc){flag='ALLOCATED';fCls='alloc';fIcon='🔵';}
         var cardData=encodeURIComponent(JSON.stringify(b));
         html+='<div class="bike-card flag-'+fCls+'" onclick="openDetail(this)" data-bike="'+esc(cardData)+'">';
         html+='<div class="bc-top">';
         html+='<span class="bc-rank '+rClass+'">'+rank+'</span>';
         html+='<span class="bc-reg">'+esc(b.reg_number||'—')+'</span>';
         html+='</div>';
+        if(hub==='all'){
+          html+='<div style="font-size:.62rem;color:#6B7280;margin-top:2px">📍 '+esc(b.hub_name)+'</div>';
+        }
         html+='<div class="bc-bottom">';
         html+='<span class="bc-flag '+fCls+'">'+fIcon+' '+esc(flag)+'</span>';
+        if(isAlloc){html+='<span style="display:inline-block;margin-left:4px;padding:2px 6px;border-radius:5px;font-size:.6rem;font-weight:700;background:#DBEAFE;color:#1D4ED8">🔵 Allocated</span>';}
         // LS column: show tier badge (Elite shown as Prime since LS has no Elite)
         if(col.showTierBadge){
           var dispTier=(b.tier==='Elite')?'Prime':(b.tier||'Standard');
@@ -822,10 +834,16 @@ function loadAllocList(){
   if(!hub){wrap.innerHTML='<div class="state-box"><div class="icon">🔍</div><p>Select a hub to view pending customers.</p></div>';return;}
   wrap.innerHTML='<div class="state-box"><div class="spinner"></div><p>Loading customers & pipeline…</p></div>';
   // Fetch both caches in parallel — render only when both are ready
-  var pendingPromise=sbGet('pending_bookings_cache','hub_name=eq.'+encodeURIComponent(hub)+'&order=full_name.asc&limit=500');
+  var allocFilter=(hub==='all')
+    ? 'order=full_name.asc&limit=500'
+    : 'hub_name=eq.'+encodeURIComponent(hub)+'&order=full_name.asc&limit=500';
+  var pendingPromise=sbGet('pending_bookings_cache',allocFilter);
+  var queueFilter=(hub==='all')
+    ? 'order=hub_name.asc,sort_group.asc,allotment_score.desc.nullslast'
+    : 'hub_name=eq.'+encodeURIComponent(hub)+'&order=sort_group.asc,allotment_score.desc.nullslast';
   var queuePromise=(LAST_QUEUE_HUB===hub)
     ?Promise.resolve(LAST_QUEUE_DATA)
-    :sbGet('deployment_queue_cache','hub_name=eq.'+encodeURIComponent(hub)+'&order=sort_group.asc,allotment_score.desc.nullslast');
+    :sbGet('deployment_queue_cache',queueFilter);
   Promise.all([pendingPromise,queuePromise])
     .then(function(results){
       ALLOC_DATA=results[0]||[];
