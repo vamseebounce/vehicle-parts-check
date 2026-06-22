@@ -239,7 +239,7 @@ body{font-family:'Inter',sans-serif;background:#F8FAFC;color:#1E293B;height:100v
   <input type="date" id="date-from" class="date-input" onchange="renderTickets()"/>
   <span class="filter-label">To</span>
   <input type="date" id="date-to" class="date-input" onchange="renderTickets()"/>
-  <button class="tb-btn" onclick="fetchAndLoad(true)" style="margin-left:4px">↻ Refresh</button>
+  <button class="tb-btn" onclick="closeAllDropdowns();fetchAndLoad(true)" style="margin-left:4px">↻ Refresh</button>
   <span id="sync-time" style="font-size:.7rem;color:#6B7280;white-space:nowrap;margin-left:4px"></span>
 </div>
 
@@ -479,7 +479,8 @@ function getChecked(wrapId){var all=[].slice.call(document.querySelectorAll('#'+
 function updateDropdownLabel(wrapId){var ck=getChecked(wrapId);var btn=document.querySelector('#'+wrapId+' .ms-btn');if(btn)btn.childNodes[0].textContent=ck.length===0?'All ':ck.length+' selected ';}
 function msSelectAll(wrapId){document.querySelectorAll('#'+wrapId+' input[type=checkbox]').forEach(function(c){c.checked=true;});renderTickets();}
 function msClear(wrapId){document.querySelectorAll('#'+wrapId+' input[type=checkbox]').forEach(function(c){c.checked=false;});renderTickets();}
-function toggleDropdown(id){var wrap=document.getElementById(id),btn=wrap.querySelector('.ms-btn'),dd=wrap.querySelector('.ms-dropdown'),isOpen=dd.classList.contains('open');document.querySelectorAll('.ms-dropdown.open').forEach(function(d){d.classList.remove('open');});document.querySelectorAll('.ms-btn.open').forEach(function(b){b.classList.remove('open');});if(!isOpen){dd.classList.add('open');btn.classList.add('open');}}
+function closeAllDropdowns(){document.querySelectorAll('.ms-dropdown.open').forEach(function(d){d.classList.remove('open');});document.querySelectorAll('.ms-btn.open').forEach(function(b){b.classList.remove('open');});}
+function toggleDropdown(id){var wrap=document.getElementById(id),btn=wrap.querySelector('.ms-btn'),dd=wrap.querySelector('.ms-dropdown'),isOpen=dd.classList.contains('open');closeAllDropdowns();if(!isOpen){dd.classList.add('open');btn.classList.add('open');}}
 document.addEventListener('click',function(e){if(!e.target.closest('.ms-wrap')){document.querySelectorAll('.ms-dropdown.open').forEach(function(d){d.classList.remove('open');});document.querySelectorAll('.ms-btn.open').forEach(function(b){b.classList.remove('open');});}});
 
 function setZone(v,el){_zoneFilter=v;document.querySelectorAll('.z-btn').forEach(function(b){b.classList.remove('active');});el.classList.add('active');renderTickets();}
@@ -605,7 +606,12 @@ function searchZoom(){
   var hl=L.circleMarker([m.display_lat,m.display_lng],{radius:22,color:'#F59E0B',weight:3,fillOpacity:0,opacity:.9}).addTo(leafMap);
   setTimeout(function(){leafMap.removeLayer(hl);},2000);
 }
-function recenterMap(){_lastCitySel=null;renderTickets();}
+function recenterMap(){
+  var pts=_filtered.filter(function(t){return validLL(t.display_lat,t.display_lng);}).map(function(t){return[+t.display_lat,+t.display_lng];});
+  if(pts.length>1){leafMap.fitBounds(L.latLngBounds(pts).pad(0.15),{animate:true,maxZoom:12});}
+  else if(pts.length===1){leafMap.setView(pts[0],13,{animate:true});}
+  else{_lastCitySel=null;renderTickets();}
+}
 
 // ── Data ──
 var CACHE_KEY='trace_ho_v1',CACHE_TTL=60*1000;
@@ -698,7 +704,9 @@ function switchTrackTab(tab){document.getElementById('tp-body-hunter').style.dis
 
 async function loadHunterTrack(){
   var hid=document.getElementById('tp-hunter').value,from=document.getElementById('tp-from').value,to=document.getElementById('tp-to').value;
-  if(!hid||!from||!to)return;
+  var info=document.getElementById('tp-hunter-info');
+  if(!hid){info.textContent='No hunters assigned yet. Hunters appear here once they are assigned to tickets and use the Hunter PWA.';return;}
+  if(!from||!to){info.textContent='Please set a date range.';return;}
   var btn=document.getElementById('tp-hunter-btn');btn.disabled=true;btn.textContent='Loading…';_trackLayer.clearLayers();
   try{
     var url=SB_URL+'/rest/v1/hunter_locations?select=lat,lng,synced_at&hunter_id=eq.'+hid+'&synced_at=gte.'+from+'&synced_at=lte.'+to+'T23:59:59&order=synced_at.asc&limit=3000';
