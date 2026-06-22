@@ -55,76 +55,101 @@ body.pinned #hbg{display:none}
 .tb-page{font-size:.82rem;font-weight:600;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .tb-right{display:flex;align-items:center;gap:8px;margin-left:auto;flex-shrink:0}
 
-  /* ── Auth screen ── */
-  #auth-screen{position:fixed;inset:0;z-index:1000;background:linear-gradient(135deg,#1A1A2E 0%,#0f2460 100%);display:flex;align-items:center;justify-content:center;font-family:'Inter',sans-serif}
-  #auth-screen.hidden{display:none!important}
-  .auth-card{background:#fff;border-radius:24px;padding:40px 36px;width:100%;max-width:380px;box-shadow:0 24px 80px rgba(0,0,0,.3);text-align:center}
-  .auth-logo{display:flex;align-items:center;gap:12px;margin-bottom:24px;justify-content:center}
-  .auth-logo-name{font-size:1rem;font-weight:800;color:#0F172A}
-  .auth-logo-sub{font-size:.72rem;font-weight:600;color:var(--brand);letter-spacing:.5px}
-  .auth-title{font-size:1.3rem;font-weight:800;color:#0F172A;margin-bottom:6px}
-  .auth-sub{font-size:.84rem;color:#6B7280;line-height:1.5;margin-bottom:14px}
-  .auth-domain{display:inline-block;background:#F0FDF4;color:#16A34A;border:1px solid #BBF7D0;border-radius:8px;padding:4px 12px;font-size:.75rem;font-weight:600;margin-bottom:20px}
-  .auth-input{width:100%;padding:13px 16px;border:1.5px solid #E5E7EB;border-radius:12px;font-size:.9rem;font-family:'Inter',sans-serif;color:#111827;outline:none;transition:border-color .15s}
-  .auth-input:focus{border-color:var(--brand)}
-  .auth-btn{width:100%;margin-top:12px;padding:13px;background:var(--brand);color:#fff;border:none;border-radius:12px;font-size:.9rem;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;transition:background .15s}
-  .auth-btn:hover{background:var(--brand-dark)}
-  .auth-btn:disabled{opacity:.5;cursor:not-allowed}
-  .auth-msg{font-size:.78rem;margin-top:12px;min-height:18px;line-height:1.5;color:#DC2626}
-  .auth-sent{display:none;text-align:center}
-  .auth-sent .big-icon{font-size:3rem;margin-bottom:12px}
-  .auth-sent h3{font-size:1.1rem;font-weight:800;color:#0F172A;margin-bottom:8px}
-  .auth-sent p{font-size:.82rem;color:#6B7280;line-height:1.6}
-  .auth-sent .resend{background:none;border:none;color:var(--brand);font-size:.8rem;font-weight:600;cursor:pointer;margin-top:16px;font-family:'Inter',sans-serif}
+/* ── Auth screen ── */
+#auth-screen{position:fixed;inset:0;z-index:1000;background:linear-gradient(135deg,#1A1A2E 0%,#0f2460 100%);display:flex;align-items:center;justify-content:center;font-family:'Inter',sans-serif}
+#auth-screen.hidden{display:none!important}
+.auth-card{background:#fff;border-radius:24px;padding:40px 36px;width:100%;max-width:380px;box-shadow:0 24px 80px rgba(0,0,0,.3);text-align:center}
+.auth-logo{display:flex;align-items:center;gap:12px;margin-bottom:24px;justify-content:center}
+.auth-logo-name{font-size:1rem;font-weight:800;color:#0F172A}
+.auth-logo-sub{font-size:.72rem;font-weight:600;color:var(--brand);letter-spacing:.5px}
+.auth-title{font-size:1.3rem;font-weight:800;color:#0F172A;margin-bottom:6px}
+.auth-sub{font-size:.84rem;color:#6B7280;line-height:1.5;margin-bottom:14px}
+.auth-domain{display:inline-block;background:#F0FDF4;color:#16A34A;border:1px solid #BBF7D0;border-radius:8px;padding:4px 12px;font-size:.75rem;font-weight:600;margin-bottom:20px}
+.auth-input{width:100%;padding:13px 16px;border:1.5px solid #E5E7EB;border-radius:12px;font-size:.9rem;font-family:'Inter',sans-serif;color:#111827;outline:none;transition:border-color .15s}
+.auth-input:focus{border-color:var(--brand)}
+.auth-btn{width:100%;margin-top:12px;padding:13px;background:var(--brand);color:#fff;border:none;border-radius:12px;font-size:.9rem;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;transition:background .15s}
+.auth-btn:hover{background:var(--brand-dark)}
+.auth-btn:disabled{opacity:.5;cursor:not-allowed}
+.auth-msg{font-size:.78rem;margin-top:12px;min-height:18px;line-height:1.5;color:#DC2626}
+.auth-sent{display:none;text-align:center}
+.auth-sent .big-icon{font-size:3rem;margin-bottom:12px}
+.auth-sent h3{font-size:1.1rem;font-weight:800;color:#0F172A;margin-bottom:8px}
+.auth-sent p{font-size:.82rem;color:#6B7280;line-height:1.6}
+.auth-sent .resend{background:none;border:none;color:var(--brand);font-size:.8rem;font-weight:600;cursor:pointer;margin-top:16px;font-family:'Inter',sans-serif}
 
-  #app{display:none;flex:1}
+#app{display:none;flex:1}
 
-  /* ── Search hero (matches maintenance.html) ── */
-  .search-section{background:linear-gradient(135deg,var(--sb-bg) 0%,#0f2460 100%);padding:36px 20px 52px;text-align:center;position:relative;overflow:hidden}
-  .search-section::after{content:'';position:absolute;bottom:-1px;left:0;right:0;height:40px;background:var(--bg);clip-path:ellipse(55% 100% at 50% 100%)}
-  .search-title{font-size:1.35rem;font-weight:800;color:#fff;letter-spacing:-.02em;margin-bottom:4px}
-  .search-sub{font-size:.8rem;color:rgba(255,255,255,.45);margin-bottom:20px}
-  .sw{max-width:480px;margin:0 auto;position:relative}
-  .sw input{
-    width:100%;padding:14px 50px 14px 20px;border:none;border-radius:14px;
-    font-size:.95rem;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;
-    background:#fff;box-shadow:0 4px 24px rgba(0,0,0,.2);outline:none;
-    font-family:'Inter',sans-serif;color:var(--text);
-  }
-  .sw input::placeholder{text-transform:none;letter-spacing:0;font-weight:400;color:#9CA3AF;font-size:.88rem}
-  .sw svg{position:absolute;right:16px;top:50%;transform:translateY(-50%);color:#9CA3AF;pointer-events:none}
-  .hint{text-align:center;color:rgba(255,255,255,.5);font-size:.78rem;margin-top:14px;line-height:2.2}
-  .hint span.ex{background:rgba(255,255,255,.12);color:rgba(255,255,255,.85);border-radius:8px;padding:3px 10px;font-size:.75rem;margin:2px;cursor:pointer;font-weight:600;letter-spacing:.5px;transition:background .15s;display:inline-block}
-  .hint span.ex:hover{background:rgba(255,255,255,.22)}
+/* ── Search hero ── */
+.search-section{background:linear-gradient(135deg,var(--sb-bg) 0%,#0f2460 100%);padding:36px 20px 52px;text-align:center;position:relative;overflow:hidden}
+.search-section::after{content:'';position:absolute;bottom:-1px;left:0;right:0;height:40px;background:var(--bg);clip-path:ellipse(55% 100% at 50% 100%)}
+.search-title{font-size:1.35rem;font-weight:800;color:#fff;letter-spacing:-.02em;margin-bottom:4px}
+.search-sub{font-size:.8rem;color:rgba(255,255,255,.45);margin-bottom:20px}
+.sw{max-width:480px;margin:0 auto;position:relative}
+.sw input{
+  width:100%;padding:14px 50px 14px 20px;border:none;border-radius:14px;
+  font-size:.95rem;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;
+  background:#fff;box-shadow:0 4px 24px rgba(0,0,0,.2);outline:none;
+  font-family:'Inter',sans-serif;color:var(--text);
+}
+.sw input::placeholder{text-transform:none;letter-spacing:0;font-weight:400;color:#9CA3AF;font-size:.88rem}
+.sw svg{position:absolute;right:16px;top:50%;transform:translateY(-50%);color:#9CA3AF;pointer-events:none}
+.hint{text-align:center;color:rgba(255,255,255,.5);font-size:.78rem;margin-top:14px;line-height:2.2}
+.hint span.ex{background:rgba(255,255,255,.12);color:rgba(255,255,255,.85);border-radius:8px;padding:3px 10px;font-size:.75rem;margin:2px;cursor:pointer;font-weight:600;letter-spacing:.5px;transition:background .15s;display:inline-block}
+.hint span.ex:hover{background:rgba(255,255,255,.22)}
 
-  /* ── Content ── */
-  .content-section{flex:1;padding:16px 24px 40px;max-width:1100px;margin:0 auto;width:100%}
+/* ── Content ── */
+.content-section{flex:1;padding:16px 24px 40px;max-width:1100px;margin:0 auto;width:100%}
 
-  /* ── Footer (matches maintenance.html) ── */
-  .site-footer{background:var(--sb-bg);color:rgba(255,255,255,.6);padding:40px 20px 32px;text-align:center;margin-top:auto}
-  .footer-brand{display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:16px}
-  .footer-brand-text{font-size:.95rem;font-weight:800;color:#fff}
-  .footer-taglines{margin-bottom:20px}
-  .footer-taglines p{font-size:.82rem;color:rgba(255,255,255,.5);line-height:1.9}
-  .footer-taglines p strong{color:rgba(255,255,255,.8);font-weight:600}
-  .footer-meta{font-size:.68rem;color:rgba(255,255,255,.25);margin-top:16px;border-top:1px solid rgba(255,255,255,.06);padding-top:16px}
+/* ── Footer ── */
+.site-footer{background:var(--sb-bg);color:rgba(255,255,255,.6);padding:40px 20px 32px;text-align:center;margin-top:auto}
+.footer-brand{display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:16px}
+.footer-brand-text{font-size:.95rem;font-weight:800;color:#fff}
+.footer-taglines{margin-bottom:20px}
+.footer-taglines p{font-size:.82rem;color:rgba(255,255,255,.5);line-height:1.9}
+.footer-taglines p strong{color:rgba(255,255,255,.8);font-weight:600}
+.footer-meta{font-size:.68rem;color:rgba(255,255,255,.25);margin-top:16px;border-top:1px solid rgba(255,255,255,.06);padding-top:16px}
 
-  .verdict-card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:0;overflow:hidden;margin-bottom:16px;display:none;box-shadow:var(--shadow-md)}
-  .verdict-head{padding:22px 24px;display:flex;align-items:center;gap:18px;border-bottom:1px solid var(--border)}
-  .tier-chip{font-size:1.4rem;font-weight:800;padding:10px 16px;border-radius:12px;min-width:64px;text-align:center;letter-spacing:.5px}
-  .verdict-text{font-size:1.25rem;font-weight:800;line-height:1.2}
-  .verdict-reason{font-size:.88rem;color:var(--muted);margin-top:6px;line-height:1.5}
+/* ── Verdict card header ── */
+.verdict-card{background:var(--card);border:1px solid var(--border);border-radius:16px;overflow:hidden;margin-bottom:16px;display:none;box-shadow:var(--shadow-md)}
+.verdict-head{padding:22px 24px;display:flex;align-items:center;gap:18px;border-bottom:1px solid var(--border)}
+.tier-chip{font-size:1.4rem;font-weight:800;padding:10px 16px;border-radius:12px;min-width:64px;text-align:center;letter-spacing:.5px}
+.verdict-text{font-size:1.25rem;font-weight:800;line-height:1.2}
+.verdict-reason{font-size:.88rem;color:var(--muted);margin-top:6px;line-height:1.5}
 
-  .meta-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:0}
-  .meta-cell{padding:14px 24px;border-bottom:1px solid var(--border)}
-  .meta-cell:nth-child(odd){border-right:1px solid var(--border)}
-  .meta-label{font-size:.68rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
-  .meta-val{font-size:.92rem;font-weight:600;word-break:break-word;color:var(--text)}
-  .meta-val.dim{color:var(--muted);font-weight:500}
+/* ── Section cards ── */
+.section-card{background:var(--card);border:1px solid var(--border);border-radius:16px;overflow:hidden;margin-bottom:12px;box-shadow:var(--shadow)}
+.section-head{padding:10px 18px;background:#F9FAFB;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px}
+.section-icon{font-size:.95rem}
+.section-title{font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--muted)}
 
-  .state-msg{text-align:center;padding:40px;color:var(--muted);font-size:.9rem;display:none}
-  .spin{display:inline-block;width:16px;height:16px;border:2px solid var(--border);border-top-color:var(--brand);border-radius:50%;animation:spin .6s linear infinite;vertical-align:middle;margin-right:8px}
-  @keyframes spin{to{transform:rotate(360deg)}}
+/* ── Data grid (2-col) ── */
+.data-grid{display:grid;grid-template-columns:repeat(2,1fr)}
+.dc{padding:11px 18px;border-bottom:1px solid var(--border)}
+.dc:nth-child(odd){border-right:1px solid var(--border)}
+.dc.full{grid-column:span 2;border-right:none}
+.dc-label{font-size:.65rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px}
+.dc-val{font-size:.88rem;font-weight:600;color:var(--text);word-break:break-word}
+.dc-val.dim{color:var(--muted);font-weight:400;font-style:italic}
+.dc-val a{color:#2563EB;text-decoration:none}
+.dc-val a:hover{text-decoration:underline}
+.dc-val code{font-size:.74rem;background:#F3F4F6;padding:2px 6px;border-radius:4px;word-break:break-all;display:block;margin-top:2px;font-family:monospace}
+
+/* ── JC history table ── */
+.jc-table{width:100%;border-collapse:collapse;font-size:.8rem}
+.jc-table th{padding:8px 14px;text-align:left;font-size:.63rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);background:#F9FAFB;border-bottom:1px solid var(--border);white-space:nowrap}
+.jc-table td{padding:9px 14px;border-bottom:1px solid #F3F4F6;vertical-align:top}
+.jc-table tr:last-child td{border-bottom:none}
+.jc-table tr:hover td{background:#FAFAFA}
+.jc-no{font-weight:700;color:#2563EB;font-size:.8rem}
+.jc-sub{color:var(--muted);font-size:.7rem;margin-top:2px}
+.svc-badge{display:inline-block;font-size:.65rem;font-weight:700;padding:2px 7px;border-radius:6px;background:#EFF6FF;color:#1D4ED8;white-space:nowrap}
+.items-list{color:var(--muted);font-size:.71rem;line-height:1.7}
+
+/* ── States ── */
+.state-msg{text-align:center;padding:40px;color:var(--muted);font-size:.9rem;display:none}
+.spin{display:inline-block;width:16px;height:16px;border:2px solid var(--border);border-top-color:var(--brand);border-radius:50%;animation:spin .6s linear infinite;vertical-align:middle;margin-right:8px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.absent{padding:14px 18px;color:var(--muted);font-size:.82rem;font-style:italic}
 </style>
 </head>
 <body>
@@ -208,10 +233,10 @@ body.pinned #hbg{display:none}
     <section class="search-section">
       <div id="superadmin-search" style="display:none">
         <h2 class="search-title">Manual JC Approval Check</h2>
-        <p class="search-sub">Search a vehicle to see whether a manual draft JC should be approved</p>
+        <p class="search-sub">Search by reg or chassis number — spaces and dashes OK</p>
         <div class="sw">
           <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="cursor:pointer;pointer-events:auto" onclick="runCheck()"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-          <input id="reg-input" type="text" placeholder="e.g. KA05AQ6570 or chassis number" autocomplete="off" spellcheck="false"
+          <input id="reg-input" type="text" placeholder="e.g. KA05AQ6570 · KA 05 AQ 6570 · 6570" autocomplete="off" spellcheck="false"
                  onkeydown="if(event.key==='Enter')runCheck()"/>
         </div>
         <div class="hint" id="hint-area">Type a reg or chassis number and press Enter</div>
@@ -231,6 +256,7 @@ body.pinned #hbg{display:none}
         <div id="empty" class="state-msg">No vehicle matched that reg / chassis number.</div>
         <div id="error" class="state-msg"></div>
 
+        <!-- Verdict header (tier + verdict + reason) -->
         <div id="verdict-card" class="verdict-card">
           <div class="verdict-head">
             <div id="tier-chip" class="tier-chip">—</div>
@@ -239,8 +265,10 @@ body.pinned #hbg{display:none}
               <div id="verdict-reason" class="verdict-reason">—</div>
             </div>
           </div>
-          <div id="meta-grid" class="meta-grid"></div>
         </div>
+
+        <!-- Sectioned data rendered here -->
+        <div id="sections-container"></div>
       </div>
     </section>
 
@@ -264,19 +292,19 @@ body.pinned #hbg{display:none}
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 // ════════════════════════════════════════════════════════════════════════
-//  Reads the jc_approval_status Supabase table (session-authed, RLS) — the
-//  jc-approval-sync edge fn keeps it fresh (~5 min) from the Metabase query.
-//  No Metabase URL/UUID lives in this page — the data sits behind Supabase auth.
-//  Query source: sql/rrr/RRR_Manual_JC_Approval_Check.sql
+//  Reads jc_approval_status (session-authed, RLS) — kept fresh by
+//  jc-approval-sync edge fn (~5 min) from Metabase.
+//  Also reads: jc_history (ODO + logs), fw_bikes_live (hub + location),
+//  oos_work_queue (current repair queue entry).
 // ════════════════════════════════════════════════════════════════════════
 var SB_URL='https://clkfvmmlgwcvntxnolsv.supabase.co';
 var ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNsa2Z2bW1sZ3djdm50eG5vbHN2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ1NDQ2NTgsImV4cCI6MjA5MDEyMDY1OH0.FA33GFQisWX_hDeGCWqL5yAZmPcuQRdxZX32I23lyoY';
 
 var sbClient=supabase.createClient(SB_URL,ANON_KEY,{auth:{persistSession:true,storageKey:'fleetpro_session',autoRefreshToken:true}});
 var CURRENT_USER_EMAIL=null;
-var K=ANON_KEY; // session access token once signed in (for REST reads)
+var K=ANON_KEY;
 
-// ── Auth screen helpers (verbatim from index.html) ──
+// ── Auth helpers ──
 function showAuthScreen(){document.getElementById('auth-screen').classList.remove('hidden');showForm();}
 function hideAuthScreen(){document.getElementById('auth-screen').classList.add('hidden');}
 function showForm(){
@@ -326,7 +354,7 @@ function applyGate(session){
   }
 }
 
-// ── Boot (same shape as index.html) ──
+// ── Boot ──
 (async function(){
   var{data:{session}}=await sbClient.auth.getSession();
   var _authReady=false;
@@ -338,8 +366,7 @@ function applyGate(session){
   });
 })();
 
-// ── The check ──
-// Tier → display colour + label. Codes are STABLE (sql/rrr/RRR_Manual_JC_Approval_Check.sql).
+// ── Tier styles ──
 var TIER_STYLE={
   'T1' :{bg:'#FEF2F2',fg:'#DC2626',label:'Booking in progress'},
   'T2' :{bg:'#FFFBEB',fg:'#D97706',label:'Prior JC deleted'},
@@ -355,85 +382,225 @@ var TIER_STYLE={
 function showState(id,html){
   ['loading','empty','error'].forEach(function(s){document.getElementById(s).style.display='none';});
   document.getElementById('verdict-card').style.display='none';
+  document.getElementById('sections-container').innerHTML='';
   if(id){var el=document.getElementById(id);if(html!==undefined)el.textContent=html;el.style.display='block';}
 }
 
-// Map a jc_approval_status table row (snake_case) → the display labels render() uses.
-function mapRow(r){
-  return {
-    'Reg Number':r.reg_number,'Chassis Number':r.chassis_number,
-    'Latest Draft JC':r.latest_draft_jc,'Latest JC Status':r.latest_jc_status,
-    'JC Created (IST)':r.jc_created_ist,'Current Booking Status':r.current_booking_status,
-    'Current Booking Ended (IST)':r.current_booking_ended_ist,"JC's Trip Ended (IST)":r.jc_trip_ended_ist,
-    'DMS JSON':r.dms_json,'JC Age (min)':r.jc_age_minutes,
-    'Rental Status':r.rental_status,'Vehicle Status':r.vehicle_status,'Vehicle Sub-Status':r.vehicle_sub_status,
-    'Tier':r.tier,'Verdict':r.verdict,'Reason':r.reason,'_refreshed':r.refreshed_at
-  };
+// ── Normalize reg: strip spaces, hyphens, dots → uppercase ──
+function normalizeReg(q){
+  return q.replace(/[\s\-\.]/g,'').toUpperCase();
 }
 
+// ── Main check ──
 async function runCheck(){
-  var q=document.getElementById('reg-input').value.trim();
-  if(!q)return;
+  var raw=document.getElementById('reg-input').value.trim();
+  if(!raw)return;
+  var q=normalizeReg(raw);
   showState('loading');
+
+  var h={headers:{apikey:ANON_KEY,Authorization:'Bearer '+K}};
+  var enc=encodeURIComponent('*'+q+'*');
+
   try{
-    // Read the Supabase snapshot table with the user's session token (RLS-gated).
-    // Match reg OR chassis as a case-insensitive substring.
-    var enc=encodeURIComponent('*'+q+'*');
-    var url=SB_URL+'/rest/v1/jc_approval_status'
-          +'?select=*&or=(reg_number.ilike.'+enc+',chassis_number.ilike.'+enc+')&limit=25';
-    var r=await fetch(url,{headers:{apikey:ANON_KEY,Authorization:'Bearer '+K}});
-    if(!r.ok)throw new Error('Supabase returned '+r.status);
-    var rows=await r.json();
-    if(!Array.isArray(rows)||rows.length===0){showState('empty');return;}
-    // Prefer an exact reg/chassis match, else the first row.
-    var hit=rows.find(function(x){
-      return (x.reg_number||'').toLowerCase()===q.toLowerCase()
-          || (x.chassis_number||'').toLowerCase()===q.toLowerCase();
-    })||rows[0];
-    render(mapRow(hit), rows.length);
+    // Parallel: jc_approval_status + jc_history + fw_bikes_live
+    var results=await Promise.all([
+      fetch(SB_URL+'/rest/v1/jc_approval_status?select=*&or=(reg_number.ilike.'+enc+',chassis_number.ilike.'+enc+')&limit=25',h),
+      fetch(SB_URL+'/rest/v1/jc_history?select=jc_no,reg_number,bike_odo,jc_date,hub_name,service_type,line_type,item_name,qty,amount,technician_name&reg_number=ilike.'+enc+'&order=jc_date.desc,id.desc&limit=120',h),
+      fetch(SB_URL+'/rest/v1/fw_bikes_live?select=reg_number,hub,lat,lng,vehicle_status,current_soc&reg_number=ilike.'+enc+'&limit=5',h)
+    ]);
+
+    var jcRows=await results[0].json();
+    var histRows=results[1].ok?await results[1].json():[];
+    var bikeRows=results[2].ok?await results[2].json():[];
+
+    if(!Array.isArray(jcRows)||jcRows.length===0){showState('empty');return;}
+
+    // Prefer exact reg/chassis match
+    var hit=jcRows.find(function(x){
+      return normalizeReg(x.reg_number||'')===q||normalizeReg(x.chassis_number||'')===q;
+    })||jcRows[0];
+
+    var exactReg=hit.reg_number;
+
+    // Sequential: OOS queue for exact reg
+    var r4=await fetch(SB_URL+'/rest/v1/oos_work_queue?select=hub,oos_since,days_in_oos,labour_items,parts_items,has_parts,estimated_mins&reg_number=eq.'+encodeURIComponent(exactReg)+'&limit=1',h);
+    var oosRows=r4.ok?await r4.json():[];
+
+    // fw_bikes_live match for exact reg
+    var bikeInfo=Array.isArray(bikeRows)?bikeRows.find(function(x){return normalizeReg(x.reg_number||'')===normalizeReg(exactReg);})||bikeRows[0]:null;
+
+    render(hit,
+           Array.isArray(histRows)?histRows:[],
+           Array.isArray(oosRows)&&oosRows.length?oosRows[0]:null,
+           bikeInfo||null,
+           jcRows.length);
   }catch(e){
     showState('error','Lookup failed: '+(e.message||e));
   }
 }
 
-function cell(label,val,dim){
-  var v=(val===null||val===undefined||val==='')?'—':val;
-  return '<div class="meta-cell"><div class="meta-label">'+label+'</div>'+
-         '<div class="meta-val'+(dim||v==='—'?' dim':'')+'">'+v+'</div></div>';
+// ════════════════════════════════════════════════════════════════════════
+//  Render helpers
+// ════════════════════════════════════════════════════════════════════════
+function esc(s){
+  return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
-function render(row, matchCount){
+// Standard 2-col data cell
+function dc(label,val){
+  var v=(val===null||val===undefined||val==='')?null:val;
+  return '<div class="dc"><div class="dc-label">'+esc(label)+'</div>'
+        +'<div class="dc-val'+(v===null?' dim':'')+'">'+esc(v===null?'—':v)+'</div></div>';
+}
+// Full-width cell with raw HTML value
+function dcH(label,valHtml){
+  var v=valHtml||'<span class="dim">—</span>';
+  return '<div class="dc full"><div class="dc-label">'+esc(label)+'</div><div class="dc-val">'+v+'</div></div>';
+}
+
+function sectionCard(icon,title,extra,bodyHtml){
+  return '<div class="section-card">'
+        +'<div class="section-head"><span class="section-icon">'+icon+'</span><span class="section-title">'+esc(title)+'</span>'+(extra||'')+'</div>'
+        +'<div class="section-body">'+bodyHtml+'</div>'
+        +'</div>';
+}
+
+// ── Section 4: JC History table ──
+function renderJCHistory(history){
+  if(!history||!history.length){
+    return sectionCard('📜','Job Card Logs','','<div class="absent">No JC history found in this database.</div>');
+  }
+
+  // Group by jc_no (order already desc by date)
+  var jcMap={},jcOrder=[];
+  history.forEach(function(r){
+    var jc=r.jc_no||'?';
+    if(!jcMap[jc]){
+      jcMap[jc]={jc_no:jc,jc_date:r.jc_date,bike_odo:r.bike_odo,hub_name:r.hub_name,service_type:r.service_type,technician:r.technician_name,items:[],total:0};
+      jcOrder.push(jc);
+    }
+    if(r.item_name){
+      var prefix=r.line_type==='Part'?'🔩':'🔧';
+      jcMap[jc].items.push(prefix+' '+r.item_name+(r.qty&&parseFloat(r.qty)!==1?' ×'+r.qty:''));
+    }
+    jcMap[jc].total+=parseFloat(r.amount||0);
+  });
+
+  var rows=jcOrder.slice(0,12).map(function(jcNo){
+    var j=jcMap[jcNo];
+    var svcShort=(j.service_type||'').replace('GENERAL SERVICES (REPOSSESSED)','GEN SVC (REPO)').replace('GENERAL SERVICES','GEN SVC').replace('RUNNING REPAIR','RUNNING RPR').replace('PREVENTIVE MAINTENANCE','PM');
+    var itemsHtml=j.items.slice(0,6).map(function(i){return '<div>'+esc(i)+'</div>';}).join('');
+    if(j.items.length>6)itemsHtml+='<div style="color:#9CA3AF">+' +(j.items.length-6)+' more…</div>';
+    var techHtml=j.technician?'<div class="jc-sub">👨‍🔧 '+esc(j.technician)+'</div>':'';
+    return '<tr>'
+      +'<td><div class="jc-no">'+esc(j.jc_no)+'</div><div class="jc-sub">'+esc(j.jc_date||'—')+'</div>'+techHtml+'</td>'
+      +'<td style="white-space:nowrap">'+esc(j.bike_odo?Number(j.bike_odo).toLocaleString('en-IN')+' km':'—')+'</td>'
+      +'<td style="white-space:nowrap">'+esc(j.hub_name||'—')+'</td>'
+      +'<td><span class="svc-badge">'+esc(svcShort)+'</span></td>'
+      +'<td class="items-list">'+itemsHtml+'</td>'
+      +'<td style="text-align:right;font-weight:600;white-space:nowrap">₹'+Math.round(j.total).toLocaleString('en-IN')+'</td>'
+      +'</tr>';
+  }).join('');
+
+  var countBadge='<span style="margin-left:auto;font-size:.7rem;color:var(--muted)">'+jcOrder.length+' JCs</span>';
+  return sectionCard('📜','Job Card Logs',countBadge,
+    '<div style="overflow-x:auto"><table class="jc-table">'
+    +'<thead><tr><th>JC No / Date</th><th>ODO</th><th>Hub</th><th>Service Type</th><th>Items</th><th style="text-align:right">Total</th></tr></thead>'
+    +'<tbody>'+rows+'</tbody></table></div>');
+}
+
+// ── Section 5: OOS Queue ──
+function renderOOS(oos){
+  if(!oos){
+    return sectionCard('🚨','OOS Queue','','<div class="absent">Vehicle is not currently in the OOS repair queue.</div>');
+  }
+  var d=oos.oos_since?new Date(oos.oos_since).toLocaleString('en-IN',{timeZone:'Asia/Kolkata',day:'numeric',month:'short',year:'2-digit',hour:'2-digit',minute:'2-digit'}):null;
+  var badge='<span style="margin-left:8px;font-size:.65rem;font-weight:700;padding:2px 8px;border-radius:6px;background:#FEF2F2;color:#DC2626">IN QUEUE</span>';
+  var body='<div class="data-grid">'
+    +dc('Hub',oos.hub)
+    +dc('OOS Since (IST)',d)
+    +dc('Days in OOS',oos.days_in_oos!=null?Math.round(oos.days_in_oos)+'d':null)
+    +dc('Est. Time',oos.estimated_mins?Math.round(oos.estimated_mins/60*10)/10+' hrs':null)
+    +dcH('Labour Items',oos.labour_items?esc(oos.labour_items):null)
+    +dcH('Parts Items',oos.has_parts===false?'<span style="color:#059669;font-weight:600">Labour-only (no parts required)</span>':(oos.parts_items?esc(oos.parts_items):null))
+    +'</div>';
+  return sectionCard('🚨','OOS Queue',badge,body);
+}
+
+// ── Master render ──
+function render(row,history,oos,bike,matchCount){
   showState(null);
-  var tier=row['Tier']||'T6';
+
+  // Verdict header
+  var tier=row.tier||'T6';
   var st=TIER_STYLE[tier]||TIER_STYLE['T6'];
   var chip=document.getElementById('tier-chip');
   chip.textContent=tier;chip.style.background=st.bg;chip.style.color=st.fg;
   var vt=document.getElementById('verdict-text');
-  vt.textContent=row['Verdict']||'—';vt.style.color=st.fg;
-  document.getElementById('verdict-reason').textContent=row['Reason']||'';
-
-  var g='';
-  g+=cell('Reg Number', row['Reg Number']);
-  g+=cell('Chassis Number', row['Chassis Number']);
-  g+=cell('Latest Draft JC', row['Latest Draft JC']);
-  g+=cell('Latest JC Status', row['Latest JC Status']);
-  g+=cell('JC Created (IST)', row['JC Created (IST)']);
-  g+=cell('JC Age (min)', row['JC Age (min)']);
-  g+=cell('Current Booking Status', row['Current Booking Status']);
-  g+=cell('Current Booking Ended (IST)', row['Current Booking Ended (IST)']);
-  g+=cell("JC's Trip Ended (IST)", row["JC's Trip Ended (IST)"]);
-  g+=cell('DMS JSON', row['DMS JSON']);
-  g+=cell('Rental Status', row['Rental Status']);
-  g+=cell('Vehicle Status', row['Vehicle Status']);
-  g+=cell('Vehicle Sub-Status', row['Vehicle Sub-Status']);
-  if(matchCount>1) g+=cell('Note', matchCount+' vehicles matched — showing best match', true);
-  if(row['_refreshed']){
-    var d=new Date(row['_refreshed']);
-    var ago=d.toLocaleString('en-IN',{timeZone:'Asia/Kolkata',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
-    g+=cell('Data refreshed', ago+' IST', true);
-  }
-  document.getElementById('meta-grid').innerHTML=g;
+  vt.textContent=row.verdict||'—';vt.style.color=st.fg;
+  document.getElementById('verdict-reason').textContent=row.reason||'';
   document.getElementById('verdict-card').style.display='block';
+
+  // Latest ODO from history (first row = most recent JC)
+  var latestOdo=history.length&&history[0].bike_odo?Number(history[0].bike_odo).toLocaleString('en-IN')+' km':null;
+
+  // Location link
+  var locHtml=null;
+  if(bike&&bike.lat&&bike.lng&&Math.abs(bike.lat)>0.1&&Math.abs(bike.lng)>0.1){
+    locHtml='<a href="https://www.google.com/maps?q='+bike.lat+','+bike.lng+'" target="_blank" rel="noopener">📍 '+Number(bike.lat).toFixed(5)+', '+Number(bike.lng).toFixed(5)+'</a>';
+  }
+
+  var html='';
+
+  // ── SECTION 1: Bike ──
+  html+=sectionCard('🏍️','Bike','',
+    '<div class="data-grid">'
+    +dc('Reg Number',row.reg_number)
+    +dc('Chassis Number',row.chassis_number)
+    +dc('Hub (Bike Table)',bike?bike.hub:null)
+    +dc('Latest ODO',latestOdo)
+    +dc('Rental Status',row.rental_status)
+    +dc('Vehicle Status',row.vehicle_status)
+    +dc('Vehicle Sub-Status',row.vehicle_sub_status)
+    +dc('Current SOC',bike&&bike.current_soc!=null?bike.current_soc+'%':null)
+    +dcH('Current Location',locHtml)
+    +'</div>');
+
+  // ── SECTION 2: Booking ──
+  html+=sectionCard('📋','Current Booking','',
+    '<div class="data-grid">'
+    +dc('Booking Status',row.current_booking_status)
+    +dc('Booking Ended (IST)',row.current_booking_ended_ist)
+    +'</div>');
+
+  // ── SECTION 3: Job Card (current) ──
+  var dmsHtml=row.dms_json?'<code>'+esc(row.dms_json)+'</code>':null;
+  html+=sectionCard('🔧','Job Card','',
+    '<div class="data-grid">'
+    +dc('Latest Draft JC',row.latest_draft_jc)
+    +dc('JC Status',row.latest_jc_status)
+    +dc('JC Created (IST)',row.jc_created_ist)
+    +dc('JC Age (min)',row.jc_age_minutes!=null?Math.round(row.jc_age_minutes):null)
+    +dc("JC's Trip Ended (IST)",row.jc_trip_ended_ist)
+    +dcH('DMS JSON',dmsHtml)
+    +'</div>');
+
+  // ── SECTION 4: JC History logs ──
+  html+=renderJCHistory(history);
+
+  // ── SECTION 5: OOS Queue ──
+  html+=renderOOS(oos);
+
+  // Footer meta
+  var meta=[];
+  if(matchCount>1)meta.push(matchCount+' vehicles matched — showing best match');
+  if(row.refreshed_at){
+    var d=new Date(row.refreshed_at);
+    meta.push('JC data refreshed '+d.toLocaleString('en-IN',{timeZone:'Asia/Kolkata',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})+' IST');
+  }
+  if(meta.length)html+='<div style="text-align:center;color:var(--muted);font-size:.72rem;padding:6px 0 16px">'+esc(meta.join(' · '))+'</div>';
+
+  document.getElementById('sections-container').innerHTML=html;
 }
 
 // ── Sidebar helpers ──
@@ -447,7 +614,6 @@ function togglePin(){
   localStorage.setItem('sb_pinned',pinned?'1':'0');
   document.getElementById('pin-btn').style.color=pinned?'var(--brand)':'rgba(255,255,255,.35)';
 }
-// Restore pin state from localStorage
 (function(){
   if(localStorage.getItem('sb_pinned')==='1'){
     document.body.classList.add('pinned');
@@ -455,35 +621,31 @@ function togglePin(){
   }
 })();
 
-// ── Random "Try:" sample vehicles (only ones with an actionable draft JC) ──
+// ── Random "Try:" samples (vehicles with an active draft JC) ──
 async function loadSamples(){
   try{
-    // Prefer vehicles that actually have a draft JC (latest_draft_jc not null) so
-    // clicking a sample renders a real verdict rather than "No JC found".
     var h={headers:{apikey:ANON_KEY,Authorization:'Bearer '+K}};
-    var r=await fetch(SB_URL+'/rest/v1/jc_approval_status?select=reg_number&latest_draft_jc=not.is.null&limit=100', h);
+    var r=await fetch(SB_URL+'/rest/v1/jc_approval_status?select=reg_number&latest_draft_jc=not.is.null&limit=100',h);
     if(!r.ok)return;
     var rows=await r.json();
     if(!rows||rows.length<3)return;
-    // Fisher–Yates shuffle, take 3.
     for(var i=rows.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=rows[i];rows[i]=rows[j];rows[j]=t;}
     var picks=rows.slice(0,3).map(function(x){return x.reg_number;});
-    var hintEl=document.getElementById('hint-area');
-    if(hintEl)hintEl.innerHTML='Try: '+picks.map(function(rg){return '<span class="ex" data-reg="'+rg+'">'+rg+'</span>';}).join(' ');
+    var el=document.getElementById('hint-area');
+    if(el)el.innerHTML='Try: '+picks.map(function(rg){return '<span class="ex" data-reg="'+esc(rg)+'">'+esc(rg)+'</span>';}).join(' ');
   }catch(e){}
 }
 
-// Delegated click for the Try pills.
 document.addEventListener('click',function(e){
   var ex=e.target.closest&&e.target.closest('.ex');
   if(ex&&ex.dataset.reg){document.getElementById('reg-input').value=ex.dataset.reg;runCheck();}
 });
 
-// ── Last-synced line (from the freshest refreshed_at) ──
+// ── Last-synced line ──
 async function loadSyncTime(){
   try{
     var h={headers:{apikey:ANON_KEY,Authorization:'Bearer '+K}};
-    var r=await fetch(SB_URL+'/rest/v1/jc_approval_status?select=refreshed_at&order=refreshed_at.desc&limit=1', h);
+    var r=await fetch(SB_URL+'/rest/v1/jc_approval_status?select=refreshed_at&order=refreshed_at.desc&limit=1',h);
     if(!r.ok)return;
     var rows=await r.json();
     if(!rows||!rows[0]||!rows[0].refreshed_at)return;
