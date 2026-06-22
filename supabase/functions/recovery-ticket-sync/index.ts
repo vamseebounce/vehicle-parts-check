@@ -203,10 +203,19 @@ Deno.serve(async (_req) => {
   let totalChanged = 0
 
   try {
+    // ── Parallel fetch Q1 + Q2 (was sequential — caused 55s+55s > 60s timeout) ──
+    const [q1Result, q2Result] = await Promise.allSettled([
+      fetch(Q1_URL, { signal: AbortSignal.timeout(45000) }).then(r => r.ok ? r.text() : Promise.reject(new Error(`Q1 ${r.status}`))),
+      fetch(Q2_URL, { signal: AbortSignal.timeout(45000) }).then(r => r.ok ? r.text() : Promise.reject(new Error(`Q2 ${r.status}`))),
+    ])
+
+    const q1Text = q1Result.status === 'fulfilled' ? q1Result.value : null
+    const q2Text = q2Result.status === 'fulfilled' ? q2Result.value : null
+    if (q1Result.status === 'rejected') console.error('Q1 fetch failed:', (q1Result as PromiseRejectedResult).reason?.message)
+    if (q2Result.status === 'rejected') console.error('Q2 fetch failed:', (q2Result as PromiseRejectedResult).reason?.message)
+
     // ── STEP 1: New ticket creation (Q1) ──────────────────────────────────────
-    const q1Res = await fetch(Q1_URL, { signal: AbortSignal.timeout(55000) })
-    if (!q1Res.ok) throw new Error(`Q1 fetch failed: ${q1Res.status}`)
-    const q1Rows = parseCSV(await q1Res.text())
+    const q1Rows = q1Text ? parseCSV(q1Text) : []
 
     if (q1Rows.length > 0) {
       // Load blocked vehicles set
@@ -350,12 +359,9 @@ Deno.serve(async (_req) => {
     }
 
     // ── STEP 2: Open ticket reconciliation (Q2) ───────────────────────────────
-    const q2Res = await fetch(Q2_URL, { signal: AbortSignal.timeout(55000) })
-    if (!q2Res.ok) throw new Error(`Q2 fetch failed: ${q2Res.status}`)
-    const q2Text = await q2Res.text()
-
+    // q2Text already fetched in parallel with Q1 above
     // Q2 returns invalid-query if table not ready — handle gracefully
-    if (!q2Text.includes('invalid-query') && !q2Text.includes('error')) {
+    if (q2Text && !q2Text.includes('invalid-query') && !q2Text.includes('error')) {
       const q2Rows = parseCSV(q2Text)
 
       for (const row of q2Rows) {
