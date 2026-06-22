@@ -617,9 +617,12 @@ async function readCache(){
   return res.ok?await res.json():[];
 }
 async function loadZones(){
-  var url=SB_URL+'/rest/v1/zone_configs?select=zone_label,hunter_id,city_id,boundary_polygon&date=eq.'+todayStr();
+  var url=SB_URL+'/rest/v1/zone_configs?select=zone_label,hunter_id,city_id,boundary_polygon,date&date=lte.'+todayStr()+'&order=date.desc&limit=12';
   var res=await fetch(url,{headers:{apikey:ANON_KEY,Authorization:'Bearer '+K}});
-  _zones=res.ok?await res.json():[];
+  var allZones=res.ok?await res.json():[];
+  // Keep only the most-recent date's rows (avoids blanks during midnight–cron gap)
+  var latestDate=allZones.length?allZones[0].date:null;
+  _zones=latestDate?allZones.filter(function(z){return z.date===latestDate;}):[];
 }
 async function loadHubs(){
   hubGroup.clearLayers();
