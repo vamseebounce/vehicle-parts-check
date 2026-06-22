@@ -1,5 +1,26 @@
 # Fleetpro — Context File
-*Last updated: 2026-06-20 (session 17 — sync audit: backends verified LIVE; fixed git source-of-truth confusion; jc-approval source committed)*
+*Last updated: 2026-06-22 (session 18 — Deployment Queue upgrade: blocked bikes in cache, real scores, All Hubs view, 5-min auto-refresh)*
+
+## 🆕 2026-06-22 — Deployment Queue Upgrade
+
+### Metabase queries updated
+- **Fleet Deployment Queue Q1 (`fea85b30`)**: added `blocked_bikes` CTE (bikes blocked for a waiting customer via `booking.id = booking.first_booking`); `bike_base` filter now includes blocked bikes; `vehicle_metrics` relaxed to include blocked bikes even without `rfd_start_dt` (defaults `rfd_age_days` to 0); `COALESCE(..., 0)` on `fifo_score` and `allotment_score` so all-zero groups show `0.000` not `—`; final WHERE allows `LOWER(rental_status) LIKE 'blocked for booking%'` regardless of `deploy_rank`.
+- **Fleet Pending Bookings** (pending_bookings_cache source): added `AND b.id = b.first_booking` to exclude renewal bookings; added `AND (b.bike_id IS NULL OR LOWER(bk_cur.reg_number) NOT LIKE '%test%')` to exclude test bikes.
+
+### `deployment.html` commits pushed 2026-06-22
+| Commit | What changed |
+|--------|-------------|
+| `42673d3` | Stats tiles reset to zero when hub empty; allocated bikes shown in kanban (initial synthetic approach) |
+| cleanup | Removed synthetic allocBikes; blocked bikes now from cache with real scores; `computeRowStatus` uses real cached score via `assigned_reg` lookup |
+| `fe61f4f` | `computeRowStatus` excludes blocked bikes from `pipelineBikes` (swap suggestion vs RFD only) |
+| `ef7ae05` | Real guardrail (OK/STARVATION/OVERUSE) on allocated bikes + small blue "🔵 Allocated" tag; "All Hubs" dropdown; hub tag on cards; `last_hub` localStorage; Allocate tab conditional for All Hubs |
+| (auto-refresh) | 5-min `setInterval` inside `loadQueue()`; `visibilitychange` pauses/resumes |
+
+### Deployment Queue — current behaviour (2026-06-22)
+- **Pipeline**: kanban by model+tier; blocked bikes show real guardrail + Allocated tag; All Hubs shows 134 bikes.
+- **Allocate**: pending customers excluding renewals and test bikes; swap suggestion uses real cache score; cross-hub suggestions suppressed in All Hubs mode.
+- **Cache**: `refresh-deployment-cache` pg_cron job 6 every 15 min. Last manual trigger: 134 bikes, 55 customers, 4.1s.
+- **Swap logic verified via SQL**: Indirapuram has 2 swap candidates; RR Nagar has 1; Hebbal all Fine.
 
 ## 🔎 2026-06-20 — Sync Audit (corrects the stale "PENDING DEPLOY" notes below)
 
@@ -21,6 +42,36 @@ Audited live DB + the real GitHub repo. Findings:
   AND both roster tables are empty (`roster_template`/`roster_overrides` = 0 rows).
   No roster → no hunter assignment → no zones. Roster UI is an unbuilt Phase 2 item.
 - **`recovery-ticket-sync` DOES write heartbeats** (off-hours guard skips midnight–6am IST).
+
+### 2026-06-22 — Stale-clone trap (Cowork) + multi-window framework
+- **Incident:** Cowork computed "what's in sync" from a `/tmp/fleetpro-push` clone that was
+  15 commits behind, falsely reporting 5 files as unpushed. Pushing from it would have
+  REVERTED real commits. Recovered by re-cloning fresh. **Rule (now in COWORK-PRIMER):
+  always delete + re-clone `/tmp/fleetpro-push` before any push or sync-check — never reuse.**
+- **Live HEAD verified `d4e7265`.** Everything (T&H, jc-approval, doc reconciliation) is pushed
+  and in sync; local == Cowork == repo, all locks free.
+- **Framework for every window/session:** machine-global `~/.claude/CLAUDE.md` (loads in every
+  Claude Code session), per-dir `CLAUDE.md` + Stop hook, `LOCKS.md` protocol, and
+  `../START-HERE.md` (paste-prompts: START on open, END on close). Cowork bridged by
+  `../docs/COWORK-PRIMER.md` (it can't auto-load CLAUDE.md).
+
+### 2026-06-22 — Deployment Queue (deployment.html) iteration
+Commits 42673d3 → b512a21 (all live). Net behaviour:
+- **Allocated bikes** now read from `deployment_queue_cache` directly (real `allotment_score` /
+  `guardrail`, detected via `rental_status` starts-with `'blocked for booking'`). The earlier
+  synthetic `allocBikes`-from-`pending_bookings_cache` approach + `computeApproxScore()` were removed.
+- Cards show the **real guardrail** (OK/STARVATION/OVERUSE) plus a small blue 🔵 Allocated tag.
+- `computeRowStatus` excludes blocked bikes from the "better option" pipeline comparison.
+- **"All Hubs" view** (`value='all'`): conditional hub filter in `loadQueue` + `loadAllocList`,
+  📍 hub tag on cards, saved hub in `localStorage('last_hub')` (default `all`). Edge case: the
+  Allocate "better option" suggestion returns null in all-hubs mode (no cross-hub suggestions — intentional).
+- **5-min auto-refresh** armed inside `loadQueue()`; pauses on tab-hidden, refreshes+rearms on visible.
+- Dead code left in place (out of scope): `computeBikeTier()` now unused.
+
+**PENDING (not done this session):** Metabase card `fea85b30` `fifo_score`/`allotment_score`
+COALESCE fix — must be applied in the Metabase UI (not repo-editable). Local source-of-record
+`sql/fleet/Fleet_Deployment_Queue.sql` already fixed (outer repo, uncommitted). After the card is
+fixed, trigger `refresh-deployment-cache` to rebuild scores.
 
 
 ## 🏗 Architecture Roadmap (session 5)
@@ -306,7 +357,7 @@ Metabase (card f79c5050, last 30 days) → rsa-ticket-sync edge fn (v9) → rsa_
 | `rsa_team_locations` | append-only, **partitioned by month on synced_at** | Nishanth/Pavan GPS trail. PK: (id, synced_at). Partitions: _2026_06, _2026_07, _default. Old table kept as rsa_team_locations_old. |
 | `rsa_ticket_locations` | append-only, **partitioned by month on synced_at** | Per-ticket bike movement trail for open tickets. PK: (id, synced_at). Same partition structure. Old table kept as rsa_ticket_locations_old. |
 | `partition_archive_log` | archive log | One row per archived partition: table_name, partition_name, row_count, file_bytes, storage_path, archived_at |
-| `rental_locations` | 15 | Bounce hub locations (Bangalore) |
+| `rental_locations` | 15 | Bounce hub locations (NCR only, city_id=1) — BLR/HYD hub data not yet imported |
 | `oos_work_queue` | 570 | OOS job queue |
 | `dms_jc_history` | — | Job card history |
 | `vehicle_parts_check_flag` | 10,563 | Maintenance check data |
@@ -418,7 +469,7 @@ Feature keys: `fw-map` · `rsa-warroom` · `tech-app` · `admin-panel` · `expor
 ---
 
 ## Key Gotchas
-1. `rental_locations` has 15 rows (Bangalore hubs, city_id=1, status=active) — hub fetch works
+1. `rental_locations` has 15 rows (NCR hubs, city_id=1, status=active) — BLR/HYD hub data not yet imported. BLR/HYD bikes at Mark Found will get no hub_id (distance guard rejects >75km matches)
 2. RSA city codes from Metabase: `BLR`, `NCR` (Delhi). `HYD` filter ready; no HYD tickets yet.
 3. Metabase date params don't work via URL query string — edge fn fetches ALL tickets, filters by `Created_at_IST` in Deno
 4. `_syncLock` in fw-map.html prevents edge fn call pile-up (Metabase takes 30-60s)
