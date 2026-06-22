@@ -211,8 +211,10 @@ Deno.serve(async (_req) => {
 
     const q1Text = q1Result.status === 'fulfilled' ? q1Result.value : null
     const q2Text = q2Result.status === 'fulfilled' ? q2Result.value : null
-    if (q1Result.status === 'rejected') console.error('Q1 fetch failed:', (q1Result as PromiseRejectedResult).reason?.message)
-    if (q2Result.status === 'rejected') console.error('Q2 fetch failed:', (q2Result as PromiseRejectedResult).reason?.message)
+    const q1Err = q1Result.status === 'rejected' ? (q1Result as PromiseRejectedResult).reason?.message : null
+    const q2Err = q2Result.status === 'rejected' ? (q2Result as PromiseRejectedResult).reason?.message : null
+    if (q1Err) console.error('Q1 fetch failed:', q1Err)
+    if (q2Err) console.error('Q2 fetch failed:', q2Err)
 
     // ── STEP 1: New ticket creation (Q1) ──────────────────────────────────────
     const q1Rows = q1Text ? parseCSV(q1Text) : []
@@ -427,8 +429,11 @@ Deno.serve(async (_req) => {
     try { cached = await rebuildHoCache(sb) }
     catch (e: any) { console.error('rebuildHoCache failed:', e?.message) }
 
-    await writeHeartbeat(sb, 'ok', Date.now() - t0, totalChanged)
-    return new Response(JSON.stringify({ ok: true, changed: totalChanged, cached }), {
+    // Derive heartbeat status from fetch outcomes
+    const fetchErrors = [q1Err && `Q1: ${q1Err}`, q2Err && `Q2: ${q2Err}`].filter(Boolean).join('; ')
+    const hbStatus = (q1Err && q2Err) ? 'error' : (q1Err || q2Err) ? 'partial' : 'ok'
+    await writeHeartbeat(sb, hbStatus, Date.now() - t0, totalChanged, fetchErrors || null)
+    return new Response(JSON.stringify({ ok: hbStatus !== 'error', changed: totalChanged, cached, fetchErrors: fetchErrors || null }), {
       headers: { 'Content-Type': 'application/json' }
     })
 
