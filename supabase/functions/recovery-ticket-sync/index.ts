@@ -97,6 +97,16 @@ function str(v: string | undefined): string | null {
   return (!v || v === '' || v === 'null') ? null : v
 }
 
+// recovery_tickets.user_id is a uuid column, but the Q1 'user_id' field is a
+// numeric booking user id (e.g. "447673") — inserting it throws
+// "invalid input syntax for type uuid" and fails the WHOLE batch. Coerce to
+// null unless it's a genuine uuid. (To actually persist the numeric id, the
+// column type would need to change — separate migration.)
+function uuidOrNull(v: string | undefined): string | null {
+  const s = str(v)
+  return (s && /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(s)) ? s : null
+}
+
 // Resolve the marked-at instant as a true UTC ISO string.
 // Prefers marked_at_utc; if only marked_at_ist (IST wall-clock, no tz) is
 // present, interprets it as +05:30 and converts to UTC — never stores IST raw.
@@ -218,6 +228,21 @@ Deno.serve(async (_req) => {
 
     // ── STEP 1: New ticket creation (Q1) ──────────────────────────────────────
     const q1Rows = q1Text ? parseCSV(q1Text) : []
+    const diag: any = {
+      q1TextLen: q1Text?.length ?? 0,
+      q1Rows: q1Rows.length,
+      q1Headers: q1Text ? q1Text.split('\n')[0]?.split(',').slice(0,5) : [],
+      existingAnchorCount: 0,
+      skippedNoId: 0,
+      skippedBlocked: 0,
+      skippedExists: 0,
+      skippedNoBikeId: 0,
+      skippedNoDate: 0,
+      toInsertCount: 0,
+      insertErrors: [] as string[],
+      sampleRow: null as any,
+    }
+    console.log(`Q1: text=${q1Text ? q1Text.length + 'b' : 'null'} rows=${q1Rows.length} firstLine=${q1Text?.split('\n')[0]?.slice(0,80) ?? 'null'}`)
 
     if (q1Rows.length > 0) {
       // Load blocked vehicles set
@@ -227,30 +252,33 @@ Deno.serve(async (_req) => {
       const blockedSet = new Set((blocked ?? []).map((r: any) => r.reg_number.trim().toUpperCase()))
 
       // Load existing open tickets to avoid duplicates (anchor = source_ops_log_id)
-      const { data: existingTickets } = await sb
+      const { data: existingTickets, error: existingErr } = await sb
         .from('recovery_tickets')
         .select('source_ops_log_id')
         .not('status', 'in', '("cancelled","at_hub")')
+      if (existingErr) console.error('existingTickets query error:', existingErr.message)
       const existingAnchors = new Set((existingTickets ?? []).map((t: any) => String(t.source_ops_log_id)))
+      diag.existingAnchorCount = existingAnchors.size
+      console.log(`existingAnchors size=${existingAnchors.size}`)
 
       const toInsert: any[] = []
       for (const row of q1Rows) {
         const regNumber = str(row['reg_number'])
         const sourceOpsLogId = str(row['source_ops_log_id'])
-        if (!regNumber || !sourceOpsLogId) continue
-        if (blockedSet.has(regNumber.toUpperCase())) continue
-        if (existingAnchors.has(sourceOpsLogId)) continue
+        if (!regNumber || !sourceOpsLogId) { diag.skippedNoId++; if (!diag.sampleRow) diag.sampleRow = { reason: 'noId', keys: Object.keys(row).slice(0,5), reg: row['reg_number'], id: row['source_ops_log_id'] }; continue }
+        if (blockedSet.has(regNumber.toUpperCase())) { diag.skippedBlocked++; continue }
+        if (existingAnchors.has(sourceOpsLogId)) { diag.skippedExists++; continue }
 
         const bikeId = num(row['bike_id'])
-        if (!bikeId) continue
+        if (!bikeId) { diag.skippedNoBikeId++; continue }
 
         const markedAtUtc = resolveMarkedAtUtc(str(row['marked_at_utc']), str(row['marked_at_ist']))
-        if (!markedAtUtc) continue
+        if (!markedAtUtc) { diag.skippedNoDate++; if (!diag.sampleRow) diag.sampleRow = { reason: 'noDate', id: sourceOpsLogId, utc: row['marked_at_utc'], ist: row['marked_at_ist'] }; continue }
 
         toInsert.push({
           bike_id:            bikeId,
           source_ops_log_id:  Number(sourceOpsLogId),
-          user_id:            str(row['user_id']), // latest booking's user_id from Q1
+          user_id:            uuidOrNull(row['user_id']), // numeric booking user id is NOT a uuid → null (col is uuid)
           marked_at_utc:      markedAtUtc,
           status:             'marked',
           call_status:        'none',
@@ -265,14 +293,16 @@ Deno.serve(async (_req) => {
           referred_count:     num(row['referred_count']) ?? 0,
         })
       }
+      diag.toInsertCount = toInsert.length
 
+      console.log(`toInsert count=${toInsert.length} sample_ids=${toInsert.slice(0,3).map(t=>t.source_ops_log_id).join(',')}`)
       if (toInsert.length > 0) {
         const BATCH = 100
         for (let i = 0; i < toInsert.length; i += BATCH) {
           const { error } = await sb
             .from('recovery_tickets')
             .insert(toInsert.slice(i, i + BATCH))
-          if (error) console.error('Q1 insert error:', error.message)
+          if (error) { console.error('Q1 insert error:', error.message, 'batch=', i, toInsert.slice(i,i+BATCH).map(t=>t.source_ops_log_id)); diag.insertErrors.push(error.message) }
           else totalChanged += toInsert.slice(i, i + BATCH).length
         }
 
@@ -431,15 +461,16 @@ Deno.serve(async (_req) => {
 
     // Derive heartbeat status from fetch outcomes
     const fetchErrors = [q1Err && `Q1: ${q1Err}`, q2Err && `Q2: ${q2Err}`].filter(Boolean).join('; ')
-    const hbStatus = (q1Err && q2Err) ? 'error' : (q1Err || q2Err) ? 'partial' : 'ok'
+    // sync_heartbeats CHECK allows only 'success'/'failure'. Any failed fetch → failure (with detail).
+    const hbStatus = (q1Err || q2Err) ? 'failure' : 'success'
     await writeHeartbeat(sb, hbStatus, Date.now() - t0, totalChanged, fetchErrors || null)
-    return new Response(JSON.stringify({ ok: hbStatus !== 'error', changed: totalChanged, cached, fetchErrors: fetchErrors || null }), {
+    return new Response(JSON.stringify({ ok: hbStatus === 'success', changed: totalChanged, cached, fetchErrors: fetchErrors || null, diag }), {
       headers: { 'Content-Type': 'application/json' }
     })
 
   } catch (err: any) {
     console.error('recovery-ticket-sync error:', err)
-    await writeHeartbeat(sb, 'error', Date.now() - t0, null, err.message)
+    await writeHeartbeat(sb, 'failure', Date.now() - t0, null, err.message)
     return new Response(JSON.stringify({ error: err.message }), {
       status: 500, headers: { 'Content-Type': 'application/json' }
     })
