@@ -316,6 +316,7 @@ body{font-family:'Inter',sans-serif;background:#F8FAFC;color:#1E293B;height:100v
     <div class="lp-row"><label style="display:flex;align-items:center;gap:7px;cursor:pointer"><input type="checkbox" id="lyr-zones" checked onchange="toggleLayer('zones')" style="accent-color:#6366F1"/><div class="lp-dot" style="background:#6366F1;border-radius:3px"></div>Zone boundaries</label></div>
     <div class="lp-row"><label style="display:flex;align-items:center;gap:7px;cursor:pointer"><input type="checkbox" id="lyr-hubs" checked onchange="toggleLayer('hubs')" style="accent-color:#E8191C"/><div class="lp-dot" style="background:#E8191C;border-radius:3px"></div>Bounce Hubs</label></div>
     <div class="lp-row"><label style="display:flex;align-items:center;gap:7px;cursor:pointer"><input type="checkbox" id="lyr-hunters" checked onchange="toggleLayer('hunters')" style="accent-color:#1D4ED8"/><div class="lp-dot" style="background:#1D4ED8"></div>Hunters (live)</label></div>
+    <div class="lp-row"><label style="display:flex;align-items:center;gap:7px;cursor:pointer"><input type="checkbox" id="lyr-team" checked onchange="toggleLayer('team')" style="accent-color:#059669"/><div class="lp-dot" style="background:#059669;border-radius:50%"></div>Team vehicles</label></div>
   </div>
   <div id="legend">
     <div class="leg-title">Age in Recovery</div>
@@ -379,7 +380,23 @@ var zoneLayer=L.layerGroup().addTo(leafMap);
 var ticketGroup=L.layerGroup().addTo(leafMap);
 var hubGroup=L.layerGroup().addTo(leafMap);
 var hunterGroup=L.layerGroup().addTo(leafMap);
+var teamGroup=L.layerGroup().addTo(leafMap);
 var _trackLayer=L.layerGroup().addTo(leafMap);
+
+// Ground team vehicles (Recovery Dashboard config sheet → bike_location_cache GPS)
+var TEAM_VEHICLES={
+  'DL9SCU9465':{name:'Inder',city:'NCR'},
+  'DL9SCU9429':{name:'Nithin',city:'NCR'},
+  'DL9SCV3472':{name:'Amit',city:'NCR'},
+  'DL9EV7824':{name:'Udit',city:'NCR'},
+  'UP32QC5665':{name:'Danish',city:'NCR'},
+  'KA05AR1313':{name:'Chandru',city:'BLR'},
+  'KA05AP9442':{name:'Harish',city:'BLR'},
+  'KA05AR3785':{name:'Pavan',city:'BLR'},
+  'KA05AQ1187':{name:'Yogesh',city:'BLR'},
+  'KA05AR6033':{name:'Manju',city:'BLR'},
+  'KA05AR3390':{name:'Tameem',city:'BLR'}
+};
 
 var CITY_CONFIG={
   'NCR':{id:1,center:[28.6139,77.2090],zoom:11,bounds:[[28.30,76.80],[28.95,77.70]]},
@@ -618,6 +635,35 @@ async function loadHunterDots(){
   var rows=res.ok?await res.json():[];
   rows.forEach(function(r){if(!validLL(r.lat,r.lng))return;L.marker([r.lat,r.lng],{icon:makeHunterIcon(hunterLabel(r.hunter_id)),zIndexOffset:1000}).bindPopup('<div style="font-family:Inter,sans-serif;font-size:13px"><b style="color:#1D4ED8">📱 '+hunterLabel(r.hunter_id)+'</b><br>Last ping: '+fmtTime(r.synced_at)+' IST</div>').addTo(hunterGroup);});
 }
+function makeTeamVehicleIcon(name){
+  var init=(name||'?').charAt(0).toUpperCase();
+  var svg='<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32">'
+    +'<circle cx="16" cy="16" r="13" fill="#059669" stroke="#fff" stroke-width="2.5"/>'
+    +'<text x="16" y="21" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="13" font-weight="800" fill="#fff">'+init+'</text>'
+    +'</svg>';
+  return L.divIcon({html:svg,className:'',iconSize:[32,32],iconAnchor:[16,16]});
+}
+async function loadTeamVehicles(){
+  if(!K||K===ANON_KEY)return;
+  teamGroup.clearLayers();
+  var regs=Object.keys(TEAM_VEHICLES);
+  var url=SB_URL+'/rest/v1/bike_location_cache?select=reg_number,lat,lng,baas_location_time&reg_number=in.('+regs.join(',')+')';
+  try{
+    var res=await fetch(url,{headers:{apikey:ANON_KEY,Authorization:'Bearer '+K}});
+    var rows=res.ok?await res.json():[];
+    rows.forEach(function(r){
+      var info=TEAM_VEHICLES[r.reg_number];
+      if(!info||!validLL(+r.lat,+r.lng))return;
+      L.marker([+r.lat,+r.lng],{icon:makeTeamVehicleIcon(info.name),zIndexOffset:900})
+        .bindPopup('<div style="font-family:Inter,sans-serif;font-size:13px">'
+          +'<b style="color:#059669">🏍 '+info.name+'</b>'
+          +'<br><span style="color:#6B7280;font-size:11px">'+r.reg_number+'</span>'
+          +'<br><span style="font-size:11px">GPS: '+gpsAgeStr(r.baas_location_time)+'</span>'
+          +'</div>')
+        .addTo(teamGroup);
+    });
+  }catch(e){console.warn('[team-vehicles] GPS fetch error',e);}
+}
 
 async function fetchAndLoad(forceSync){
   if(!K||K===ANON_KEY)return;
@@ -693,7 +739,7 @@ function closeNoGpsPanel(){document.getElementById('nogps-panel').classList.remo
 // ── Layers ──
 function toggleLayersPanel(){document.getElementById('layers-panel').classList.toggle('show');}
 function toggleLayer(key){
-  var chk=document.getElementById('lyr-'+key);var grp={zones:zoneLayer,hubs:hubGroup,hunters:hunterGroup}[key];
+  var chk=document.getElementById('lyr-'+key);var grp={zones:zoneLayer,hubs:hubGroup,hunters:hunterGroup,team:teamGroup}[key];
   if(!grp)return;chk.checked?leafMap.addLayer(grp):leafMap.removeLayer(grp);
 }
 document.addEventListener('click',function(e){var p=document.getElementById('layers-panel');if(p.classList.contains('show')&&!p.contains(e.target)&&!e.target.closest('.layers-toggle'))p.classList.remove('show');});
@@ -745,9 +791,9 @@ async function activateSession(session){
   hideAuthScreen();
   document.getElementById('logout-btn').style.display='block';
   _authReady=true;
-  setTimeout(function(){fetchAndLoad(false);loadHubs();loadHunterDots();},400);
+  setTimeout(function(){fetchAndLoad(false);loadHubs();loadHunterDots();loadTeamVehicles();},400);
   if(_refreshTimer)clearInterval(_refreshTimer);
-  _refreshTimer=setInterval(function(){if(document.hidden)return;fetchAndLoad(false);loadHunterDots();},60000);
+  _refreshTimer=setInterval(function(){if(document.hidden)return;fetchAndLoad(false);loadHunterDots();loadTeamVehicles();},60000);
 }
 (async function(){
   try{var{data:{session}}=await sbClient.auth.getSession();if(session)await activateSession(session);else{_authReady=true;showAuthScreen();}}
