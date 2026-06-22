@@ -32,6 +32,43 @@ git add . && git commit -m "<msg>" && git push origin main
 
 **PAT**: Never commit to any file. Pass inline to clone URL only.
 
+## 🚀 Cowork → Claude Code deploy handoff (MANDATORY)
+
+After saving any file change, **Cowork must immediately write a clipboard prompt** for
+Claude Code to execute the push — no exceptions, no asking the user for the PAT.
+
+Pattern Cowork always follows:
+1. Save file(s) to the workspace folder.
+2. Write this prompt to clipboard (`write_clipboard`) with `<PAT>` as a literal placeholder:
+
+```
+cd /tmp && rm -rf fleetpro-push
+git clone https://<PAT>@github.com/vamseebounce/vehicle-parts-check.git fleetpro-push
+cp "/Users/vamsee/Desktop/Scalability/Bounce/fleetpro/v8/<file>" /tmp/fleetpro-push/v8/<file>
+cd /tmp/fleetpro-push
+
+# ── JS syntax check (runs before every push) ──
+node -e "
+const fs=require('fs'),cp=require('child_process');
+const html=fs.readFileSync('v8/<file>','utf8');
+const blocks=[...html.matchAll(/<script(?![^>]*src)[^>]*>([\s\S]*?)<\/script>/gi)].map(m=>m[1]);
+blocks.forEach((js,i)=>{
+  fs.writeFileSync('/tmp/_jscheck.js',js);
+  const r=cp.spawnSync('node',['--check','/tmp/_jscheck.js'],{encoding:'utf8'});
+  if(r.status!==0){console.error('❌ JS block '+(i+1)+' syntax error:\n'+r.stderr);process.exit(1);}
+  console.log('✅ JS block '+(i+1)+' OK');
+});
+console.log('All checks passed — proceeding to push');
+" || exit 1
+
+git add . && git commit -m "<short description>" && git push origin main
+```
+
+3. Tell the user: "Prompt is in your clipboard — paste into Claude Code, replace `<PAT>`. Claude Code will syntax-check JS before pushing."
+
+**Never ask the user for their PAT. Never expect the PAT to come to Cowork.**
+The user fills in `<PAT>` themselves in the Claude Code terminal.
+
 ## Tech Stack
 
 - Vanilla HTML/JS/CSS — no build step, no npm
@@ -129,17 +166,21 @@ Uses `Prefer: count=exact` + `Range: 0-0` header to get counts without fetching 
 
 Full spec in `Trace and Hunter/context.md`.
 
-> **2026-06-18 — work PAUSED here.** Two passes landed in code & pushed to GitHub, but **NOT yet applied/deployed to Supabase**:
+> **2026-06-18 — Phase 1 fully deployed.** Two code passes pushed to GitHub and all Supabase changes applied:
 > 1. **Bug-fix pass** (commits `6410c87`, `056c837`): 14 Phase-1 fixes — Hunter actions, auth alignment, HO map/stats, Voronoi zones, `marked_at_utc` tz, RLS ownership, `user_id`.
-> 2. **RSA-clone rebuild** (commit `1847e69`): `trace-ho.html` rebuilt from `rsa.html` as a faithful clone + a Micro-RAM cache architecture (HO reads one pre-joined `recovery_tickets_cache`; the GPS join moved into the edge fn). New `hunter_locations` for live agent dots. Hunter PWA got `parseUtcTs` (Safari fix) + breadcrumb writes.
+> 2. **RSA-clone rebuild** (commit `1847e69`): `trace-ho.html` rebuilt from `rsa.html` — Micro-RAM cache architecture, `hunter_locations`, `parseUtcTs` Safari fix, breadcrumb writes.
 >
-> **PENDING DEPLOY (do this in Supabase before the dashboard works):**
-> - Apply migrations `…0004` (photo bucket), `…0005` (RLS ownership), **`…0006` (recovery_tickets_cache + hunter_locations) — HO dashboard is blank until this is applied + the edge fn has run once**.
-> - Redeploy edge fns `zone-cluster` (now imports d3-delaunay) and `recovery-ticket-sync` (now rebuilds the cache).
-> - Re-publish Metabase Q1 (`8ef20d85…`) so it emits `marked_at_utc` + `user_id` (edge fn has a safe fallback for both, so non-blocking).
-> - Optional: schedule `cleanup_hunter_locations()` (monthly cron).
+> **Supabase deploy status (verified 2026-06-22):**
+> - ✅ Migrations 0002–0006 all applied (`recovery_tickets_cache`, `hunter_locations`, `hunter_locations_latest` view, RLS ownership policy, `recovery-photos` bucket)
+> - ✅ Edge fns `zone-cluster` (d3-delaunay) and `recovery-ticket-sync` (cache rebuild) redeployed
+> - ✅ Metabase Q1 re-published with `marked_at_utc` + `user_id`
+> - ⚠️ `rental_locations` only has NCR hubs (city_id=1) — BLR/HYD hub data not imported; hub layer only shows NCR pins
+> - ⚠️ `roster_template` empty — zone-cluster assigns no hunters (k=4 default); Phase 2 roster UI will populate this
+> - ⚠️ `recovery_tickets.city_id` all NULL — safe, do not populate from DMS city_id without verifying mapping
 >
-> **2026-06-19 — hotfix deployed (commit `6ca86db`, frontend-only):** `trace-ho.html` gained a `validLL()` India-bbox guard on every map marker / `fitBounds` path. Fixes the map zooming out to world view when one ticket had bad GPS (`0,0` / swapped / out-of-range). No Supabase change — independent of the paused deploy above.
+> **2026-06-19 — hotfix** (commit `6ca86db`): `trace-ho.html` `validLL()` India-bbox guard on all map paths.
+>
+> **2026-06-22 — additional fixes** (commits `37a9033`, `cc4481c`, `330db7d`, `fb9d3cd`): Hunter PWA `validLL` bug, team vehicles layer, zone morning-gap fix, refresh/recenter/track UX fixes.
 
 ### Phase 1 — Core Ops
 
