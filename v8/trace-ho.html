@@ -230,7 +230,7 @@ body{font-family:'Inter',sans-serif;background:#F8FAFC;color:#1E293B;height:100v
     <div class="ms-dropdown">
       <div class="ms-actions"><button class="ms-action-btn" onclick="msSelectAll('ms-city')">All</button><button class="ms-action-btn" onclick="msClear('ms-city')">Clear</button></div>
       <div class="ms-opt"><input type="checkbox" id="c-ncr" value="NCR" onchange="renderTickets()"/><label for="c-ncr">🏙 Delhi NCR</label></div>
-      <div class="ms-opt"><input type="checkbox" id="c-blr" value="BLR" onchange="renderTickets()"/><label for="c-blr">🏙 Bangalore</label></div>
+      <div class="ms-opt"><input type="checkbox" id="c-blr" value="BLR" checked onchange="renderTickets()"/><label for="c-blr">🏙 Bangalore</label></div>
       <div class="ms-opt"><input type="checkbox" id="c-hyd" value="HYD" onchange="renderTickets()"/><label for="c-hyd">🏙 Hyderabad</label></div>
     </div>
   </div>
@@ -789,10 +789,8 @@ async function loadAndApplyPermissions(session){
 
 // ── Boot ──
 (function(){
-  // Default marked-date range: last 60 days → today (covers all open tickets; old ones persist)
-  var to=todayStr();var fromD=new Date(Date.now()+5.5*3600000);fromD.setDate(fromD.getDate()-60);
-  document.getElementById('date-to').value=to;
-  document.getElementById('date-from').value=fromD.toISOString().slice(0,10);
+  // Default: no from-date (show all open tickets regardless of age) → to=today
+  document.getElementById('date-to').value=todayStr();
 })();
 
 async function activateSession(session){
