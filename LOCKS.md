@@ -6,7 +6,7 @@ first. If a row is already locked by another window → **STOP and wait**. Relea
 
 | Page / Feature | Locked by | Since (UTC) | Note |
 |---|---|---|---|
-| jc-approval.html | (free) | — | — |
+| jc-approval.html | claude-cli | 2026-06-22 06:52 UTC | sectioned layout + ODO + hub + location + search norm |
 | index.html | (free) | — | — |
 | queue.html | (free) | — | — |
 | maintenance.html | (free) | — | — |
