@@ -337,7 +337,7 @@ Deno.serve(async (_req) => {
 
     if (ticketErr) throw new Error(`Failed to load tickets: ${ticketErr.message}`)
     if (!allTickets?.length) {
-      await writeHeartbeat(sb, 'ok', Date.now() - t0, 0, 'No open tickets')
+      await writeHeartbeat(sb, 'success', Date.now() - t0, 0, 'No open tickets')
       return new Response(JSON.stringify({ ok: true, note: 'No open tickets' }), {
         headers: { 'Content-Type': 'application/json' },
       })
@@ -555,7 +555,7 @@ Deno.serve(async (_req) => {
       })
     }
 
-    await writeHeartbeat(sb, 'ok', Date.now() - t0, totalAssigned)
+    await writeHeartbeat(sb, 'success', Date.now() - t0, totalAssigned)
     return new Response(
       JSON.stringify({ ok: true, total_assigned: totalAssigned, cities: cityResults }),
       { headers: { 'Content-Type': 'application/json' } }
@@ -563,7 +563,7 @@ Deno.serve(async (_req) => {
 
   } catch (err: any) {
     console.error('zone-cluster error:', err)
-    await writeHeartbeat(sb, 'error', Date.now() - t0, null, err.message)
+    await writeHeartbeat(sb, 'failure', Date.now() - t0, null, err.message)
     return new Response(JSON.stringify({ error: err.message }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' },

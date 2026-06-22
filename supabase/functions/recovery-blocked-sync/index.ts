@@ -63,7 +63,7 @@ Deno.serve(async (_req) => {
     if (!res.ok) {
       const msg = `Google Sheet fetch failed: ${res.status}`
       console.warn(msg, '— keeping existing blocked list')
-      await writeHeartbeat(sb, 'warn', Date.now() - t0, null, msg)
+      await writeHeartbeat(sb, 'failure', Date.now() - t0, null, msg)
       return new Response(JSON.stringify({ ok: false, warn: msg, kept_existing: true }), {
         headers: { 'Content-Type': 'application/json' }
       })
@@ -73,7 +73,7 @@ Deno.serve(async (_req) => {
     const lines = csvText.split('\n').filter(l => l.trim())
     if (lines.length < 2) {
       const msg = 'Sheet appears empty or header-only'
-      await writeHeartbeat(sb, 'warn', Date.now() - t0, 0, msg)
+      await writeHeartbeat(sb, 'failure', Date.now() - t0, 0, msg)
       return new Response(JSON.stringify({ ok: false, warn: msg }), {
         headers: { 'Content-Type': 'application/json' }
       })
@@ -102,7 +102,7 @@ Deno.serve(async (_req) => {
 
     if (rows.length === 0) {
       const msg = 'No valid rows parsed from sheet'
-      await writeHeartbeat(sb, 'warn', Date.now() - t0, 0, msg)
+      await writeHeartbeat(sb, 'failure', Date.now() - t0, 0, msg)
       return new Response(JSON.stringify({ ok: false, warn: msg }), {
         headers: { 'Content-Type': 'application/json' }
       })
@@ -118,14 +118,14 @@ Deno.serve(async (_req) => {
       if (insErr) throw new Error(`Insert failed at batch ${i}: ${insErr.message}`)
     }
 
-    await writeHeartbeat(sb, 'ok', Date.now() - t0, rows.length)
+    await writeHeartbeat(sb, 'success', Date.now() - t0, rows.length)
     return new Response(JSON.stringify({ ok: true, synced: rows.length }), {
       headers: { 'Content-Type': 'application/json' }
     })
 
   } catch (err: any) {
     console.error('recovery-blocked-sync error:', err)
-    await writeHeartbeat(sb, 'error', Date.now() - t0, null, err.message)
+    await writeHeartbeat(sb, 'failure', Date.now() - t0, null, err.message)
     return new Response(JSON.stringify({ error: err.message }), {
       status: 500, headers: { 'Content-Type': 'application/json' }
     })
