@@ -128,6 +128,27 @@ body{font-family:'Inter',sans-serif;background:#F8FAFC;color:#1E293B;height:100v
 .tp-leg-row{display:flex;align-items:center;gap:7px;font-size:.73rem;color:#374151;margin-bottom:4px}
 .tp-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
 
+/* Dashboard view */
+#dashboard-view{flex:1;overflow-y:auto;padding:16px;display:none;flex-direction:column;gap:14px;background:#F8FAFC}
+.dv-section{background:#fff;border:1px solid var(--border);border-radius:12px;padding:14px 16px}
+.dv-section-title{font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:#9CA3AF;margin-bottom:12px}
+.dv-kpi-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.dv-kpi{background:#F8FAFC;border-radius:10px;padding:12px 14px;border:1px solid var(--border)}
+.dv-kpi .dk-num{font-size:1.8rem;font-weight:900;line-height:1;margin-bottom:4px}
+.dv-kpi .dk-lbl{font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#6B7280}
+.dv-kpi .dk-sub{font-size:.7rem;color:#9CA3AF;margin-top:4px}
+.dv-two-col{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.dv-table{width:100%;border-collapse:collapse;font-size:.78rem}
+.dv-table th{text-align:left;font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#9CA3AF;padding:4px 8px 8px;border-bottom:1px solid var(--border)}
+.dv-table td{padding:7px 8px;border-bottom:1px solid #F1F5F9;color:#374151}
+.dv-table tr:last-child td{border-bottom:none}
+.dv-bar-wrap{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.dv-bar-label{font-size:.72rem;color:#374151;width:60px;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dv-bar{height:14px;border-radius:4px;min-width:2px;transition:width .3s}
+.dv-bar-val{font-size:.7rem;color:#6B7280;margin-left:4px}
+.view-toggle-btn{display:flex;align-items:center;gap:6px;padding:4px 11px;border-radius:8px;font-size:.74rem;font-weight:600;border:1.5px solid var(--border);background:#fff;color:#374151;cursor:pointer;font-family:'Inter',sans-serif;transition:all .15s;margin-left:8px}
+.view-toggle-btn.active{background:#EEF2FF;border-color:#6366F1;color:#4F46E5}
+
 /* Sidebar */
 #sb{position:fixed;top:0;left:0;bottom:0;width:220px;background:#fff;border-right:1px solid var(--border);z-index:800;display:flex;flex-direction:column;transform:translateX(-100%);transition:transform .22s ease;overflow-y:auto}
 #sb.open{transform:translateX(0)}
@@ -216,6 +237,8 @@ body{font-family:'Inter',sans-serif;background:#F8FAFC;color:#1E293B;height:100v
   </a>
   <span class="tb-sep">·</span>
   <span class="tb-title">🦺 RSA Warroom</span>
+  <button class="view-toggle-btn" id="view-map-btn" onclick="showView('map')" title="Map View">🗺 Map</button>
+  <button class="view-toggle-btn active" id="view-dash-btn" onclick="showView('dash')" style="display:none" title="Dashboard View">📊 Metrics</button>
   <div class="tb-right">
     <button class="tb-btn" id="logout-btn" style="display:none" onclick="signOut()">Sign out</button>
   </div>
@@ -372,6 +395,69 @@ body{font-family:'Inter',sans-serif;background:#F8FAFC;color:#1E293B;height:100v
   </div>
 </div>
 
+<!-- Dashboard view -->
+<div id="dashboard-view">
+  <div class="dv-section">
+    <div class="dv-section-title">Summary — <span id="dv-date-label">Today</span></div>
+    <div class="dv-kpi-grid">
+      <div class="dv-kpi" style="border-left:4px solid #DC2626">
+        <div class="dk-num" style="color:#DC2626" id="dv-new-cnt">—</div>
+        <div class="dk-lbl">New</div>
+        <div class="dk-sub" id="dv-new-sub"></div>
+      </div>
+      <div class="dv-kpi" style="border-left:4px solid #EA580C">
+        <div class="dk-num" style="color:#EA580C" id="dv-ip-cnt">—</div>
+        <div class="dk-lbl">In Progress</div>
+        <div class="dk-sub" id="dv-ip-sub"></div>
+      </div>
+      <div class="dv-kpi" style="border-left:4px solid #16A34A">
+        <div class="dk-num" style="color:#16A34A" id="dv-done-cnt">—</div>
+        <div class="dk-lbl">Done</div>
+        <div class="dk-sub" id="dv-done-sub"></div>
+      </div>
+      <div class="dv-kpi" style="border-left:4px solid #0369A1">
+        <div class="dk-num" style="color:#0369A1" id="dv-avg-closure">—</div>
+        <div class="dk-lbl">Avg Closure TAT</div>
+        <div class="dk-sub">Done tickets</div>
+      </div>
+      <div class="dv-kpi" style="border-left:4px solid #BE123C">
+        <div class="dk-num" style="color:#BE123C" id="dv-avg-resp">—</div>
+        <div class="dk-lbl">Avg Response TAT</div>
+        <div class="dk-sub">Created → In Progress</div>
+      </div>
+      <div class="dv-kpi" style="border-left:4px solid #7E22CE">
+        <div class="dk-num" style="color:#7E22CE" id="dv-over1hr">—</div>
+        <div class="dk-lbl">RSA &gt; 1hr %</div>
+        <div class="dk-sub">Of done tickets</div>
+      </div>
+    </div>
+  </div>
+  <div class="dv-two-col">
+    <div class="dv-section">
+      <div class="dv-section-title">By Technician</div>
+      <table class="dv-table">
+        <thead><tr><th>Technician</th><th>Total</th><th>Done</th><th>Avg TAT</th></tr></thead>
+        <tbody id="dv-tech-tbody"><tr><td colspan="4" style="color:#9CA3AF;padding:12px 8px">No data</td></tr></tbody>
+      </table>
+    </div>
+    <div class="dv-section">
+      <div class="dv-section-title">By Zone</div>
+      <table class="dv-table">
+        <thead><tr><th>Zone</th><th>Total</th><th>Done</th><th>Avg TAT</th></tr></thead>
+        <tbody id="dv-zone-tbody"><tr><td colspan="4" style="color:#9CA3AF;padding:12px 8px">No data</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+  <div class="dv-section">
+    <div class="dv-section-title">Tickets by Category</div>
+    <div id="dv-category-bars"></div>
+  </div>
+  <div class="dv-section">
+    <div class="dv-section-title">TAT Distribution (Done tickets)</div>
+    <div id="dv-tat-bars"></div>
+  </div>
+</div>
+
 <script>
 var SB_URL='https://clkfvmmlgwcvntxnolsv.supabase.co';
 var ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNsa2Z2bW1sZ3djdm50eG5vbHN2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ1NDQ2NTgsImV4cCI6MjA5MDEyMDY1OH0.FA33GFQisWX_hDeGCWqL5yAZmPcuQRdxZX32I23lyoY';
@@ -412,12 +498,19 @@ function updateDividers(){
 // State
 // Infer city from lat/lng when ticket.city is null; default to BLR if unknown
 function inferCity(t){
-  if(t.city)return t.city.toUpperCase();
+  if(t.city){
+    var c=t.city.toUpperCase().trim();
+    // Normalize full city names → short codes (CITY_CONFIG keys are BLR/NCR/HYD)
+    if(c==='BLR'||c.includes('BANGALORE')||c.includes('BENGALURU'))return 'BLR';
+    if(c==='NCR'||c.includes('DELHI')||c.includes('GURGAON')||c.includes('GURUGRAM')||c.includes('NOIDA')||c.includes('FARIDABAD'))return 'NCR';
+    if(c==='HYD'||c.includes('HYDERABAD')||c.includes('SECUNDERABAD'))return 'HYD';
+    if(CITY_CONFIG[c])return c;
+  }
   if(t.lat&&t.lng){
     for(var code in CITY_CONFIG){
-      var c=CITY_CONFIG[code];
-      if(t.lat>=c.bounds[0][0]&&t.lat<=c.bounds[1][0]&&
-         t.lng>=c.bounds[0][1]&&t.lng<=c.bounds[1][1])return code;
+      var cc=CITY_CONFIG[code];
+      if(t.lat>=cc.bounds[0][0]&&t.lat<=cc.bounds[1][0]&&
+         t.lng>=cc.bounds[0][1]&&t.lng<=cc.bounds[1][1])return code;
     }
   }
   return 'BLR'; // default: RSA currently BLR-only; re-sync will populate city properly
@@ -609,6 +702,8 @@ function renderTickets(){
   document.getElementById('cnt-ip').textContent=globalFiltered.filter(function(t){return effStatus(t)==='IN_PROGRESS';}).length;
   document.getElementById('cnt-done').textContent=globalFiltered.filter(function(t){return effStatus(t)==='DONE';}).length;
   computeMetrics(globalFiltered);
+  // Refresh dashboard if it's the active view
+  if(_currentView==='dash')renderDashboard();
   // Note: tickets without lat/lng won't show on map (Bass_Lat/Bass_Lng missing from Metabase)
   var noLoc=filtered.filter(function(t){return !t.display_lat||!t.display_lng;}).length;
   if(noLoc>0){
@@ -904,7 +999,8 @@ function onDateChange(){
 // ── Hub markers ──
 async function loadHubs(){
   try{
-    var res=await fetch(SB_URL+'/rest/v1/rental_locations?select=location_name,lat,lng,short_address&status=eq.active&city_id=eq.1',
+    // dms_code=not.is.null excludes demand hubs (only service hubs shown)
+    var res=await fetch(SB_URL+'/rest/v1/rental_locations?select=location_name,lat,lng,short_address,dms_code&status=eq.active&dms_code=not.is.null',
       {headers:{apikey:ANON_KEY,Authorization:'Bearer '+K}});
     var hubs=res.ok?await res.json():[];
     hubGroup.clearLayers();
@@ -996,12 +1092,29 @@ async function loadTeamTrack(){
     var rows=res.ok?await res.json():[];
     if(!rows.length){document.getElementById('tp-team-info').textContent='No data for this range.';btn.disabled=false;btn.textContent='Show Trail';return;}
     var pts=rows.map(function(r){return[r.lat,r.lng];});
-    // Polyline
-    L.polyline(pts,{color:'#1D4ED8',weight:2.5,opacity:0.7}).addTo(_trackLayer);
+    // Dotted polyline (dashes instead of solid line)
+    L.polyline(pts,{color:'#1D4ED8',weight:2.5,opacity:0.75,dashArray:'8,6'}).addTo(_trackLayer);
+    // Intermediate dots — every ~10th point, clickable with IST date+time
+    var step=Math.max(1,Math.floor(rows.length/30));
+    rows.forEach(function(r,i){
+      if(i===0||i===rows.length-1)return; // handled separately below
+      if(i%step!==0)return;
+      var d=parseUtcTs(r.synced_at);
+      var label=d?d.toLocaleString('en-IN',{hour:'2-digit',minute:'2-digit',day:'2-digit',month:'short',hour12:true,timeZone:'Asia/Kolkata'}):'--';
+      L.circleMarker([r.lat,r.lng],{radius:4,color:'#1D4ED8',fillColor:'#fff',fillOpacity:1,weight:2})
+        .bindPopup('<div style="font-family:Inter,sans-serif;font-size:12px"><b>📍 '+label+' IST</b></div>',{maxWidth:180})
+        .addTo(_trackLayer);
+    });
     // Start pin (green)
-    L.circleMarker(pts[0],{radius:7,color:'#22C55E',fillColor:'#22C55E',fillOpacity:1,weight:2}).bindPopup('<b>Start</b><br>'+fmtTime(rows[0].synced_at)).addTo(_trackLayer);
+    var startD=parseUtcTs(rows[0].synced_at);
+    var startLabel=startD?startD.toLocaleString('en-IN',{hour:'2-digit',minute:'2-digit',day:'2-digit',month:'short',hour12:true,timeZone:'Asia/Kolkata'}):'--';
+    L.circleMarker(pts[0],{radius:7,color:'#22C55E',fillColor:'#22C55E',fillOpacity:1,weight:2})
+      .bindPopup('<div style="font-family:Inter,sans-serif;font-size:12px"><b>🟢 Start</b><br>'+startLabel+' IST</div>').addTo(_trackLayer);
     // End pin (red)
-    L.circleMarker(pts[pts.length-1],{radius:7,color:'#EF4444',fillColor:'#EF4444',fillOpacity:1,weight:2}).bindPopup('<b>Latest</b><br>'+fmtTime(rows[rows.length-1].synced_at)).addTo(_trackLayer);
+    var endD=parseUtcTs(rows[rows.length-1].synced_at);
+    var endLabel=endD?endD.toLocaleString('en-IN',{hour:'2-digit',minute:'2-digit',day:'2-digit',month:'short',hour12:true,timeZone:'Asia/Kolkata'}):'--';
+    L.circleMarker(pts[pts.length-1],{radius:7,color:'#EF4444',fillColor:'#EF4444',fillOpacity:1,weight:2})
+      .bindPopup('<div style="font-family:Inter,sans-serif;font-size:12px"><b>🔴 Latest</b><br>'+endLabel+' IST</div>').addTo(_trackLayer);
     leafMap.fitBounds(L.latLngBounds(pts).pad(0.15),{animate:true});
     document.getElementById('tp-team-info').textContent=rows.length+' points · '+from+(from!==to?' → '+to:'');
     document.getElementById('tp-team-legend').style.display='block';
@@ -1038,8 +1151,10 @@ async function loadTicketTrack(){
       var isFirst=i===0,isLast=i===rows.length-1;
       var color=isFirst?'#EF4444':isLast?'#22C55E':'#6B7280';
       var radius=isFirst||isLast?8:5;
+      var d=parseUtcTs(r.synced_at);
+      var istLabel=d?d.toLocaleString('en-IN',{hour:'2-digit',minute:'2-digit',day:'2-digit',month:'short',hour12:true,timeZone:'Asia/Kolkata'}):'--';
       L.circleMarker([r.lat,r.lng],{radius:radius,color:color,fillColor:color,fillOpacity:isFirst||isLast?1:0.55,weight:2})
-        .bindPopup('<b>'+r.status.replace('_',' ')+'</b><br>'+fmtTime(r.synced_at))
+        .bindPopup('<div style="font-family:Inter,sans-serif;font-size:12px"><b>'+r.status.replace('_',' ')+'</b><br>'+istLabel+' IST</div>',{maxWidth:180})
         .addTo(_trackLayer);
     });
     // Status change markers from ticket data
@@ -1068,6 +1183,137 @@ document.addEventListener('click',function(e){
   var panel=document.getElementById('layers-panel');
   if(panel.classList.contains('show')&&!panel.contains(e.target)&&!e.target.closest('.layers-toggle'))panel.classList.remove('show');
 });
+
+// ── View toggle (Map ↔ Dashboard) ──
+var _currentView='map';
+function showView(v){
+  _currentView=v;
+  var mapWrap=document.getElementById('map-wrap');
+  var dashView=document.getElementById('dashboard-view');
+  var filterBar=document.getElementById('filter-bar');
+  var mapBtn=document.getElementById('view-map-btn');
+  var dashBtn=document.getElementById('view-dash-btn');
+  if(v==='map'){
+    mapWrap.style.display=''; // flex:1 from map-wrap CSS
+    dashView.style.display='none';
+    filterBar.style.display='';
+    mapBtn.style.display='none';
+    dashBtn.style.display='flex';
+    dashBtn.classList.remove('active');
+    mapBtn.classList.add('active');
+  }else{
+    mapWrap.style.display='none';
+    dashView.style.display='flex';
+    filterBar.style.display='none';
+    mapBtn.style.display='flex';
+    dashBtn.style.display='none';
+    mapBtn.classList.remove('active');
+    dashBtn.classList.add('active');
+    renderDashboard();
+  }
+}
+
+// ── Dashboard rendering ──
+function renderDashboard(){
+  // Use city-filtered dataset (same scope as tiles)
+  var citySel=getChecked('ms-city');
+  var data=_all.filter(function(t){
+    if(citySel.length&&citySel.indexOf(inferCity(t)||'')<0)return false;
+    return true;
+  });
+
+  // Date label
+  var from=document.getElementById('date-from').value;
+  var to=document.getElementById('date-to').value;
+  document.getElementById('dv-date-label').textContent=from===to?from:from+' → '+to;
+
+  // KPI counts
+  var newT=data.filter(function(t){return effStatus(t)==='NEW';});
+  var ipT=data.filter(function(t){return effStatus(t)==='IN_PROGRESS';});
+  var doneT=data.filter(function(t){return effStatus(t)==='DONE';});
+  document.getElementById('dv-new-cnt').textContent=newT.length;
+  document.getElementById('dv-ip-cnt').textContent=ipT.length;
+  document.getElementById('dv-done-cnt').textContent=doneT.length;
+
+  // Avg response TAT (created → inprogress)
+  var respDiffs=data.reduce(function(arr,t){
+    if(!t.inprogress_at_ist||!t.created_at_ist)return arr;
+    var diff=(parseUtcTs(t.inprogress_at_ist)-parseUtcTs(t.created_at_ist))/60000;
+    if(diff>0&&diff<600)arr.push(diff);
+    return arr;
+  },[]);
+  var avgResp=respDiffs.length?respDiffs.reduce(function(s,v){return s+v;},0)/respDiffs.length:null;
+
+  // Avg closure TAT
+  var doneWithTat=doneT.filter(function(t){return t.tat_minutes!=null;});
+  var avgClosure=doneWithTat.length?doneWithTat.reduce(function(s,t){return s+parseFloat(t.tat_minutes);},0)/doneWithTat.length:null;
+  var over1hr=doneWithTat.length?Math.round(doneWithTat.filter(function(t){return parseFloat(t.tat_minutes)>60;}).length/doneWithTat.length*100):null;
+
+  // Sub labels
+  document.getElementById('dv-new-sub').textContent=data.length+' total tickets';
+  document.getElementById('dv-ip-sub').textContent=avgResp!=null?'Avg response: '+fmtMin(avgResp):'No response data';
+  document.getElementById('dv-done-sub').textContent=doneWithTat.length+' with TAT data';
+  document.getElementById('dv-avg-closure').textContent=fmtMin(avgClosure);
+  document.getElementById('dv-avg-resp').textContent=fmtMin(avgResp);
+  document.getElementById('dv-over1hr').textContent=over1hr!=null?over1hr+'%':'—';
+
+  // Tech table
+  var techMap={};
+  data.forEach(function(t){
+    var name=t.technician_name||'Unassigned';
+    if(!techMap[name])techMap[name]={total:0,done:0,tatSum:0,tatCount:0};
+    techMap[name].total++;
+    if(effStatus(t)==='DONE'){techMap[name].done++;if(t.tat_minutes!=null){techMap[name].tatSum+=parseFloat(t.tat_minutes);techMap[name].tatCount++;}}
+  });
+  var techRows=Object.keys(techMap).sort(function(a,b){return techMap[b].total-techMap[a].total;});
+  document.getElementById('dv-tech-tbody').innerHTML=techRows.length?techRows.map(function(name){
+    var tm=techMap[name];
+    var avgT=tm.tatCount?fmtMin(tm.tatSum/tm.tatCount):'—';
+    return '<tr><td style="font-weight:600">'+name+'</td><td>'+tm.total+'</td><td>'+tm.done+'</td><td>'+avgT+'</td></tr>';
+  }).join(''):'<tr><td colspan="4" style="color:#9CA3AF;padding:12px 8px">No data</td></tr>';
+
+  // Zone table
+  var zoneMap={'North':{total:0,done:0,tatSum:0,tatCount:0},'South':{total:0,done:0,tatSum:0,tatCount:0},'No GPS':{total:0,done:0,tatSum:0,tatCount:0}};
+  data.forEach(function(t){
+    var dispLat=t.display_lat||t.lat;
+    var zone;
+    if(!dispLat){zone='No GPS';}
+    else{var tCC=CITY_CONFIG[inferCity(t)||''];zone=(tCC&&dispLat>=tCC.divLat)?'North':'South';}
+    if(!zoneMap[zone])zoneMap[zone]={total:0,done:0,tatSum:0,tatCount:0};
+    zoneMap[zone].total++;
+    if(effStatus(t)==='DONE'){zoneMap[zone].done++;if(t.tat_minutes!=null){zoneMap[zone].tatSum+=parseFloat(t.tat_minutes);zoneMap[zone].tatCount++;}}
+  });
+  var zoneOrder=['North','South','No GPS'];
+  document.getElementById('dv-zone-tbody').innerHTML=zoneOrder.filter(function(z){return zoneMap[z]&&zoneMap[z].total>0;}).map(function(z){
+    var zm=zoneMap[z];
+    var avgT=zm.tatCount?fmtMin(zm.tatSum/zm.tatCount):'—';
+    return '<tr><td style="font-weight:600">'+z+'</td><td>'+zm.total+'</td><td>'+zm.done+'</td><td>'+avgT+'</td></tr>';
+  }).join('')||'<tr><td colspan="4" style="color:#9CA3AF;padding:12px 8px">No data</td></tr>';
+
+  // Category bars
+  var catMap={};
+  data.forEach(function(t){var c=t.category||'Unknown';catMap[c]=(catMap[c]||0)+1;});
+  var maxCat=Math.max.apply(null,Object.values(catMap).concat([1]));
+  var catSorted=Object.keys(catMap).sort(function(a,b){return catMap[b]-catMap[a];}).slice(0,10);
+  document.getElementById('dv-category-bars').innerHTML=catSorted.map(function(c){
+    var pct=Math.round(catMap[c]/maxCat*100);
+    return '<div class="dv-bar-wrap"><div class="dv-bar-label" title="'+c+'">'+c+'</div>'
+      +'<div class="dv-bar" style="width:'+pct+'%;background:#6366F1;max-width:calc(100% - 110px)"></div>'
+      +'<div class="dv-bar-val">'+catMap[c]+'</div></div>';
+  }).join('')||'<div style="color:#9CA3AF;font-size:.78rem;padding:8px 0">No data</div>';
+
+  // TAT distribution
+  var bands=[{lbl:'< 15 min',fn:function(m){return m<15;}},{lbl:'15–30 min',fn:function(m){return m>=15&&m<30;}},{lbl:'30–60 min',fn:function(m){return m>=30&&m<60;}},{lbl:'1–2 hr',fn:function(m){return m>=60&&m<120;}},{lbl:'> 2 hr',fn:function(m){return m>=120;}}];
+  var tatTotals=bands.map(function(b){return {lbl:b.lbl,cnt:doneWithTat.filter(function(t){return b.fn(parseFloat(t.tat_minutes));}).length};});
+  var maxTat=Math.max.apply(null,tatTotals.map(function(b){return b.cnt;}).concat([1]));
+  document.getElementById('dv-tat-bars').innerHTML=tatTotals.map(function(b){
+    var pct=Math.round(b.cnt/maxTat*100);
+    var col=b.lbl.includes('<')&&!b.lbl.includes('2')?'#16A34A':b.lbl.includes('1–2')?'#F59E0B':'#EF4444';
+    return '<div class="dv-bar-wrap"><div class="dv-bar-label">'+b.lbl+'</div>'
+      +'<div class="dv-bar" style="width:'+pct+'%;background:'+col+';max-width:calc(100% - 110px)"></div>'
+      +'<div class="dv-bar-val">'+b.cnt+'</div></div>';
+  }).join('');
+}
 
 // ── Auth ──
 function showAuthScreen(){document.getElementById('auth-screen').classList.remove('hidden');}
