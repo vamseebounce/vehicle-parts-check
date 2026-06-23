@@ -136,20 +136,24 @@ job_card_id, new_status, technician_name, dmsjcid, remarks, created_at_ist`. Reb
 ### `jc-history-sync`
 - Same pattern — fetches separate Metabase card, rebuilds `jc_history`
 
-### `jc-context-sync`  — added 2026-06-23, cron every 15 min (job 28). DEPLOYED ✅
-- Fetches THREE private Metabase cards (A/B/C), rebuilds `jc_booking_history`,
-  `jc_ops_log`, `jc_jc_status_log` (delete + reinsert, 500-row batches each)
-- Heartbeat per table (`jc-context-sync:booking|ops|jclog`)
-- Card UUIDs read from **edge-fn SECRETS** (env vars), NOT hardcoded:
-  `CARD_BOOKING_UUID` (A), `CARD_OPS_UUID` (B), `CARD_JC_LOG_UUID` (C).
-  Returns **503 "UUIDs not configured"** until all three secrets are set; the cron
-  then picks them up on the next 15-min tick. Set them in Supabase → Edge Functions
-  → jc-context-sync → Secrets.
-- ⏳ PENDING: the 3 private Metabase cards must be created and their UUIDs set as the
-  secrets above. Migration applied, fn deployed, cron registered — only cards +
-  secrets remain.
-- Hub join in the source SQL uses `rental_locations.location_name` (confirmed by MCP:
-  there is no `public.hub` table; `hubs` is a VIEW over `rental_locations`).
+### jc-context buckets — three SINGLE-table fns (split 2026-06-23 to fix timeout)
+The original combined `jc-context-sync` timed out (HTTP 546, ~26.5s) — it processed
+all 3 cards sequentially and died before the JC-status-log table. **Split into three
+independent fns, one per table.** Old `jc-context-sync` fn + its cron (job 28) are
+RETIRED. Each new fn follows the `jc-history-sync` single-table pattern (fetch CSV →
+parse → delete-all `.neq("id",0)` → reinsert 500-row batches → heartbeat). Card UUIDs
+are **hardcoded per fn** (one card each — simpler than secrets):
+
+| Fn | Card UUID | Table | Heartbeat name | Cron |
+|----|-----------|-------|----------------|------|
+| `jc-booking-sync`    | `c1efbecd-…` | `jc_booking_history` | `jc-booking-sync`    | `*/15 * * * *` (:00) |
+| `jc-ops-sync`        | `98f2dc7c-…` | `jc_ops_log`         | `jc-ops-sync`        | `5,20,35,50 * * * *` (:05) |
+| `jc-status-log-sync` | `b1470077-…` | `jc_jc_status_log`   | `jc-status-log-sync` | `10,25,40,55 * * * *` (:10) |
+
+Crons staggered by 5 min so they don't overlap. Card C column header confirmed live:
+`id,reg_number,job_card_id,new_status,technician_name,dmsjcid,remarks,created_at_ist`.
+Hub names (in the approval SQL, not these fns) resolve via `rental_locations.location_name`
+(no `public.hub` table; `hubs` is a VIEW over `rental_locations`).
 
 ---
 
