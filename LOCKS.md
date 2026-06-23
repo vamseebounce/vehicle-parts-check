@@ -17,4 +17,3 @@ first. If a row is already locked by another window → **STOP and wait**. Relea
 | trace-hunter.html | (free) | — | — |
 | admin-techs.html | (free) | — | — |
 | admin-permissions.html | (free) | — | — |
-| jc-context edge fns (split) | claude-cli | 2026-06-23 12:25 UTC | split jc-context-sync into 3 fns (fix timeout) |
