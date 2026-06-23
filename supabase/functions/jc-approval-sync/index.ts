@@ -76,6 +76,10 @@ Deno.serve(async (_req: Request) => {
       rental_status:             v(row, "Rental Status"),
       vehicle_status:            v(row, "Vehicle Status"),
       vehicle_sub_status:        v(row, "Vehicle Sub-Status"),
+      intrip:                    v(row, "Intrip") === "true"  ? true
+                               : v(row, "Intrip") === "false" ? false
+                               : null,
+      jc_hub_name:               v(row, "JC Hub Name"),
       tier:                      v(row, "Tier"),
       verdict:                   v(row, "Verdict"),
       reason:                    v(row, "Reason"),

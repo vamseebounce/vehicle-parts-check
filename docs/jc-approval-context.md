@@ -101,6 +101,26 @@ UNIQUE constraint: `(latest_draft_jc, tier)` — prevents duplicate alerts from 
 ### `jc_history`
 JC line-item history (jc_no, reg_number, bike_odo, jc_date, hub_name, service_type, line_type, item_name, qty, amount, technician_name). Rebuilt by `jc-history-sync`.
 
+### `jc_booking_history` (PK: `id`)  — added 2026-06-23, migration `…0623000001`
+Last ~90d bookings per vehicle (booking chain, plan renewals). Cols: `reg_number,
+bike_id, status, booking_started_at_ist, booking_ended_at_ist, created_for_bike_change,
+intrip_dues`. Rebuilt by `jc-context-sync`. Indexed on `reg_number`.
+
+### `jc_ops_log` (PK: `id`)  — added 2026-06-23
+`bike_operations_log` status transitions + hub changes (~30d). Cols: `reg_number,
+bike_id, previous_vehicle_status, new_vehicle_status, hub_name, performed_by_name,
+created_at_ist`. Rebuilt by `jc-context-sync`. Indexed on `reg_number`.
+
+### `jc_jc_status_log` (PK: `id`)  — added 2026-06-23
+`job_card_status_log` progression incl. the DMS JC number. Cols: `reg_number,
+job_card_id, new_status, technician_name, dmsjcid, remarks, created_at_ist`. Rebuilt by
+`jc-context-sync`. Indexed on `reg_number`, `job_card_id`.
+
+> `jc_approval_status` also gained two columns (migration `…0623000001`): **`intrip`**
+> (bool — OOS JC vs Running Repair) and **`jc_hub_name`** (text — hub the JC was raised
+> at, for the hub-mismatch warning). The approval SQL emits `"Intrip"` + `"JC Hub Name"`;
+> `jc-approval-sync` maps them.
+
 ---
 
 ## Edge Functions
@@ -111,9 +131,17 @@ JC line-item history (jc_no, reg_number, bike_odo, jc_date, hub_name, service_ty
 - Step 2: Diffs `jc_approval_alerts` — inserts new T4/T5b/T6 cases, resolves cleared ones
 - Step 3: TODO — email notification on newly-inserted alerts (stamp `alerted_at`)
 - Writes heartbeat to `sync_heartbeats`
+- Now also maps `intrip` + `jc_hub_name` from the query
 
 ### `jc-history-sync`
 - Same pattern — fetches separate Metabase card, rebuilds `jc_history`
+
+### `jc-context-sync`  — added 2026-06-23, cron every 15 min
+- Fetches THREE private Metabase cards (A/B/C), rebuilds `jc_booking_history`,
+  `jc_ops_log`, `jc_jc_status_log` (delete + reinsert, 500-row batches each)
+- Heartbeat per table (`jc-context-sync:booking|ops|jclog`)
+- ⚠️ Card UUIDs are `<CARD_A_UUID>` / `<CARD_B_UUID>` / `<CARD_C_UUID>` placeholders —
+  must be filled once the private cards exist, then redeployed via MCP.
 
 ---
 
@@ -122,8 +150,10 @@ JC line-item history (jc_no, reg_number, bike_odo, jc_date, hub_name, service_ty
 Key behaviours:
 - Auth: `sb.auth.getSession()` → `applyGate()` → superadmin check → show/hide search hero
 - Search: `normalizeReg(q)` strips spaces/hyphens/dots, uppercases → `ilike *q*` on both `reg_number` and `chassis_number`; then exact match preferred over fuzzy
-- Parallel fetches: `jc_approval_status`, `jc_history` (120 rows), `fw_bikes_live`; sequential: `oos_work_queue` (after reg resolved)
-- Sections rendered: Bike → Current Booking → Job Card (current) → JC History (grouped by jc_no, last 12) → OOS Queue
+- Parallel fetches: `jc_approval_status`, `jc_history` (120 rows), `fw_bikes_live`; then a second parallel batch on the resolved reg: `oos_work_queue`, `jc_booking_history` (8), `jc_ops_log` (10), `jc_jc_status_log` (10)
+- Sections rendered (8): Bike (with hub-mismatch warning + JC Hub) → Current Booking → Job Card (with In-Trip/RR flag + JC Hub) → JC History (grouped by jc_no, last 12) → **Booking History** → **Ops Log** → **JC Status Log** → OOS Queue
+- Hub mismatch: amber warning in Bike section when `jc_hub_name` ≠ `fw_bikes_live.hub`
+- In-Trip flag: `intrip` true → Running Repair (in-trip), false → OOS Job Card
 - `TIER_STYLE` map drives chip colour + verdict label — must stay in sync with SQL/edge-fn tier definitions
 - "Try:" pills: random 3 vehicles from `jc_approval_status` where `latest_draft_jc not null`
 - Last-synced line: latest `refreshed_at` from `jc_approval_status`

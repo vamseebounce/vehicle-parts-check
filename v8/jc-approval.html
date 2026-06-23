@@ -421,10 +421,20 @@ async function runCheck(){
     })||jcRows[0];
 
     var exactReg=hit.reg_number;
+    var encReg=encodeURIComponent('*'+normalizeReg(exactReg)+'*');
 
-    // Sequential: OOS queue for exact reg
-    var r4=await fetch(SB_URL+'/rest/v1/oos_work_queue?select=hub,oos_since,days_in_oos,labour_items,parts_items,has_parts,estimated_mins&reg_number=eq.'+encodeURIComponent(exactReg)+'&limit=1',h);
-    var oosRows=r4.ok?await r4.json():[];
+    // Parallel context buckets (jc_booking_history / jc_ops_log / jc_jc_status_log)
+    // + sequential OOS queue. All keyed off the resolved exact reg.
+    var ctx=await Promise.all([
+      fetch(SB_URL+'/rest/v1/oos_work_queue?select=hub,oos_since,days_in_oos,labour_items,parts_items,has_parts,estimated_mins&reg_number=eq.'+encodeURIComponent(exactReg)+'&limit=1',h),
+      fetch(SB_URL+'/rest/v1/jc_booking_history?select=*&reg_number=ilike.'+encReg+'&order=id.desc&limit=8',h),
+      fetch(SB_URL+'/rest/v1/jc_ops_log?select=*&reg_number=ilike.'+encReg+'&order=id.desc&limit=10',h),
+      fetch(SB_URL+'/rest/v1/jc_jc_status_log?select=*&reg_number=ilike.'+encReg+'&order=id.desc&limit=10',h)
+    ]);
+    var oosRows    =ctx[0].ok?await ctx[0].json():[];
+    var bookingRows=ctx[1].ok?await ctx[1].json():[];
+    var opsRows    =ctx[2].ok?await ctx[2].json():[];
+    var jcLogRows  =ctx[3].ok?await ctx[3].json():[];
 
     // fw_bikes_live match for exact reg
     var bikeInfo=Array.isArray(bikeRows)?bikeRows.find(function(x){return normalizeReg(x.reg_number||'')===normalizeReg(exactReg);})||bikeRows[0]:null;
@@ -433,7 +443,10 @@ async function runCheck(){
            Array.isArray(histRows)?histRows:[],
            Array.isArray(oosRows)&&oosRows.length?oosRows[0]:null,
            bikeInfo||null,
-           jcRows.length);
+           jcRows.length,
+           Array.isArray(bookingRows)?bookingRows:[],
+           Array.isArray(opsRows)?opsRows:[],
+           Array.isArray(jcLogRows)?jcLogRows:[]);
   }catch(e){
     showState('error','Lookup failed: '+(e.message||e));
   }
@@ -527,8 +540,83 @@ function renderOOS(oos){
   return sectionCard('🚨','OOS Queue',badge,body);
 }
 
+// ── Booking History (last 8 bookings — booking chain, plan renewals) ──
+function renderBookingHistory(rows){
+  if(!rows||!rows.length){
+    return sectionCard('📋','Booking History','','<div class="absent">No recent booking history (last 90 days).</div>');
+  }
+  var body=rows.map(function(b){
+    var isChange=String(b.created_for_bike_change).toLowerCase()==='true';
+    var changeBadge=isChange?'<span style="font-size:.62rem;font-weight:700;padding:2px 7px;border-radius:6px;background:#EFF6FF;color:#2563EB">Plan Change</span>':'<span class="dim">—</span>';
+    return '<tr'+(isChange?' style="background:#F8FAFF"':'')+'>'
+      +'<td style="font-weight:600;white-space:nowrap">'+esc(b.id)+'</td>'
+      +'<td style="white-space:nowrap">'+esc(b.booking_started_at_ist||'—')+'</td>'
+      +'<td style="white-space:nowrap">'+esc(b.booking_ended_at_ist||'—')+'</td>'
+      +'<td>'+esc(b.status||'—')+'</td>'
+      +'<td>'+changeBadge+'</td>'
+      +'</tr>';
+  }).join('');
+  var countBadge='<span style="margin-left:auto;font-size:.7rem;color:var(--muted)">'+rows.length+' bookings</span>';
+  return sectionCard('📋','Booking History',countBadge,
+    '<div style="overflow-x:auto"><table class="jc-table">'
+    +'<thead><tr><th>Booking ID</th><th>Started (IST)</th><th>Ended (IST)</th><th>Status</th><th>Plan Change?</th></tr></thead>'
+    +'<tbody>'+body+'</tbody></table></div>');
+}
+
+// ── Ops Log (bike_operations_log — status transitions, hub changes) ──
+function renderOpsLog(rows){
+  if(!rows||!rows.length){
+    return sectionCard('🔄','Ops Log','','<div class="absent">No ops log entries (last 30 days).</div>');
+  }
+  var body=rows.map(function(o){
+    var prev=(o.previous_vehicle_status||'').toLowerCase();
+    var next=(o.new_vehicle_status||'').toLowerCase();
+    // red for *→oos, green for oos→active, amber for *→marked for recovery
+    var color='#374151';
+    if(next.indexOf('oos')>=0)color='#DC2626';
+    else if(prev.indexOf('oos')>=0&&next.indexOf('active')>=0)color='#059669';
+    else if(next.indexOf('marked for recovery')>=0)color='#D97706';
+    var transition='<span style="font-weight:600;color:'+color+'">'+esc(o.previous_vehicle_status||'—')+' → '+esc(o.new_vehicle_status||'—')+'</span>';
+    return '<tr>'
+      +'<td style="white-space:nowrap">'+esc(o.created_at_ist||'—')+'</td>'
+      +'<td>'+transition+'</td>'
+      +'<td style="white-space:nowrap">'+esc(o.hub_name||'—')+'</td>'
+      +'<td style="white-space:nowrap">'+esc(o.performed_by_name||'—')+'</td>'
+      +'</tr>';
+  }).join('');
+  var countBadge='<span style="margin-left:auto;font-size:.7rem;color:var(--muted)">'+rows.length+' entries</span>';
+  return sectionCard('🔄','Ops Log',countBadge,
+    '<div style="overflow-x:auto"><table class="jc-table">'
+    +'<thead><tr><th>Timestamp</th><th>Status Change</th><th>Hub</th><th>By</th></tr></thead>'
+    +'<tbody>'+body+'</tbody></table></div>');
+}
+
+// ── JC Status Log (job_card_status_log — DMS JC #, technician, progression) ──
+function renderJCStatusLog(rows){
+  if(!rows||!rows.length){
+    return sectionCard('📑','JC Status Log','','<div class="absent">No status log entries found.</div>');
+  }
+  var body=rows.map(function(s){
+    var dms=s.dmsjcid?'<span style="font-weight:800;color:#2563EB;font-size:.95rem">'+esc(s.dmsjcid)+'</span>':'<span class="dim">—</span>';
+    return '<tr>'
+      +'<td style="white-space:nowrap">'+esc(s.created_at_ist||'—')+'</td>'
+      +'<td style="white-space:nowrap">'+esc(s.job_card_id||'—')+'</td>'
+      +'<td>'+esc(s.new_status||'—')+'</td>'
+      +'<td style="white-space:nowrap">'+dms+'</td>'
+      +'<td style="white-space:nowrap">'+esc(s.technician_name||'—')+'</td>'
+      +'<td>'+esc(s.remarks||'—')+'</td>'
+      +'</tr>';
+  }).join('');
+  var countBadge='<span style="margin-left:auto;font-size:.7rem;color:var(--muted)">'+rows.length+' entries</span>';
+  return sectionCard('📑','JC Status Log',countBadge,
+    '<div style="overflow-x:auto"><table class="jc-table">'
+    +'<thead><tr><th>Timestamp</th><th>JC ID</th><th>Status</th><th>DMS JC #</th><th>Technician</th><th>Remarks</th></tr></thead>'
+    +'<tbody>'+body+'</tbody></table></div>');
+}
+
 // ── Master render ──
-function render(row,history,oos,bike,matchCount){
+function render(row,history,oos,bike,matchCount,bookingRows,opsRows,jcLogRows){
+  bookingRows=bookingRows||[];opsRows=opsRows||[];jcLogRows=jcLogRows||[];
   showState(null);
 
   // Verdict header
@@ -553,17 +641,25 @@ function render(row,history,oos,bike,matchCount){
   var html='';
 
   // ── SECTION 1: Bike ──
+  // Hub mismatch: JC raised at a different hub than where the bike currently is.
+  var hubMismatch = row.jc_hub_name && bike && bike.hub &&
+    String(row.jc_hub_name).trim().toLowerCase() !== String(bike.hub).trim().toLowerCase();
+  var mismatchCell = hubMismatch
+    ? dcH('⚠️ Hub Mismatch','<span style="color:#D97706;font-weight:700">JC created at hub «'+esc(row.jc_hub_name)+'» but bike is currently at «'+esc(bike.hub)+'» — verify before approving</span>')
+    : '';
   html+=sectionCard('🏍️','Bike','',
     '<div class="data-grid">'
     +dc('Reg Number',row.reg_number)
     +dc('Chassis Number',row.chassis_number)
     +dc('Hub (Bike Table)',bike?bike.hub:null)
+    +dc('JC Hub',row.jc_hub_name)
     +dc('Latest ODO',latestOdo)
     +dc('Rental Status',row.rental_status)
     +dc('Vehicle Status',row.vehicle_status)
     +dc('Vehicle Sub-Status',row.vehicle_sub_status)
     +dc('Current SOC',bike&&bike.current_soc!=null?bike.current_soc+'%':null)
     +dcH('Current Location',locHtml)
+    +mismatchCell
     +'</div>');
 
   // ── SECTION 2: Booking ──
@@ -575,6 +671,9 @@ function render(row,history,oos,bike,matchCount){
 
   // ── SECTION 3: Job Card (current) ──
   var dmsHtml=row.dms_json?'<code>'+esc(row.dms_json)+'</code>':null;
+  var intripVal=row.intrip===true ?'✅ Yes — Running Repair (in-trip)'
+              :row.intrip===false?'❌ No — OOS Job Card'
+              :null;
   html+=sectionCard('🔧','Job Card','',
     '<div class="data-grid">'
     +dc('Latest Draft JC',row.latest_draft_jc)
@@ -582,13 +681,24 @@ function render(row,history,oos,bike,matchCount){
     +dc('JC Created (IST)',row.jc_created_ist)
     +dc('JC Age (min)',row.jc_age_minutes!=null?Math.round(row.jc_age_minutes):null)
     +dc("JC's Trip Ended (IST)",row.jc_trip_ended_ist)
+    +dc('In-Trip (RR)?',intripVal)
+    +dc('JC Hub',row.jc_hub_name)
     +dcH('DMS JSON',dmsHtml)
     +'</div>');
 
   // ── SECTION 4: JC History logs ──
   html+=renderJCHistory(history);
 
-  // ── SECTION 5: OOS Queue ──
+  // ── SECTION 5: Booking History (NEW) ──
+  html+=renderBookingHistory(bookingRows);
+
+  // ── SECTION 6: Ops Log (NEW) ──
+  html+=renderOpsLog(opsRows);
+
+  // ── SECTION 7: JC Status Log (NEW) ──
+  html+=renderJCStatusLog(jcLogRows);
+
+  // ── SECTION 8: OOS Queue ──
   html+=renderOOS(oos);
 
   // Footer meta
