@@ -28,6 +28,11 @@ area. If you find a duplicate, fold it into the canonical and delete the copy.
 | T&H context | `Trace and Hunter/context.md` | ✅ CANONICAL | Full Phase 1/2/3 spec |
 | T&H improvements | `Trace and Hunter/IMPROVEMENTS.md` | ✅ | Review & rebuild plan |
 
+## Admin Tools
+| Doc | Path | Canonical? | Purpose |
+|-----|------|-----------|---------|
+| JC Approval context | `docs/jc-approval-context.md` | ✅ CANONICAL | Manual JC Approval Check — tiers, architecture, tables, Cowork↔Code collab |
+
 ## Launch notes
 | Doc | Path | Purpose |
 |-----|------|---------|
