@@ -815,22 +815,45 @@ async function processUpload(){
     const unresolvedNames=new Set();
 
     rows.forEach(row=>{
-      const rawName=row['Technician Name']||'';
+      // Support both snake_case (Metabase export) and Title Case column names
+      const rawName=row['technician_name']||row['Technician Name']||'';
       const normalized=NAME_MAP[rawName]||rawName;
       if(!NAME_MAP[rawName])unresolvedNames.add(rawName);
 
+      const billedDate=row['jc_billed_date']||row['JC Billed Date']||null;
+      const billedDt=row['jc_billed_datetime']||row['JC Billed DateTime']||null;
+      const intrip=row['intrip']!=null?row['intrip']:(row['Intrip']||0);
+      const regNum=row['reg_number']||row['Reg Number']||null;
+      const bikeModel=row['bike_model']||row['Bike Model']||null;
+      const hubName=row['hub_name']||row['Hub Name']||null;
+      const city=row['city']||row['City']||null;
+      const rrCount=row['rr_count_3d_comeback']!=null?row['rr_count_3d_comeback']:0;
+      const isVoid=rrCount>0||(row['is_void']||row['Is Void']||false);
+      const firstComeback=row['first_comeback_datetime']||row['First Comeback DateTime']||null;
+
+      // Compute week_start (Monday of billed date)
+      let weekStart=null;
+      if(billedDate){
+        const d=new Date(billedDate);
+        const day=d.getDay();
+        const diff=d.getDate()-(day===0?6:day-1);
+        const mon=new Date(d.setDate(diff));
+        weekStart=mon.toISOString().split('T')[0];
+      }
+
       insertRows.push({
-        jc_billed_date:row['JC Billed Date'],
-        jc_billed_datetime:row['JC Billed DateTime'],
-        intrip:row['Intrip']||0,
-        reg_number:row['Reg Number'],
-        bike_model:row['Bike Model'],
+        jc_billed_date:billedDate,
+        jc_billed_datetime:billedDt,
+        intrip:Number(intrip),
+        reg_number:regNum,
+        bike_model:bikeModel,
         technician_name_raw:rawName,
         technician_name:normalized,
-        hub_name:row['Hub Name'],
-        city:row['City'],
-        is_void:row['Is Void']||false,
-        first_comeback_datetime:row['First Comeback DateTime']
+        hub_name:hubName,
+        city:city,
+        is_void:Boolean(isVoid),
+        first_comeback_datetime:firstComeback||null,
+        week_start:weekStart
       });
     });
 
