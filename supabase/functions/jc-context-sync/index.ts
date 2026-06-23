@@ -6,24 +6,26 @@
 //   • jc_ops_log          — bike_operations_log status/hub changes ~30d (Card B)
 //   • jc_jc_status_log     — job_card_status_log progression incl. DMS JC # (Card C)
 //
-// Same pattern as jc-history-sync. The card UUIDs live ONLY here (server-side) —
-// never shipped to the browser; the page reads the tables via the user's session
-// JWT under RLS. Migration: 20260623000001_jc_context_tables.sql.
+// Same pattern as jc-history-sync. The card UUIDs live ONLY server-side as edge-fn
+// SECRETS (env vars) — never shipped to the browser; the page reads the tables via
+// the user's session JWT under RLS. Migration: 20260623000001_jc_context_tables.sql.
 //
-// ⚠️ FILL IN the three card UUIDs below once the PRIVATE Metabase cards exist.
-//    Card SQL column aliases must match the v(row, "<alias>") keys used here.
+// ⚠️ Set these three secrets in Supabase → Edge Functions → jc-context-sync → Secrets:
+//      CARD_BOOKING_UUID  → Card A (booking history)
+//      CARD_OPS_UUID      → Card B (ops log)
+//      CARD_JC_LOG_UUID   → Card C (jc status log)
+//    Until all three are set the fn returns 503 (UUIDs not configured) and the cron
+//    is a no-op. Card SQL column aliases must match the v(row, "<alias>") keys here.
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
-// Card A — jc_booking_history
-const CARD_BOOKING =
-  "https://metabaselatest-dy7gqwqrma-el.a.run.app/api/public/card/<CARD_A_UUID>/query/csv?parameters=%5B%5D";
-// Card B — jc_ops_log
-const CARD_OPS =
-  "https://metabaselatest-dy7gqwqrma-el.a.run.app/api/public/card/<CARD_B_UUID>/query/csv?parameters=%5B%5D";
-// Card C — jc_jc_status_log
-const CARD_JC_LOG =
-  "https://metabaselatest-dy7gqwqrma-el.a.run.app/api/public/card/<CARD_C_UUID>/query/csv?parameters=%5B%5D";
+const MB_BASE = "https://metabaselatest-dy7gqwqrma-el.a.run.app/api/public/card";
+const cardUrl = (uuid: string) => `${MB_BASE}/${uuid}/query/csv?parameters=%5B%5D`;
+
+// Card UUIDs come from edge-fn secrets (not hardcoded).
+const CARD_BOOKING_UUID = Deno.env.get("CARD_BOOKING_UUID");
+const CARD_OPS_UUID     = Deno.env.get("CARD_OPS_UUID");
+const CARD_JC_LOG_UUID  = Deno.env.get("CARD_JC_LOG_UUID");
 
 const SUPABASE_URL         = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -79,9 +81,20 @@ async function rebuild(sb: any, table: string, records: Record<string, unknown>[
 Deno.serve(async (_req: Request) => {
   const t0 = Date.now();
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+
+  // Guard: all three card UUIDs must be configured as secrets.
+  if (!CARD_BOOKING_UUID || !CARD_OPS_UUID || !CARD_JC_LOG_UUID) {
+    const missing = [
+      !CARD_BOOKING_UUID && "CARD_BOOKING_UUID",
+      !CARD_OPS_UUID && "CARD_OPS_UUID",
+      !CARD_JC_LOG_UUID && "CARD_JC_LOG_UUID",
+    ].filter(Boolean);
+    return new Response(JSON.stringify({ success: false, error: `UUIDs not configured: ${missing.join(", ")}` }), { status: 503, headers: { "Content-Type": "application/json" } });
+  }
+
   try {
     // ── Card A — jc_booking_history ──
-    const booking = await fetchCard(CARD_BOOKING, (v) => ({
+    const booking = await fetchCard(cardUrl(CARD_BOOKING_UUID), (v) => ({
       id:                      v("id"),
       reg_number:              v("reg_number"),
       bike_id:                 v("bike_id"),
@@ -95,7 +108,7 @@ Deno.serve(async (_req: Request) => {
     await writeHeartbeat(supabase, "jc-context-sync:booking", "success", Date.now() - t0, booking.length);
 
     // ── Card B — jc_ops_log ──
-    const ops = await fetchCard(CARD_OPS, (v) => ({
+    const ops = await fetchCard(cardUrl(CARD_OPS_UUID), (v) => ({
       id:                      v("id"),
       reg_number:              v("reg_number"),
       bike_id:                 v("bike_id"),
@@ -109,7 +122,7 @@ Deno.serve(async (_req: Request) => {
     await writeHeartbeat(supabase, "jc-context-sync:ops", "success", Date.now() - t0, ops.length);
 
     // ── Card C — jc_jc_status_log ──
-    const jcLog = await fetchCard(CARD_JC_LOG, (v) => ({
+    const jcLog = await fetchCard(cardUrl(CARD_JC_LOG_UUID), (v) => ({
       id:              v("id"),
       reg_number:      v("reg_number"),
       job_card_id:     v("job_card_id"),

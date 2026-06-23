@@ -136,12 +136,20 @@ job_card_id, new_status, technician_name, dmsjcid, remarks, created_at_ist`. Reb
 ### `jc-history-sync`
 - Same pattern — fetches separate Metabase card, rebuilds `jc_history`
 
-### `jc-context-sync`  — added 2026-06-23, cron every 15 min
+### `jc-context-sync`  — added 2026-06-23, cron every 15 min (job 28). DEPLOYED ✅
 - Fetches THREE private Metabase cards (A/B/C), rebuilds `jc_booking_history`,
   `jc_ops_log`, `jc_jc_status_log` (delete + reinsert, 500-row batches each)
 - Heartbeat per table (`jc-context-sync:booking|ops|jclog`)
-- ⚠️ Card UUIDs are `<CARD_A_UUID>` / `<CARD_B_UUID>` / `<CARD_C_UUID>` placeholders —
-  must be filled once the private cards exist, then redeployed via MCP.
+- Card UUIDs read from **edge-fn SECRETS** (env vars), NOT hardcoded:
+  `CARD_BOOKING_UUID` (A), `CARD_OPS_UUID` (B), `CARD_JC_LOG_UUID` (C).
+  Returns **503 "UUIDs not configured"** until all three secrets are set; the cron
+  then picks them up on the next 15-min tick. Set them in Supabase → Edge Functions
+  → jc-context-sync → Secrets.
+- ⏳ PENDING: the 3 private Metabase cards must be created and their UUIDs set as the
+  secrets above. Migration applied, fn deployed, cron registered — only cards +
+  secrets remain.
+- Hub join in the source SQL uses `rental_locations.location_name` (confirmed by MCP:
+  there is no `public.hub` table; `hubs` is a VIEW over `rental_locations`).
 
 ---
 
