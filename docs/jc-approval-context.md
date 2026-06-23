@@ -1,94 +1,173 @@
-# Manual JC Approval Check — Context File
+# Manual JC Approval Check — Canonical Context
 
-> Canonical context for the JC Approval feature. ONE source of truth for both
-> **Cowork** (desktop) and **Claude Code** (terminal). If you learn something new about
-> this feature, update THIS file — don't scatter it.
->
-> FleetPro is its OWN git repo (`vehicle-parts-check`). Edit & commit here, push via the
-> `/tmp` clone (CLAUDE.md). Claim `jc-approval.html` in `LOCKS.md` before editing the page.
+> **Last updated:** 2026-06-23  
+> **Status:** Live — 11k+ vehicles syncing every 5 min. Pending: email notifications + Alert Centre page.
 
-## What Is This
+---
 
-A superadmin-only tool that replaces **manual manager review** of "create a manual draft
-JC" requests. A manager searches a vehicle (reg / chassis) and gets an automated
-**verdict** on whether the draft JC should be approved — instead of hand-checking
-booking, payment, and DMS-push state in multiple systems.
+## What it does
 
-Live at: `https://bounceops.online/v8/jc-approval.html`
-Sidebar: **Admin** section → "JC Approval Check". Tracker: `PRODUCTIZATION-TASKS.md` → A1.
+Lets a superadmin look up any vehicle by reg or chassis number and instantly see:
+- Its current JC approval verdict (T0–T6 tier + reason)
+- Current booking state
+- Hub / location / ODO (from `fw_bikes_live` + `jc_history`)
+- OOS queue entry (if in workshop)
+- Last 12 JC history entries
 
-## The Verdict Waterfall (stable tier codes T0–T6)
+Search is triggered by **Enter** or the **magnifier icon** — there is **no Check button** (a dead `search-btn` reference once crashed `runCheck()`; never reintroduce one).
 
-Codes are **stable routing keys** — never renumber. Defined in the SQL CASE
-(`sql/rrr/RRR_Manual_JC_Approval_Check.sql`); UI labels/colors in `jc-approval.html`
-(`TIER_STYLE`). Keep all three in sync.
+Design language: `maintenance.html` — FleetPro topbar + hamburger, centered search hero, random "Try:" pills, last-synced line, footer.
 
-| Tier | UI label | Verdict | Meaning / action |
-|---|---|---|---|
-| T1 | Booking in progress | **NOT APPROVED** | Rider is out now — never JC a live trip |
-| T2 | Prior JC deleted | **CHECK & APPROVE** | Latest JC was deleted — safe to recreate |
-| T3 | Draft already exists | **NO ACTION** | Draft exists for this trip; share Draft JC id w/ DMS team |
-| T4 | DMS push failed | **APPROVE** | Auto-push failed — recreate is the fix |
-| T5a | Payment pending | **DO NOT CREATE** | Pending, payment due |
-| T5b | Push stuck (≥10m) | **CHECK & CREATE** | Pending, push stuck |
-| T5c | Push in flight (<10m) | **WAIT** | Pending, push still in flight |
-| T0 | No JC found | **REVIEW MANUALLY** | No JC on the bike |
-| T6 | Needs manual review | **REVIEW MANUALLY** | Status not covered by the waterfall |
+Access is gated to **superadmin only** (checked client-side via `session.user.app_metadata.is_superadmin`; data is behind Supabase RLS requiring `authenticated` role, never exposed as public Metabase card).
 
-**Dual-booking model (do not collapse):** "is the rider out now?" uses the vehicle's
-*current* booking; "was a draft made for this trip?" uses the JC's own `booking_id`.
-These are different anchors — a JC from months ago must not be matched against today's
-booking.
+---
 
-## Architecture (security-reviewed — NO public Metabase card in the client)
+## T0–T6 Verdict Waterfall
+
+These are **stable routing keys** — shared across the SQL, the edge fn `ALERT_TIERS` set, and the HTML `TIER_STYLE` map. Touch all three if you ever add/rename a tier.
+
+| Tier | Colour | Label | Meaning |
+|------|--------|-------|---------|
+| T0 | Slate | No JC found | Vehicle has no draft JC in the system |
+| T1 | Red | Booking in progress | Active booking — JC premature |
+| T2 | Amber | Prior JC deleted | Previous draft was deleted |
+| T3 | Green | Draft already exists | Draft JC already in pipeline |
+| T4 | Red | DMS push failed | JC created but DMS push errored — **alert tier** |
+| T5a | Slate | Payment pending | Booking ended but payment not cleared |
+| T5b | Amber | Push stuck | JC age > threshold, not pushed — **alert tier** |
+| T5c | Blue | Push in flight | DMS push in progress |
+| T6 | Purple | Needs manual review | Unclassified / edge case — **alert tier** |
+
+Alert tiers (T4, T5b, T6) are written to `jc_approval_alerts` by the sync; email notification is pending.
+
+---
+
+## Architecture (Security-reviewed)
 
 ```
-PRIVATE Metabase card (UUID c100308c-…)        ← card UUID lives ONLY in the edge fn
-        │  CSV, server-side fetch
-        ▼
-jc-approval-sync edge fn  (cron JOB 20, every 5 min)
-        │  rebuild (delete+reinsert)            diff
-        ▼                                        ▼
-jc_approval_status (1 row/vehicle)        jc_approval_alerts (append-only, T4/T5b/T6)
-        │  session token + RLS (authenticated-read)
-        ▼
-jc-approval.html  (superadmin-gated via is_superadmin app_metadata)
+Private Metabase card (c100308c-…)
+       ↓  server-side fetch (no browser exposure)
+jc-approval-sync edge fn  ←  cron ~every 5 min
+       ↓
+jc_approval_status table  (delete + reinsert, RLS: authenticated read)
+jc_approval_alerts table  (append-only, diff-based, RLS: authenticated read)
+       ↓
+jc-approval.html  ←  session-authed reads (user's JWT)
 ```
 
-- **Query**: `sql/rrr/RRR_Manual_JC_Approval_Check.sql` (outer Bounce repo, `sql/rrr/`).
-- **Edge fn**: `supabase/functions/jc-approval-sync/index.ts`. `ALERT_TIERS = {T4, T5b, T6}`.
-  Deployed via MCP (see memory `edge-fn-deploy-via-mcp`); git is source-of-record only.
-- **Migration**: `supabase/migrations/20260619000001_jc_approval.sql`.
-- **Cron**: JOB 20 `jc-approval-sync-5min` (`*/5 * * * *`) in `supabase/cron-jobs.sql`.
-- **Frontend** mirrors `maintenance.html` design language: FleetPro topbar + hamburger,
-  centered search hero, random "Try:" pills (only vehicles with a draft JC), last-synced
-  line, site-footer. Search via Enter or the magnifier icon (there is NO Check button —
-  a dead `search-btn` ref once crashed `runCheck()`; don't reintroduce it).
+Second edge fn for JC history:
+```
+Private Metabase card (a2c3e48b-…)
+       ↓
+jc-history-sync edge fn  ←  (separate cron, same pattern)
+       ↓
+jc_history table  (delete + reinsert)
+```
+
+The HTML page also reads `fw_bikes_live` (hub/location/SOC) and `oos_work_queue` (current repair entry) in parallel.
+
+---
 
 ## Tables
 
-`jc_approval_status` — PK `reg_number`; cols incl. `chassis_number, latest_draft_jc,
-latest_jc_status, jc_created_ist, current_booking_status, jc_trip_ended_ist, dms_json,
-jc_age_minutes, rental_status, vehicle_status, vehicle_sub_status, tier, verdict, reason,
-refreshed_at`. Rebuilt every sync. Indexed on `chassis_number`, `tier`.
+### `jc_approval_status` (PK: `reg_number`)
+One row per vehicle. Rebuilt every sync (delete + reinsert).
 
-`jc_approval_alerts` — append-only log of actionable tiers. `UNIQUE (latest_draft_jc,
-tier)` → one open alert per tier per JC. `alerted_at` set when notified; `resolved_at`
-set when the tier clears.
+| Column | Type | Notes |
+|--------|------|-------|
+| reg_number | text PK | |
+| chassis_number | text | indexed |
+| latest_draft_jc | text | JC number |
+| latest_jc_status | text | |
+| jc_created_ist | text | display string from query |
+| current_booking_status | text | |
+| current_booking_ended_ist | text | |
+| jc_trip_ended_ist | text | |
+| dms_json | text | `'Blank'` or `'Present'` |
+| jc_age_minutes | float8 | |
+| rental_status | text | |
+| vehicle_status | text | |
+| vehicle_sub_status | text | |
+| tier | text | T0–T6, indexed |
+| verdict | text | |
+| reason | text | |
+| refreshed_at | timestamptz | |
+
+### `jc_approval_alerts` (append-only)
+One row per (draft JC, tier) first-seen. `alerted_at` set once email fires; `resolved_at` set when vehicle leaves the alert tier.
+
+UNIQUE constraint: `(latest_draft_jc, tier)` — prevents duplicate alerts from sync races.
+
+### `jc_history`
+JC line-item history (jc_no, reg_number, bike_odo, jc_date, hub_name, service_type, line_type, item_name, qty, amount, technician_name). Rebuilt by `jc-history-sync`.
+
+---
+
+## Edge Functions
+
+### `jc-approval-sync`
+- Fetches Metabase card CSV server-side
+- Step 1: Rebuilds `jc_approval_status` (delete + reinsert, 500-row batches)
+- Step 2: Diffs `jc_approval_alerts` — inserts new T4/T5b/T6 cases, resolves cleared ones
+- Step 3: TODO — email notification on newly-inserted alerts (stamp `alerted_at`)
+- Writes heartbeat to `sync_heartbeats`
+
+### `jc-history-sync`
+- Same pattern — fetches separate Metabase card, rebuilds `jc_history`
+
+---
+
+## Frontend: `v8/jc-approval.html`
+
+Key behaviours:
+- Auth: `sb.auth.getSession()` → `applyGate()` → superadmin check → show/hide search hero
+- Search: `normalizeReg(q)` strips spaces/hyphens/dots, uppercases → `ilike *q*` on both `reg_number` and `chassis_number`; then exact match preferred over fuzzy
+- Parallel fetches: `jc_approval_status`, `jc_history` (120 rows), `fw_bikes_live`; sequential: `oos_work_queue` (after reg resolved)
+- Sections rendered: Bike → Current Booking → Job Card (current) → JC History (grouped by jc_no, last 12) → OOS Queue
+- `TIER_STYLE` map drives chip colour + verdict label — must stay in sync with SQL/edge-fn tier definitions
+- "Try:" pills: random 3 vehicles from `jc_approval_status` where `latest_draft_jc not null`
+- Last-synced line: latest `refreshed_at` from `jc_approval_status`
+- `sw.svg` (magnifier icon): `onclick="runCheck()"` — the ONLY search trigger besides Enter key
+- **No `search-btn` element** — do not add one; referencing it crashes `runCheck()`
+- Sidebar shows only: OOS Queue (service ops) + Admin section (Technicians, Permissions, JC Approval Check active)
+
+---
+
+## Migration
+
+`supabase/migrations/20260619000001_jc_approval.sql`  
+Creates `jc_approval_status`, `jc_approval_alerts`, indexes, and RLS policies (authenticated read, service role write/delete).
+
+---
+
+## Pending Work
+
+1. **Email notifications** — On T4/T5b/T6 newly-inserted alerts: send email to JC team, stamp `alerted_at`. Hook into same transport as RSA/FW alert scripts. The `// TODO(email)` comment is at line ~138 of `jc-approval-sync/index.ts`.
+
+2. **Alert Centre page** — New `v8/alert-centre.html` (or similar). Reads `jc_approval_alerts` (`resolved_at IS NULL` for open, full history). Design language: same maintenance.html shell. Listed as "Coming Soon" in the sidebar (`index.html`).
+
+---
+
+## Do-Not-Violate Decisions
+
+- **Tier codes are stable routing keys** — T0–T6 are used in the SQL query, the edge fn `ALERT_TIERS` set, and the HTML `TIER_STYLE` map. Change all three together or not at all.
+- **No `search-btn`** — search is Enter + magnifier icon only. A dead `search-btn` reference once crashed `runCheck()`.
+- **Metabase card UUID never in browser** — the card UUID lives in the edge fn only (server-side). The page reads from Supabase tables via the user's session JWT.
+- **RLS**: `jc_approval_status` and `jc_approval_alerts` require `authenticated` role to SELECT. Service role bypasses for edge fn writes.
+
+---
 
 ## Collaboration (Cowork ↔ Code)
 
-1. **One context file**: this doc. Read before working; update after.
-2. **Lock before editing the page**: claim `jc-approval.html` in `LOCKS.md`, commit that
-   first. If locked by the other window → STOP and wait. Release with `(free)` when done.
-3. **Deploy**: push via the `/tmp` clone (FUSE-lock workaround). Edge-fn changes go live
-   via MCP redeploy; the git push is source-of-record only.
+This is the shared source of truth for both **Cowork** (desktop) and **Claude Code**
+(terminal). Read it before working; update it after.
+
+1. **FleetPro is its OWN git repo** (`vehicle-parts-check`), gitignored by the outer
+   Bounce repo. ⚠️ The mounted `fleetpro/` folder's git is the **outer Bounce repo** and
+   does NOT deploy. Editing files there alone is invisible to production — deploy by
+   pushing via the `/tmp` clone of `vehicle-parts-check` (see `CLAUDE.md`).
+2. **Lock before editing the page**: claim `jc-approval.html` in `LOCKS.md` (owner + UTC
+   + note), commit that first. If it's locked by the other window → STOP and wait.
+   Release with `(free)` when done.
+3. **Edge-fn changes** deploy via MCP; the git push is source-of-record only.
 4. **Validate before push**: balanced tags + `node --check` on inline `<script>` blocks.
-
-## Pending
-
-- ⬜ Email notification on new T4/T5b/T6 alerts (`TODO(email)` in the edge fn — transport
-  not wired; the append-only log works without it).
-- ⬜ Alert Centre page (reads `jc_approval_alerts`, lists actionable situations).
-- ⬜ Recently added: sectioned layout + ODO + hub + location + search normalization
-  (in `jc-approval.html`) — fold any follow-ups here.
