@@ -6,7 +6,8 @@ first. If a row is already locked by another window → **STOP and wait**. Relea
 
 | Page / Feature | Locked by | Since (UTC) | Note |
 |---|---|---|---|
-| jc-approval.html | (free) | — | — |
+| jc-approval.html | claude-cli | 2026-06-23 09:42 UTC | add 3 context sections + intrip + hub mismatch |
+| supabase migrations (jc_context) | claude-cli | 2026-06-23 09:42 UTC | new jc_context_tables migration + edge fn |
 | index.html | (free) | — | — |
 | queue.html | (free) | — | — |
 | maintenance.html | (free) | — | — |
