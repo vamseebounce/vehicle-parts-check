@@ -1,0 +1,945 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"/>
+<meta http-equiv="Pragma" content="no-cache"/>
+<meta http-equiv="Expires" content="0"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Technician Incentives — FleetPro</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+/* ── Auth Screen ── */
+#auth-screen{position:fixed;inset:0;z-index:1100;background:linear-gradient(135deg,#1A1A2E 0%,#0f2460 100%);display:flex;align-items:center;justify-content:center;font-family:'Inter',sans-serif;}
+#auth-screen.hidden{display:none!important}
+.auth-card{background:#fff;border-radius:24px;padding:40px 36px;width:100%;max-width:380px;box-shadow:0 24px 80px rgba(0,0,0,.3);text-align:center;}
+.auth-logo{display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:24px}
+.auth-logo-name{font-size:1.1rem;font-weight:800;color:#0F172A}
+.auth-logo-sub{font-size:.7rem;color:#6B7280;font-weight:500;letter-spacing:.5px;text-transform:uppercase;margin-top:2px}
+.auth-title{font-size:1.3rem;font-weight:800;color:#0F172A;margin-bottom:6px}
+.auth-sub{font-size:.82rem;color:#6B7280;margin-bottom:28px;line-height:1.6}
+.auth-input{width:100%;padding:13px 16px;border:1.5px solid #E5E7EB;border-radius:12px;font-size:.9rem;font-family:'Inter',sans-serif;color:#111827;outline:none;transition:border-color .15s;margin-bottom:12px;}
+.auth-input:focus{border-color:#E8191C}
+.auth-btn{width:100%;padding:13px;background:#E8191C;color:#fff;border:none;border-radius:12px;font-size:.9rem;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;transition:background .15s;}
+.auth-btn:hover{background:#B01010}
+.auth-btn:disabled{background:#CBD5E1;cursor:not-allowed}
+.auth-domain{display:inline-block;background:#F0FDF4;color:#16A34A;border:1px solid #BBF7D0;border-radius:8px;padding:4px 12px;font-size:.75rem;font-weight:600;margin-bottom:20px}
+.auth-msg{font-size:.78rem;margin-top:12px;min-height:18px;line-height:1.5;color:#DC2626}
+.auth-sent{display:none;text-align:center}
+.auth-sent .big-icon{font-size:3rem;margin-bottom:12px}
+.auth-sent h3{font-size:1.1rem;font-weight:800;color:#0F172A;margin-bottom:8px}
+.auth-sent p{font-size:.82rem;color:#6B7280;line-height:1.6}
+.auth-sent .resend{background:none;border:none;color:#E8191C;font-size:.8rem;font-weight:600;cursor:pointer;margin-top:16px;font-family:'Inter',sans-serif}
+
+:root{
+  --brand:#E8191C;--brand-dark:#B01010;--brand-bg:#FEF2F2;
+  --sb-bg:#1A1A2E;--sb-text:rgba(255,255,255,.7);--sb-active:#fff;
+  --sb-hover:rgba(255,255,255,.08);--sb-width:260px;--topbar-h:56px;
+  --bg:#F5F6FA;--card:#fff;--border:#E5E7EB;--text:#111827;--muted:#6B7280;
+  --shadow:0 1px 3px rgba(0,0,0,.08),0 1px 2px rgba(0,0,0,.04);
+  --shadow-md:0 4px 16px rgba(0,0,0,.1);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+
+/* ── Overlay ── */
+#ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:1050;backdrop-filter:blur(2px)}
+#ov.show{display:block}
+
+/* ── Sidebar ── */
+#sb{position:fixed;top:0;left:0;bottom:0;width:var(--sb-width);background:var(--sb-bg);z-index:1000;transform:translateX(-100%);transition:transform .25s ease;display:flex;flex-direction:column;overflow-y:auto;overflow-x:hidden;}
+#sb.open{transform:translateX(0)}
+body.pinned #sb{transform:translateX(0)}
+body.pinned #main{margin-left:var(--sb-width)}
+.sb-header{padding:20px 16px 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,.06)}
+.sb-brand{display:flex;align-items:center;gap:10px;text-decoration:none}
+@keyframes morph{0%,100%{border-radius:60% 40% 55% 45%/50% 60% 40% 50%}33%{border-radius:40% 60% 45% 55%/60% 40% 60% 40%}66%{border-radius:55% 45% 60% 40%/40% 55% 45% 60%}}
+.sb-brand-text .t1{font-size:.6rem;font-weight:700;color:rgba(255,255,255,.5);letter-spacing:.5px;text-transform:uppercase}
+.sb-brand-text .t2{font-size:.78rem;font-weight:800;color:#fff;letter-spacing:-.01em}
+.pin-btn{background:none;border:none;cursor:pointer;color:rgba(255,255,255,.35);font-size:.8rem;padding:4px 6px;border-radius:6px;transition:all .15s;display:flex;align-items:center;gap:3px;font-family:inherit}
+.pin-btn:hover{color:#fff;background:rgba(255,255,255,.08)}
+.pin-btn.pinned{color:var(--brand)}
+.sb-section{padding:12px 8px 4px}
+.sb-label{font-size:.6rem;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:rgba(255,255,255,.25);padding:0 8px 8px}
+.sb-item{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:10px;text-decoration:none;color:var(--sb-text);font-size:.82rem;font-weight:500;transition:all .15s;margin-bottom:2px}
+.sb-item:hover{background:var(--sb-hover);color:var(--sb-active)}
+.sb-item.active{background:rgba(232,25,28,.18);color:#fff;font-weight:600}
+.sb-item.active .si{color:var(--brand)}
+.si{font-size:1rem;width:20px;text-align:center;flex-shrink:0}
+.sb-spacer{flex:1}
+.sb-footer{padding:12px 16px;border-top:1px solid rgba(255,255,255,.06)}
+.sb-ver{font-size:.65rem;color:rgba(255,255,255,.25);font-weight:500}
+
+/* ── Top Bar ── */
+#main{transition:margin-left .25s ease;min-height:100vh;display:flex;flex-direction:column}
+#topbar{position:sticky;top:0;z-index:100;height:var(--topbar-h);background:#fff;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;padding:0 16px;box-shadow:var(--shadow);}
+#hbg{width:36px;height:36px;background:none;border:none;cursor:pointer;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:5px;border-radius:8px;transition:background .15s;flex-shrink:0;}
+#hbg:hover{background:#F3F4F6}
+#hbg span{display:block;width:18px;height:2px;background:var(--text);border-radius:2px;transition:all .2s}
+.tb-brand{display:flex;align-items:center;gap:6px;flex:1;min-width:0}
+.tb-logo{display:flex;align-items:center;gap:7px;font-size:.85rem;font-weight:800;color:var(--brand);letter-spacing:-.01em;white-space:nowrap;text-decoration:none}
+.tb-dot{width:26px;height:26px;background:var(--brand);border-radius:60% 40% 55% 45%/50% 60% 40% 50%;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:.55rem;color:#fff;flex-shrink:0;animation:morph 6s ease-in-out infinite}
+.tb-right{display:flex;align-items:center;gap:8px;margin-left:auto;flex-shrink:0}
+
+/* ── Tab Navigation ── */
+.tab-nav{display:flex;gap:0;background:#fff;border-bottom:1px solid var(--border);position:sticky;top:var(--topbar-h);z-index:99;margin:0;padding:0;overflow-x:auto;}
+.tab-nav button{background:none;border:none;padding:14px 18px;cursor:pointer;font-size:.82rem;font-weight:600;color:var(--muted);font-family:'Inter',sans-serif;position:relative;white-space:nowrap;flex-shrink:0;transition:color .15s;}
+.tab-nav button:hover{color:var(--text)}
+.tab-nav button.active{color:var(--text);font-weight:700;}
+.tab-nav button.active::after{content:'';position:absolute;bottom:-1px;left:0;right:0;height:3px;background:var(--brand);}
+
+/* ── Content ── */
+.content{flex:1;padding:24px 20px;max-width:1200px;width:100%;margin:0 auto;}
+.content-pane{display:none;}
+.content-pane.active{display:block;}
+
+/* ── Tabs Content ── */
+.tab-header{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:24px;flex-wrap:wrap;}
+.tab-title{font-size:1.2rem;font-weight:800;color:#0F172A;}
+.tab-subtitle{font-size:.78rem;color:var(--muted);}
+
+/* ── KPI Cards ── */
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:28px;}
+.kpi-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:18px;box-shadow:var(--shadow);}
+.kpi-label{font-size:.72rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;}
+.kpi-value{font-size:2rem;font-weight:900;color:#0F172A;margin-bottom:4px;line-height:1;}
+.kpi-detail{font-size:.78rem;color:var(--muted);line-height:1.4;}
+.kpi-badge{display:inline-block;background:#FEF2F2;color:#E8191C;padding:4px 10px;border-radius:6px;font-size:.7rem;font-weight:700;margin-top:8px;}
+
+/* ── Payout Progress Bar ── */
+.payout-section{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px;margin-bottom:28px;box-shadow:var(--shadow);}
+.payout-title{font-size:.9rem;font-weight:800;color:#0F172A;margin-bottom:14px;}
+.payout-bar{position:relative;background:#F3F4F6;height:32px;border-radius:10px;overflow:hidden;margin-bottom:12px;display:flex;align-items:stretch;}
+.payout-tier{flex:1;position:relative;display:flex;align-items:center;justify-content:center;font-size:.65rem;font-weight:700;color:rgba(255,255,255,.8);border-right:1px solid rgba(255,255,255,.3);}
+.payout-tier:last-child{border-right:none;}
+.payout-tier-0{background:#E5E7EB;color:#6B7280;}
+.payout-tier-1{background:linear-gradient(90deg,#BFDBFE,#93C5FD);}
+.payout-tier-2{background:linear-gradient(90deg,#6EE7B7,#34D399);}
+.payout-tier-3{background:linear-gradient(90deg,#FCD34D,#FBBF24);}
+.payout-tier-4{background:linear-gradient(90deg,#F97316,#EA580C);}
+.payout-marker{position:absolute;top:-4px;width:2px;height:40px;background:var(--text);display:none;}
+.payout-marker.show{display:block;}
+.payout-label{font-size:.7rem;font-weight:700;color:var(--muted);display:flex;justify-content:space-between;margin-bottom:8px;}
+.payout-nudge{font-size:.78rem;color:var(--muted);line-height:1.5;padding:12px;background:#F9FAFB;border-radius:8px;border-left:3px solid var(--brand);}
+
+/* ── Trend Table ── */
+.trend-table{width:100%;border-collapse:collapse;font-size:.78rem;}
+.trend-table thead{background:#F9FAFB;border-bottom:1px solid var(--border);}
+.trend-table th{padding:12px 8px;text-align:left;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;font-size:.65rem;}
+.trend-table td{padding:12px 8px;border-bottom:1px solid var(--border);color:var(--text);}
+.trend-table tbody tr:hover{background:#F9FAFB;}
+.trend-table tbody tr.current{background:#FEF3C7;border-left:3px solid #F59E0B;}
+.trend-table .dim{color:var(--muted);}
+.trend-table .good{color:#16A34A;font-weight:600;}
+
+/* ── Leaderboard ── */
+.leaderboard-table{width:100%;border-collapse:collapse;font-size:.8rem;}
+.leaderboard-table thead{background:#F9FAFB;border-bottom:1px solid var(--border);}
+.leaderboard-table th{padding:12px 8px;text-align:left;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;font-size:.65rem;}
+.leaderboard-table td{padding:12px 8px;border-bottom:1px solid var(--border);color:var(--text);}
+.leaderboard-table tbody tr:hover{background:#F9FAFB;}
+.leaderboard-table tbody tr.user-row{background:#F0FDF4;border-left:3px solid #0891B2;}
+.leaderboard-table .rank{font-weight:700;color:#0F172A;width:50px;}
+.leaderboard-table .badge{display:inline-block;background:#FEF2F2;color:#E8191C;padding:2px 6px;border-radius:4px;font-size:.65rem;font-weight:700;}
+.leaderboard-table .medal{font-size:1.1rem;margin-right:4px;}
+
+/* ── Admin Upload Panel ── */
+.upload-panel{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px;margin-bottom:28px;box-shadow:var(--shadow);}
+.upload-title{font-size:.9rem;font-weight:800;color:#0F172A;margin-bottom:16px;}
+.upload-area{display:flex;gap:12px;flex-wrap:wrap;align-items:center;}
+.upload-input-wrapper{position:relative;}
+.upload-input{display:none;}
+.upload-btn{background:#E8191C;color:#fff;border:1px solid #E8191C;padding:10px 16px;border-radius:10px;font-size:.78rem;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;transition:background .15s;}
+.upload-btn:hover{background:#B01010}
+.upload-btn:disabled{background:#CBD5E1;cursor:not-allowed;}
+.upload-file-name{font-size:.78rem;color:var(--muted);}
+.upload-progress{font-size:.75rem;color:var(--muted);}
+
+/* ── Admin Tables ── */
+.admin-table{width:100%;border-collapse:collapse;font-size:.75rem;}
+.admin-table thead{background:#F9FAFB;border-bottom:1px solid var(--border);}
+.admin-table th{padding:10px 8px;text-align:left;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;font-size:.6rem;}
+.admin-table td{padding:10px 8px;border-bottom:1px solid var(--border);color:var(--text);}
+.admin-table tbody tr:hover{background:#F9FAFB;}
+
+/* ── Filter/Control Bar ── */
+.control-bar{display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap;align-items:center;}
+.filter-select{border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:.78rem;font-family:'Inter',sans-serif;outline:none;background:#fff;color:var(--text);cursor:pointer;}
+.filter-select:focus{border-color:#E8191C;}
+
+/* ── Responsive ── */
+@media(max-width:767px){
+  body.pinned #main{margin-left:0}
+  body.pinned #sb{transform:translateX(0)}
+  .pin-btn{display:none}
+  #hbg{display:flex}
+  .kpi-grid{grid-template-columns:1fr}
+  .tab-nav{padding:0 12px;}
+  .content{padding:16px 12px;}
+  .leaderboard-table,.trend-table,.admin-table{font-size:.7rem;}
+  .leaderboard-table th,.trend-table th,.admin-table th{font-size:.6rem;padding:8px 4px;}
+  .leaderboard-table td,.trend-table td,.admin-table td{padding:8px 4px;}
+}
+@media(min-width:768px){
+  body.pinned #sb{transform:translateX(0)}
+}
+</style>
+</head>
+<body>
+
+<!-- Auth Screen -->
+<div id="auth-screen" class="hidden">
+  <div class="auth-card">
+    <div class="auth-logo">
+      <img id="auth-logo-img" src="logo.jpg" width="44" height="44" style="border-radius:10px;object-fit:cover;flex-shrink:0"/>
+      <div>
+        <div class="auth-logo-name">Bounce Daily</div>
+        <div class="auth-logo-sub">FleetPro</div>
+      </div>
+    </div>
+    <div class="auth-title">Technician Incentives</div>
+    <div class="auth-sub">Enter your email and we'll send you a one-click sign-in link.</div>
+    <div class="auth-domain">@bounceshare.com · approved users</div>
+    <div id="auth-form">
+      <input id="auth-email" class="auth-input" type="email" placeholder="your@email.com" autocomplete="email"/>
+      <button id="auth-submit" class="auth-btn" onclick="sendMagicLink()">Send Magic Link</button>
+      <div id="auth-msg" class="auth-msg"></div>
+    </div>
+    <div id="auth-sent" class="auth-sent">
+      <div class="big-icon">📬</div>
+      <h3>Check your inbox</h3>
+      <p>Magic link sent to<br/><b id="auth-sent-email"></b><br/>Click it to sign in — expires in 15 min.</p>
+      <button class="resend" onclick="showForm()">← Use a different email</button>
+    </div>
+  </div>
+</div>
+
+<div id="ov" onclick="closeSidebar()"></div>
+
+<!-- Sidebar -->
+<nav id="sb">
+  <div class="sb-header">
+    <a href="./index.html" class="sb-brand">
+      <img src="logo.jpg" width="44" height="44" style="border-radius:10px;object-fit:cover;flex-shrink:0"/>
+      <div class="sb-brand-text">
+        <div class="t1">Bounce Daily</div>
+        <div class="t2">FleetPro</div>
+      </div>
+    </a>
+    <button class="pin-btn" id="pinBtn" onclick="togglePin()" title="Pin sidebar">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2v10M8 6l4-4 4 4M8 18l4 4 4-4M12 12v10"/></svg>
+      Pin
+    </button>
+  </div>
+  <div class="sb-section">
+    <div class="sb-label">Fleet Tools</div>
+    <a href="./index.html" class="sb-item"><span class="si">🏠</span><span>Home</span></a>
+  </div>
+  <div class="sb-section" style="margin-top:4px">
+    <div class="sb-label">Operations</div>
+    <a href="./incentive.html" class="sb-item active"><span class="si">🏆</span><span>Technician Incentives</span></a>
+  </div>
+  <div class="sb-spacer"></div>
+  <div class="sb-footer"><div class="sb-ver">FleetPro v8 · Incentives</div></div>
+</nav>
+
+<!-- Main -->
+<div id="main">
+  <header id="topbar">
+    <button id="hbg" onclick="toggleSidebar()" aria-label="Menu">
+      <span></span><span></span><span></span>
+    </button>
+    <div class="tb-brand">
+      <a href="./index.html" class="tb-logo">
+        <img src="logo.jpg" width="30" height="30" style="border-radius:7px;object-fit:cover;flex-shrink:0"/>
+        FleetPro
+      </a>
+    </div>
+    <div class="tb-right">
+      <button id="logout-btn" onclick="signOut()" style="display:none;background:none;border:1px solid #E5E7EB;border-radius:8px;padding:5px 12px;font-size:.72rem;font-weight:600;color:#6B7280;cursor:pointer;font-family:'Inter',sans-serif;transition:all .15s" onmouseover="this.style.borderColor='#E8191C';this.style.color='#E8191C'" onmouseout="this.style.borderColor='#E5E7EB';this.style.color='#6B7280'">Sign out</button>
+    </div>
+  </header>
+
+  <!-- Tab Navigation -->
+  <div class="tab-nav">
+    <button class="tab-btn active" data-tab="dashboard" onclick="switchTab('dashboard')">My Dashboard</button>
+    <button class="tab-btn" data-tab="leaderboard" onclick="switchTab('leaderboard')">Leaderboard</button>
+    <button class="tab-btn" data-tab="admin" onclick="switchTab('admin')" id="admin-tab" style="display:none">Admin</button>
+  </div>
+
+  <!-- Content -->
+  <div class="content">
+
+    <!-- Dashboard Tab -->
+    <div id="dashboard" class="content-pane active">
+      <div class="tab-header">
+        <div>
+          <div class="tab-title">My Dashboard</div>
+          <div class="tab-subtitle" id="dashboard-subtitle">Loading…</div>
+        </div>
+      </div>
+
+      <!-- KPI Cards -->
+      <div class="kpi-grid">
+        <div class="kpi-card">
+          <div class="kpi-label">Eligible JCs This Week</div>
+          <div class="kpi-value" id="kpi-eligible">—</div>
+          <div class="kpi-detail">Job cards that qualify</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Estimated Payout</div>
+          <div class="kpi-value" id="kpi-payout">₹ —</div>
+          <div class="kpi-detail" id="kpi-payout-detail">Based on tier calculation</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Voided JCs</div>
+          <div class="kpi-value" id="kpi-voided">—</div>
+          <div class="kpi-detail">Excluded from this week</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Leaderboard Rank</div>
+          <div class="kpi-value" id="kpi-rank">—</div>
+          <div class="kpi-detail" id="kpi-rank-detail">Among active earners</div>
+        </div>
+      </div>
+
+      <!-- Payout Progress -->
+      <div class="payout-section">
+        <div class="payout-title">Payout Progress — This Week</div>
+        <div class="payout-bar" id="payout-bar">
+          <div class="payout-tier payout-tier-0" style="flex:0.3"><span>Below</span></div>
+          <div class="payout-tier payout-tier-1" style="flex:0.3"><span>T1</span></div>
+          <div class="payout-tier payout-tier-2" style="flex:0.3"><span>T2</span></div>
+          <div class="payout-tier payout-tier-3" style="flex:0.3"><span>T3</span></div>
+          <div class="payout-tier payout-tier-4" style="flex:0.3"><span>T4</span></div>
+          <div class="payout-marker" id="payout-marker"></div>
+        </div>
+        <div class="payout-label">
+          <span id="payout-label-left">50</span>
+          <span id="payout-label-right">Cap</span>
+        </div>
+        <div class="payout-nudge" id="payout-nudge">Loading…</div>
+      </div>
+
+      <!-- JC Split -->
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px;margin-bottom:28px;box-shadow:var(--shadow);">
+        <div style="font-size:.85rem;font-weight:800;color:#0F172A;margin-bottom:14px;">JC Split This Week</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+          <div>
+            <div style="font-size:.7rem;color:var(--muted);font-weight:700;margin-bottom:6px;">Intrip Fixes</div>
+            <div style="font-size:1.8rem;font-weight:900;color:#0F172A;" id="split-intrip">—</div>
+          </div>
+          <div>
+            <div style="font-size:.7rem;color:var(--muted);font-weight:700;margin-bottom:6px;">OOS → RFD Moves</div>
+            <div style="font-size:1.8rem;font-weight:900;color:#0F172A;" id="split-rfd">—</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Trend Table -->
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px;box-shadow:var(--shadow);">
+        <div style="font-size:.85rem;font-weight:800;color:#0F172A;margin-bottom:14px;">8-Week Trend</div>
+        <table class="trend-table" id="trend-table">
+          <thead>
+            <tr>
+              <th>Week</th>
+              <th>Intrip</th>
+              <th>OOS→RFD</th>
+              <th>Voided</th>
+              <th>Eligible</th>
+              <th>Payout</th>
+            </tr>
+          </thead>
+          <tbody id="trend-tbody">
+            <tr><td colspan="6" style="text-align:center;color:var(--muted);">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Leaderboard Tab -->
+    <div id="leaderboard" class="content-pane">
+      <div class="tab-header">
+        <div>
+          <div class="tab-title">Leaderboard</div>
+          <div class="tab-subtitle" id="leaderboard-subtitle">Current week — live rankings</div>
+        </div>
+        <select class="filter-select" id="city-filter" onchange="renderLeaderboard()">
+          <option value="">All Cities</option>
+          <option value="Bangalore">Bangalore</option>
+          <option value="Delhi">Delhi</option>
+          <option value="Hyderabad">Hyderabad</option>
+        </select>
+      </div>
+
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px;box-shadow:var(--shadow);margin-bottom:28px;">
+        <table class="leaderboard-table" id="leaderboard-table">
+          <thead>
+            <tr>
+              <th style="width:50px">Rank</th>
+              <th>Technician</th>
+              <th>Hub</th>
+              <th>Eligible JCs</th>
+              <th>Tier</th>
+              <th>Est. Payout</th>
+            </tr>
+          </thead>
+          <tbody id="leaderboard-tbody">
+            <tr><td colspan="6" style="text-align:center;color:var(--muted);">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Last Week Collapsible -->
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden;box-shadow:var(--shadow);">
+        <button onclick="toggleLastWeek()" style="width:100%;padding:16px;border:none;background:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;font-weight:700;color:#0F172A;font-family:inherit;font-size:.85rem;">
+          <span id="last-week-toggle">▸</span> Last Week Results
+        </button>
+        <div id="last-week-content" style="display:none;padding:20px;border-top:1px solid var(--border);">
+          <div id="last-week-subtitle" style="font-size:.75rem;color:var(--muted);margin-bottom:14px;">Final — Week of DD MMM</div>
+          <table class="leaderboard-table" id="last-week-table" style="width:100%;">
+            <thead>
+              <tr>
+                <th style="width:50px">Rank</th>
+                <th>Technician</th>
+                <th>Hub</th>
+                <th>Eligible JCs</th>
+                <th>Tier</th>
+                <th>Payout</th>
+              </tr>
+            </thead>
+            <tbody id="last-week-tbody">
+              <tr><td colspan="6" style="text-align:center;color:var(--muted);">No data</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Admin Tab -->
+    <div id="admin" class="content-pane">
+      <div class="tab-header">
+        <div>
+          <div class="tab-title">Admin Panel</div>
+          <div class="tab-subtitle">Upload data, manage technicians, view burn overview</div>
+        </div>
+      </div>
+
+      <!-- Upload Panel -->
+      <div class="upload-panel">
+        <div class="upload-title">Upload Weekly Data</div>
+        <div class="upload-area">
+          <div class="upload-input-wrapper">
+            <button class="upload-btn" onclick="document.getElementById('xlsx-input').click()">📁 Choose XLSX</button>
+            <input type="file" id="xlsx-input" class="upload-input" accept=".xlsx,.xls" onchange="handleFileSelect()"/>
+          </div>
+          <button class="upload-btn" id="process-btn" onclick="processUpload()" disabled>Process Upload</button>
+          <div class="upload-file-name" id="file-name">No file selected</div>
+          <div class="upload-progress" id="upload-progress"></div>
+        </div>
+      </div>
+
+      <!-- Unresolved Names -->
+      <div style="background:#FEF2F2;border:1px solid #FECACA;border-radius:14px;padding:16px;margin-bottom:28px;display:none;" id="unresolved-panel">
+        <div style="font-size:.8rem;font-weight:700;color:#DC2626;margin-bottom:10px;">⚠️ Unresolved Technician Names</div>
+        <div id="unresolved-list" style="font-size:.75rem;color:#991B1B;line-height:1.8;"></div>
+      </div>
+
+      <!-- Burn Overview Table -->
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px;margin-bottom:28px;box-shadow:var(--shadow);">
+        <div style="font-size:.85rem;font-weight:800;color:#0F172A;margin-bottom:14px;">Burn Overview</div>
+        <table class="admin-table" id="burn-table">
+          <thead>
+            <tr>
+              <th>Week</th>
+              <th>Active Techs</th>
+              <th>Earners</th>
+              <th>Median JCs</th>
+              <th>Total Payout</th>
+            </tr>
+          </thead>
+          <tbody id="burn-tbody">
+            <tr><td colspan="5" style="text-align:center;color:var(--muted);">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Technician Management -->
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px;box-shadow:var(--shadow);">
+        <div style="font-size:.85rem;font-weight:800;color:#0F172A;margin-bottom:14px;">Technician Directory</div>
+        <table class="admin-table" id="tech-table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Hub</th>
+              <th>City</th>
+              <th>Email</th>
+              <th>Role</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="tech-tbody">
+            <tr><td colspan="6" style="text-align:center;color:var(--muted);">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+/* ── SUPABASE CONFIG ── */
+const SB_URL='https://clkfvmmlgwcvntxnolsv.supabase.co';
+const ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNsa2Z2bW1sZ3djdm50eG5vbHN2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ1NDQ2NTgsImV4cCI6MjA5MDEyMDY1OH0.FA33GFQisWX_hDeGCWqL5yAZmPcuQRdxZX32I23lyoY';
+const ALLOWED_EMAILS=['vamsee@bounceshare.com','vamsee@scalability.club','nishanthshetty2024@gmail.com'];
+const SB=SB_URL;
+let K=ANON_KEY;
+let CURRENT_USER_EMAIL=null;
+let CURRENT_SESSION=null;
+
+const sbClient=supabase.createClient(SB_URL,ANON_KEY,{auth:{persistSession:true,storageKey:'incentive_session',autoRefreshToken:true}});
+
+/* ── NAME NORMALISATION MAP (45 entries) ── */
+const NAME_MAP={
+  'Akshay KP':'Akshay KP','Alekhya Reddy':'Alekhya Reddy','Amith KG':'Amith KG',
+  'Aniket Pal':'Aniket Pal','Anitha Kumari':'Anitha Kumari','Anoop S':'Anoop S',
+  'Ansari Tazeem':'Ansari Tazeem','Aparna Nair':'Aparna Nair','Arjun Mayale':'Arjun Mayale',
+  'Ashok Kumar':'Ashok Kumar','Ashish Sharma':'Ashish Sharma','Ayush Pandey':'Ayush Pandey',
+  'Balram Singh':'Balram Singh','Balu N':'Balu N','Bhagwan Prasad':'Bhagwan Prasad',
+  'Bhaskar Jain':'Bhaskar Jain','Chandra Bhushan':'Chandra Bhushan','Deepak Singh':'Deepak Singh',
+  'Dharshan Y':'Dharshan Y','Dhiraj Patel':'Dhiraj Patel','Dushyant Nagar':'Dushyant Nagar',
+  'Faisal Ahmed':'Faisal Ahmed','Faizan Parvez':'Faizan Parvez','Ganesh Kumar':'Ganesh Kumar',
+  'Gitanjali Behera':'Gitanjali Behera','Gokul Iyer':'Gokul Iyer','Govind Rao':'Govind Rao',
+  'Gyanendra Singh':'Gyanendra Singh','Hari Kumar':'Hari Kumar','Harsh Patel':'Harsh Patel',
+  'Harshit Singh':'Harshit Singh','Hemal Patel':'Hemal Patel','Henna Khan':'Henna Khan'
+};
+
+/* ── PAYOUT CALCULATION ── */
+function calcPayout(eligibleJCs,threshold=50){
+  if(eligibleJCs<=threshold)return 0;
+  const a=eligibleJCs-threshold;
+  let p=Math.min(a,10)*25;
+  if(a>10)p+=Math.min(a-10,20)*50;
+  if(a>30)p+=Math.min(a-30,10)*75;
+  if(a>40)p+=(a-40)*100;
+  return Math.min(p,5000);
+}
+
+function getTierInfo(eligibleJCs,threshold=50){
+  const above=eligibleJCs-threshold;
+  if(above<=0)return{tier:0,rate:0,nextAt:threshold,need:threshold-eligibleJCs};
+  if(above<=10)return{tier:1,rate:25,nextAt:threshold+10,need:threshold+10-eligibleJCs};
+  if(above<=30)return{tier:2,rate:50,nextAt:threshold+30,need:threshold+30-eligibleJCs};
+  if(above<=40)return{tier:3,rate:75,nextAt:threshold+40,need:threshold+40-eligibleJCs};
+  return{tier:4,rate:100,nextAt:null,need:0};
+}
+
+/* ── AUTH FUNCTIONS ── */
+function showAuthScreen(){document.getElementById('auth-screen').classList.remove('hidden');showForm();}
+function hideAuthScreen(){document.getElementById('auth-screen').classList.add('hidden');}
+function showForm(){
+  document.getElementById('auth-form').style.display='block';
+  document.getElementById('auth-sent').style.display='none';
+  document.getElementById('auth-msg').textContent='';
+  document.getElementById('auth-email').value='';
+}
+async function sendMagicLink(){
+  const email=document.getElementById('auth-email').value.trim().toLowerCase();
+  const msg=document.getElementById('auth-msg');
+  const btn=document.getElementById('auth-submit');
+  if(!email){msg.textContent='Please enter your email.';return;}
+  if(!email.endsWith('@bounceshare.com')&&!ALLOWED_EMAILS.includes(email)){msg.textContent='Only @bounceshare.com emails are allowed.';return;}
+  btn.disabled=true;btn.textContent='Sending…';msg.textContent='';
+  const res=await sbClient.auth.signInWithOtp({email:email,options:{emailRedirectTo:window.location.origin+window.location.pathname}});
+  btn.disabled=false;btn.textContent='Send Magic Link';
+  if(res.error){msg.textContent=res.error.message||'Failed to send link.';}
+  else{document.getElementById('auth-form').style.display='none';document.getElementById('auth-sent').style.display='block';document.getElementById('auth-sent-email').textContent=email;}
+}
+document.getElementById('auth-email').addEventListener('keydown',e=>{if(e.key==='Enter')sendMagicLink();});
+async function signOut(){await sbClient.auth.signOut();document.getElementById('logout-btn').style.display='none';showAuthScreen();}
+
+/* ── TAB SWITCHING ── */
+function switchTab(tab){
+  document.querySelectorAll('.content-pane').forEach(e=>e.classList.remove('active'));
+  document.getElementById(tab).classList.add('active');
+  document.querySelectorAll('.tab-btn').forEach(e=>e.classList.remove('active'));
+  document.querySelector(`[data-tab="${tab}"]`).classList.add('active');
+  if(tab==='leaderboard')renderLeaderboard();
+  if(tab==='admin')loadAdminData();
+}
+
+/* ── DATA LOADING ── */
+function getWeekStart(date){
+  const d=new Date(date);
+  const day=d.getDay();
+  const diff=d.getDate()-day+(day===0?-6:1);
+  return new Date(d.setDate(diff));
+}
+
+function formatDate(d){
+  return new Date(d).toLocaleDateString('en-IN',{year:'numeric',month:'2-digit',day:'2-digit'}).split('/').reverse().join('-');
+}
+
+function formatDateRange(startDate){
+  const s=new Date(startDate);
+  const e=new Date(s.getTime()+6*24*3600000);
+  const fmt=d=>d.toLocaleDateString('en-IN',{day:'numeric',month:'short'});
+  return `${fmt(s)} – ${fmt(e)}`;
+}
+
+async function loadDashboard(){
+  if(!CURRENT_SESSION)return;
+  const userId=CURRENT_SESSION.user.id;
+  const userEmail=CURRENT_SESSION.user.email;
+
+  try{
+    // Get tech name from email or user table
+    let techName=userEmail.split('@')[0];
+    try{
+      const{data}=await sbClient.from('incentive_technicians').select('name_normalized').eq('email',userEmail).single();
+      if(data)techName=data.name_normalized;
+    }catch(e){}
+
+    // Load current week stats
+    const weekStart=getWeekStart(new Date());
+    const{data:weekStats}=await sbClient.from('incentive_weekly_stats').select('*').eq('tech_name',techName).eq('week_start',formatDate(weekStart)).single();
+
+    if(!weekStats){
+      document.querySelectorAll('[id^="kpi-"]').forEach(e=>e.textContent='—');
+      document.getElementById('dashboard-subtitle').textContent='No data for this week';
+      return;
+    }
+
+    const eligible=weekStats.eligible_jcs||0;
+    const intrip=weekStats.intrip_jcs||0;
+    const rfd=weekStats.submission_jcs||0;
+    const voided=weekStats.voided_jcs||0;
+    const payout=Math.round(calcPayout(eligible));
+
+    document.getElementById('kpi-eligible').textContent=eligible;
+    document.getElementById('kpi-payout').textContent='₹ '+payout;
+    document.getElementById('kpi-voided').textContent=voided;
+    document.getElementById('split-intrip').textContent=intrip;
+    document.getElementById('split-rfd').textContent=rfd;
+
+    // Update dashboard subtitle
+    const hub=weekStats.hub_name||'Unknown';
+    document.getElementById('dashboard-subtitle').textContent=`${hub} · ${formatDateRange(weekStart)}`;
+
+    // Get leaderboard rank
+    const{data:allStats}=await sbClient.from('incentive_weekly_stats').select('tech_name,eligible_jcs').eq('week_start',formatDate(weekStart)).order('eligible_jcs',{ascending:false});
+    let rank=allStats?.findIndex(s=>s.tech_name===techName)+1||'—';
+    const earners=(allStats?.filter(s=>s.eligible_jcs>50)||[]).length;
+    document.getElementById('kpi-rank').textContent=`#${rank}`;
+    document.getElementById('kpi-rank-detail').textContent=`of ${earners} earners`;
+
+    // Payout progress bar
+    const tierInfo=getTierInfo(eligible);
+    updatePayoutBar(eligible,tierInfo);
+
+    // Load trend (8 weeks)
+    const{data:trendStats}=await sbClient.from('incentive_weekly_stats').select('*').eq('tech_name',techName).order('week_start',{ascending:false}).limit(8);
+    renderTrendTable(trendStats?.reverse()||[],formatDate(weekStart));
+  }catch(e){
+    console.error('Dashboard load error:',e);
+  }
+}
+
+function updatePayoutBar(eligible,tierInfo){
+  const marker=document.getElementById('payout-marker');
+  const barWidth=document.getElementById('payout-bar').offsetWidth;
+  const markerPos=(eligible/90)*barWidth;
+  marker.style.left=markerPos+'px';
+  marker.classList.add('show');
+
+  let nudge='';
+  if(tierInfo.tier===0){
+    nudge=`You need ${tierInfo.need} more JCs to unlock Tier 1 (₹25/JC). Keep pushing!`;
+  }else if(tierInfo.tier===1){
+    nudge=`Great! You're in Tier 1. ${tierInfo.need} more JCs to reach Tier 2 (₹50/JC).`;
+  }else if(tierInfo.tier===2){
+    nudge=`Excellent! You've reached Tier 2. ${tierInfo.need} more to unlock Tier 3 (₹75/JC).`;
+  }else if(tierInfo.tier===3){
+    nudge=`Outstanding! You're in Tier 3. ${tierInfo.need} more to hit the cap at Tier 4.`;
+  }else{
+    nudge='You\'ve reached the maximum payout cap! Keep up the excellent work.';
+  }
+  document.getElementById('payout-nudge').textContent=nudge;
+}
+
+function renderTrendTable(stats,currentWeek){
+  const tbody=document.getElementById('trend-tbody');
+  if(!stats||stats.length===0){
+    tbody.innerHTML='<tr><td colspan="6">No data</td></tr>';
+    return;
+  }
+  tbody.innerHTML=stats.map((s,i)=>{
+    const isCurrent=s.week_start===currentWeek;
+    const range=formatDateRange(new Date(s.week_start));
+    return`<tr class="${isCurrent?'current':''}">
+      <td><span class="${isCurrent?'good':'dim'}">${range}</span></td>
+      <td>${s.intrip_jcs||0}</td>
+      <td>${s.submission_jcs||0}</td>
+      <td>${s.voided_jcs||0}</td>
+      <td><b>${s.eligible_jcs||0}</b></td>
+      <td>${Math.round(calcPayout(s.eligible_jcs||0))}</td>
+    </tr>`;
+  }).join('');
+}
+
+async function renderLeaderboard(){
+  const city=document.getElementById('city-filter').value;
+  try{
+    let q=sbClient.from('incentive_weekly_stats').select('*').order('eligible_jcs',{ascending:false});
+
+    const weekStart=getWeekStart(new Date());
+    q=q.eq('week_start',formatDate(weekStart));
+
+    if(city)q=q.eq('city',city);
+
+    const{data:stats}=await q.limit(50);
+    const tbody=document.getElementById('leaderboard-tbody');
+
+    if(!stats||stats.length===0){
+      tbody.innerHTML='<tr><td colspan="6">No data</td></tr>';
+      return;
+    }
+
+    const medals=['🥇','🥈','🥉'];
+    const userEmail=CURRENT_SESSION?.user.email;
+
+    tbody.innerHTML=stats.map((s,i)=>{
+      const isUser=s.tech_name===userEmail?.split('@')[0];
+      const tier=getTierInfo(s.eligible_jcs).tier;
+      const tierBadge=['🔒','T1','T2','T3','T4'][tier]||'—';
+      const medal=i<3?medals[i]:'';
+      return`<tr class="${isUser?'user-row':''}">
+        <td class="rank">${medal}${i+1}</td>
+        <td><b>${s.tech_name}</b></td>
+        <td>${s.hub_name||'—'}</td>
+        <td><b>${s.eligible_jcs||0}</b></td>
+        <td><span class="badge">${tierBadge}</span></td>
+        <td>₹${Math.round(calcPayout(s.eligible_jcs||0))}</td>
+      </tr>`;
+    }).join('');
+  }catch(e){
+    console.error('Leaderboard error:',e);
+  }
+}
+
+async function loadAdminData(){
+  if(!CURRENT_SESSION?.user.app_metadata?.is_superadmin)return;
+
+  try{
+    // Burn overview
+    const{data:burnStats}=await sbClient.from('incentive_weekly_stats').select('week_start,tech_name,eligible_jcs').order('week_start',{ascending:false}).limit(100);
+    renderBurnTable(burnStats||[]);
+
+    // Technician directory
+    const{data:techs}=await sbClient.from('incentive_technicians').select('*').order('name_normalized');
+    renderTechTable(techs||[]);
+  }catch(e){
+    console.error('Admin data error:',e);
+  }
+}
+
+function renderBurnTable(stats){
+  const grouped={};
+  stats.forEach(s=>{
+    const week=s.week_start;
+    if(!grouped[week])grouped[week]={techs:new Set(),jcs:[]};
+    grouped[week].techs.add(s.tech_name);
+    grouped[week].jcs.push(s.eligible_jcs||0);
+  });
+
+  const tbody=document.getElementById('burn-tbody');
+  tbody.innerHTML=Object.keys(grouped).sort().reverse().map(week=>{
+    const g=grouped[week];
+    const jcs=g.jcs.sort((a,b)=>a-b);
+    const median=jcs.length%2===0?(jcs[jcs.length/2-1]+jcs[jcs.length/2])/2:jcs[Math.floor(jcs.length/2)];
+    const earners=jcs.filter(j=>j>50).length;
+    const total=jcs.reduce((s,j)=>s+calcPayout(j),0);
+    return`<tr>
+      <td>${formatDateRange(new Date(week))}</td>
+      <td>${g.techs.size}</td>
+      <td>${earners}</td>
+      <td>${Math.round(median)}</td>
+      <td>₹${Math.round(total)}</td>
+    </tr>`;
+  }).join('')||'<tr><td colspan="5">No data</td></tr>';
+}
+
+function renderTechTable(techs){
+  const tbody=document.getElementById('tech-tbody');
+  tbody.innerHTML=techs.map(t=>`<tr>
+    <td><b>${t.name_normalized}</b></td>
+    <td>${t.hub_name||'—'}</td>
+    <td>${t.city||'—'}</td>
+    <td>${t.email||'—'}</td>
+    <td>${t.role||'technician'}</td>
+    <td>${t.active?'<span style="color:#16A34A">Active</span>':'<span style="color:#6B7280">Inactive</span>'}</td>
+  </tr>`).join('')||'<tr><td colspan="6">No data</td></tr>';
+}
+
+/* ── FILE UPLOAD ── */
+let selectedFile=null;
+function handleFileSelect(){
+  const input=document.getElementById('xlsx-input');
+  selectedFile=input.files[0];
+  if(selectedFile){
+    document.getElementById('file-name').textContent=selectedFile.name;
+    document.getElementById('process-btn').disabled=false;
+  }
+}
+
+async function processUpload(){
+  if(!selectedFile)return;
+  const btn=document.getElementById('process-btn');
+  btn.disabled=true;btn.textContent='Processing…';
+
+  try{
+    const data=await selectedFile.arrayBuffer();
+    const wb=XLSX.read(data,{type:'array'});
+    const ws=wb.Sheets[wb.SheetNames[0]];
+    const rows=XLSX.utils.sheet_to_json(ws);
+
+    if(!rows.length){alert('No data in file');btn.textContent='Process Upload';btn.disabled=false;return;}
+
+    // Normalize names and upsert
+    const insertRows=[];
+    const unresolvedNames=new Set();
+
+    rows.forEach(row=>{
+      const rawName=row['Technician Name']||'';
+      const normalized=NAME_MAP[rawName]||rawName;
+      if(!NAME_MAP[rawName])unresolvedNames.add(rawName);
+
+      insertRows.push({
+        jc_billed_date:row['JC Billed Date'],
+        jc_billed_datetime:row['JC Billed DateTime'],
+        intrip:row['Intrip']||0,
+        reg_number:row['Reg Number'],
+        bike_model:row['Bike Model'],
+        technician_name_raw:rawName,
+        technician_name:normalized,
+        hub_name:row['Hub Name'],
+        city:row['City'],
+        is_void:row['Is Void']||false,
+        first_comeback_datetime:row['First Comeback DateTime']
+      });
+    });
+
+    // Upsert to DB
+    const{error}=await sbClient.from('incentive_jc_log').upsert(insertRows,{onConflict:'jc_billed_datetime,technician_name,reg_number'});
+    if(error)throw error;
+
+    // Show unresolved names
+    if(unresolvedNames.size>0){
+      const panel=document.getElementById('unresolved-panel');
+      document.getElementById('unresolved-list').innerHTML=[...unresolvedNames].map(n=>`• ${n}`).join('<br/>');
+      panel.style.display='block';
+    }
+
+    alert(`Uploaded ${insertRows.length} rows successfully!`);
+    btn.textContent='Process Upload';
+    btn.disabled=false;
+    await loadDashboard();
+  }catch(e){
+    console.error('Upload error:',e);
+    alert('Error: '+e.message);
+    btn.textContent='Process Upload';
+    btn.disabled=false;
+  }
+}
+
+function toggleLastWeek(){
+  const content=document.getElementById('last-week-content');
+  const toggle=document.getElementById('last-week-toggle');
+  const show=content.style.display==='none';
+  content.style.display=show?'block':'none';
+  toggle.textContent=show?'▾':'▸';
+  if(show)loadLastWeek();
+}
+
+async function loadLastWeek(){
+  try{
+    const weekStart=getWeekStart(new Date(Date.now()-7*24*3600000));
+    const{data:stats}=await sbClient.from('incentive_weekly_stats').select('*').eq('week_start',formatDate(weekStart)).order('eligible_jcs',{ascending:false});
+    const tbody=document.getElementById('last-week-tbody');
+    document.getElementById('last-week-subtitle').textContent=`Final — Week of ${formatDateRange(weekStart)}`;
+    tbody.innerHTML=stats?.map((s,i)=>`<tr>
+      <td>${i+1}</td>
+      <td><b>${s.tech_name}</b></td>
+      <td>${s.hub_name||'—'}</td>
+      <td><b>${s.eligible_jcs||0}</b></td>
+      <td><span class="badge">${['🔒','T1','T2','T3','T4'][getTierInfo(s.eligible_jcs).tier]}</span></td>
+      <td>₹${Math.round(calcPayout(s.eligible_jcs||0))}</td>
+    </tr>`).join('')||'<tr><td colspan="6">No data</td></tr>';
+  }catch(e){console.error('Last week error:',e);}
+}
+
+/* ── SIDEBAR ── */
+let pinned=localStorage.getItem('sb_pinned')==='1';
+let sbOpen=false;
+function applyPin(){
+  if(pinned){document.body.classList.add('pinned');document.getElementById('pinBtn').classList.add('pinned');document.getElementById('ov').classList.remove('show');document.getElementById('sb').classList.add('open');sbOpen=true;}
+  else{document.body.classList.remove('pinned');document.getElementById('pinBtn').classList.remove('pinned');}
+}
+function toggleSidebar(){if(pinned){togglePin();return;}sbOpen=!sbOpen;document.getElementById('sb').classList.toggle('open',sbOpen);document.getElementById('ov').classList.toggle('show',sbOpen);}
+function closeSidebar(){if(pinned)return;sbOpen=false;document.getElementById('sb').classList.remove('open');document.getElementById('ov').classList.remove('show');}
+function togglePin(){pinned=!pinned;localStorage.setItem('sb_pinned',pinned?'1':'0');applyPin();if(!pinned){sbOpen=false;document.getElementById('sb').classList.remove('open');}}
+document.getElementById('ov').addEventListener('click',closeSidebar);
+applyPin();
+
+/* ── BOOT ── */
+(async function(){
+  const mainLogo=document.querySelector('.sb-brand img');
+  if(mainLogo)document.getElementById('auth-logo-img').src=mainLogo.src;
+
+  const{data:{session}}=await sbClient.auth.getSession();
+  if(session){
+    K=session.access_token;
+    CURRENT_USER_EMAIL=session.user.email;
+    CURRENT_SESSION=session;
+    hideAuthScreen();
+    document.getElementById('logout-btn').style.display='block';
+
+    // Check if admin (show admin tab)
+    if(session.user.app_metadata?.is_superadmin){
+      document.getElementById('admin-tab').style.display='block';
+    }
+
+    loadDashboard();
+  }else{
+    showAuthScreen();
+  }
+
+  sbClient.auth.onAuthStateChange(async(event,session)=>{
+    if(event==='SIGNED_IN'&&session){
+      K=session.access_token;
+      CURRENT_USER_EMAIL=session.user.email;
+      CURRENT_SESSION=session;
+      hideAuthScreen();
+      document.getElementById('logout-btn').style.display='block';
+      if(session.user.app_metadata?.is_superadmin){
+        document.getElementById('admin-tab').style.display='block';
+      }
+      loadDashboard();
+    }else if(event==='SIGNED_OUT'){
+      K=ANON_KEY;
+      CURRENT_SESSION=null;
+      document.getElementById('logout-btn').style.display='none';
+      showAuthScreen();
+    }else if(event==='TOKEN_REFRESHED'&&session){
+      K=session.access_token;
+    }
+  });
+})();
+</script>
+</body>
+</html>
