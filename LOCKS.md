@@ -17,4 +17,3 @@ first. If a row is already locked by another window → **STOP and wait**. Relea
 | trace-hunter.html | (free) | — | — |
 | admin-techs.html | (free) | — | — |
 | admin-permissions.html | (free) | — | — |
-| jc-context-sync (edge fn) | claude-cli | 2026-06-23 10:58 UTC | reconcile to secrets-based UUIDs (match deployed) |
