@@ -203,7 +203,7 @@ body.pinned #main{margin-left:var(--sb-width)}
     </div>
     <div class="auth-title">Technician Incentives</div>
     <div class="auth-sub">Enter your email and we'll send you a one-click sign-in link.</div>
-    <div class="auth-domain">@bounceshare.com · approved users</div>
+    <div class="auth-domain">Bounce technicians &amp; staff</div>
     <div id="auth-form">
       <input id="auth-email" class="auth-input" type="email" placeholder="your@email.com" autocomplete="email"/>
       <button id="auth-submit" class="auth-btn" onclick="sendMagicLink()">Send Magic Link</button>
@@ -373,18 +373,24 @@ body.pinned #main{margin-left:var(--sb-width)}
           <div class="tab-title">Leaderboard</div>
           <div class="tab-subtitle" id="leaderboard-subtitle">Current week — live rankings</div>
         </div>
-        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;">
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;">
           <span id="leaderboard-last-refresh" style="font-size:.7rem;color:var(--muted);"></span>
-          <select class="filter-select" id="city-filter" onchange="renderLeaderboard()">
-          <option value="">All Cities</option>
-          <option value="Bangalore">Bangalore</option>
-          <option value="Delhi">Delhi</option>
-          <option value="Hyderabad">Hyderabad</option>
-        </select>
+          <div style="display:flex;gap:8px;">
+            <select class="filter-select" id="week-filter" onchange="renderLeaderboard()">
+              <option value="current">This Week</option>
+              <option value="last">Last Week</option>
+            </select>
+            <select class="filter-select" id="city-filter" onchange="renderLeaderboard()">
+              <option value="">All Cities</option>
+              <option value="Bangalore">Bangalore</option>
+              <option value="Delhi">Delhi</option>
+              <option value="Hyderabad">Hyderabad</option>
+            </select>
+          </div>
         </div>
       </div>
 
-      <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px;box-shadow:var(--shadow);margin-bottom:28px;">
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px;box-shadow:var(--shadow);">
         <table class="leaderboard-table" id="leaderboard-table">
           <thead>
             <tr>
@@ -400,31 +406,6 @@ body.pinned #main{margin-left:var(--sb-width)}
             <tr><td colspan="6" style="text-align:center;color:var(--muted);">Loading…</td></tr>
           </tbody>
         </table>
-      </div>
-
-      <!-- Last Week Collapsible -->
-      <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden;box-shadow:var(--shadow);">
-        <button onclick="toggleLastWeek()" style="width:100%;padding:16px;border:none;background:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;font-weight:700;color:#0F172A;font-family:inherit;font-size:.85rem;">
-          <span id="last-week-toggle">▸</span> <span>Last Week Results</span><span id="last-week-date-range" style="font-size:.75rem;font-weight:400;color:var(--muted);margin-left:8px;"></span>
-        </button>
-        <div id="last-week-content" style="display:none;padding:20px;border-top:1px solid var(--border);">
-          <div id="last-week-subtitle" style="font-size:.75rem;color:var(--muted);margin-bottom:14px;">Final — Week of DD MMM</div>
-          <table class="leaderboard-table" id="last-week-table" style="width:100%;">
-            <thead>
-              <tr>
-                <th style="width:50px">Rank</th>
-                <th>Technician</th>
-                <th>Hub</th>
-                <th>Eligible JCs</th>
-                <th>Tier</th>
-                <th>Payout</th>
-              </tr>
-            </thead>
-            <tbody id="last-week-tbody">
-              <tr><td colspan="6" style="text-align:center;color:var(--muted);">No data</td></tr>
-            </tbody>
-          </table>
-        </div>
       </div>
     </div>
 
@@ -578,16 +559,15 @@ body.pinned #main{margin-left:var(--sb-width)}
         <table class="admin-table" id="tech-table">
           <thead>
             <tr>
-              <th>Name</th>
-              <th>Hub</th>
-              <th>City</th>
-              <th>Email</th>
-              <th>Role</th>
+              <th>Emp ID</th>
+              <th>Actual Name</th>
+              <th>Normalized Name</th>
+              <th>Name in JC</th>
               <th>Status</th>
             </tr>
           </thead>
           <tbody id="tech-tbody">
-            <tr><td colspan="6" style="text-align:center;color:var(--muted);">Loading…</td></tr>
+            <tr><td colspan="5" style="text-align:center;color:var(--muted);">Loading…</td></tr>
           </tbody>
         </table>
       </div>
@@ -657,8 +637,18 @@ async function sendMagicLink(){
   const msg=document.getElementById('auth-msg');
   const btn=document.getElementById('auth-submit');
   if(!email){msg.textContent='Please enter your email.';return;}
-  if(!email.endsWith('@bounceshare.com')&&!ALLOWED_EMAILS.includes(email)){msg.textContent='Only @bounceshare.com emails are allowed.';return;}
-  btn.disabled=true;btn.textContent='Sending…';msg.textContent='';
+  btn.disabled=true;btn.textContent='Checking…';msg.textContent='';
+  // Allow @bounceshare.com, explicit whitelist, OR any email registered as a technician
+  const isStaff=email.endsWith('@bounceshare.com')||ALLOWED_EMAILS.includes(email);
+  if(!isStaff){
+    const{data:tech}=await sbClient.from('incentive_technicians').select('id').eq('email',email).maybeSingle();
+    if(!tech){
+      msg.textContent='Your email is not registered. Contact your hub manager.';
+      btn.disabled=false;btn.textContent='Send Magic Link';
+      return;
+    }
+  }
+  btn.textContent='Sending…';
   const res=await sbClient.auth.signInWithOtp({email:email,options:{emailRedirectTo:window.location.origin+window.location.pathname}});
   btn.disabled=false;btn.textContent='Send Magic Link';
   if(res.error){msg.textContent=res.error.message||'Failed to send link.';}
@@ -706,8 +696,8 @@ async function loadDashboard(){
     if(!techName){
       techName=userEmail.split('@')[0];
       try{
-        const{data}=await sbClient.from('incentive_technicians').select('name_normalized').eq('email',userEmail).single();
-        if(data)techName=data.name_normalized;
+        const{data}=await sbClient.from('incentive_technicians').select('name_normalized,name_in_system').eq('email',userEmail).single();
+        if(data)techName=data.name_in_system||data.name_normalized;
       }catch(e){}
     }
 
@@ -800,22 +790,22 @@ function renderTrendTable(stats,currentWeek){
 
 async function renderLeaderboard(){
   const city=document.getElementById('city-filter').value;
+  const weekSel=document.getElementById('week-filter')?.value||'current';
   try{
     let q=sbClient.from('incentive_weekly_stats').select('*').order('eligible_jcs',{ascending:false});
 
-    const weekStart=getWeekStart(new Date());
+    const isLast=weekSel==='last';
+    const weekStart=isLast
+      ?getWeekStart(new Date(Date.now()-7*24*3600000))
+      :getWeekStart(new Date());
     q=q.eq('week_start',formatDate(weekStart));
-    document.getElementById('leaderboard-subtitle').textContent=`Current week · ${formatDateRange(weekStart)}`;
+
+    const label=isLast?`Last week · ${formatDateRange(weekStart)} (Final)`:`Current week · ${formatDateRange(weekStart)}`;
+    document.getElementById('leaderboard-subtitle').textContent=label;
 
     // Last refresh
     const refreshEl=document.getElementById('leaderboard-last-refresh');
-    if(refreshEl){const now=new Date();refreshEl.textContent=`Refreshed ${now.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})} on ${now.toLocaleDateString('en-IN',{day:'numeric',month:'short'})}`;}
-
-
-    // Show last week date range in the collapsible header
-    const lastWeekStart=getWeekStart(new Date(Date.now()-7*24*3600000));
-    const el=document.getElementById('last-week-date-range');
-    if(el)el.textContent=`(${formatDateRange(lastWeekStart)})`;
+    if(refreshEl){const now=new Date();refreshEl.textContent=`Refreshed ${now.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})} · ${now.toLocaleDateString('en-IN',{day:'numeric',month:'short'})}`;}
 
     if(city)q=q.eq('city',city);
 
@@ -849,6 +839,8 @@ async function renderLeaderboard(){
   }
 }
 
+let ALL_SYSTEM_NAMES=[];
+
 async function loadAdminData(){
   if(!CURRENT_SESSION?.user.app_metadata?.is_superadmin)return;
 
@@ -857,12 +849,23 @@ async function loadAdminData(){
     const{data:burnStats}=await sbClient.from('incentive_weekly_stats').select('week_start,tech_name,eligible_jcs').order('week_start',{ascending:false}).limit(100);
     renderBurnTable(burnStats||[]);
 
+    // All distinct system names from stats table (for dropdown)
+    const{data:sysNames}=await sbClient.from('incentive_weekly_stats').select('tech_name').order('tech_name');
+    ALL_SYSTEM_NAMES=[...new Set((sysNames||[]).map(r=>r.tech_name))].sort();
+
     // Technician directory
     const{data:techs}=await sbClient.from('incentive_technicians').select('*').order('name_normalized');
     renderTechTable(techs||[]);
   }catch(e){
     console.error('Admin data error:',e);
   }
+}
+
+async function saveSystemName(techId, value){
+  const{error}=await sbClient.from('incentive_technicians').update({name_in_system:value||null}).eq('id',techId);
+  const el=document.getElementById('sys-status-'+techId);
+  if(el)el.textContent=error?'❌':'✓ Saved';
+  if(!error&&el)setTimeout(()=>el.textContent='',2000);
 }
 
 function renderBurnTable(stats){
@@ -893,14 +896,32 @@ function renderBurnTable(stats){
 
 function renderTechTable(techs){
   const tbody=document.getElementById('tech-tbody');
-  tbody.innerHTML=techs.map(t=>`<tr>
-    <td><b>${t.name_normalized}</b></td>
-    <td>${t.hub_name||'—'}</td>
-    <td>${t.city||'—'}</td>
-    <td>${t.email||'—'}</td>
-    <td>${t.role||'technician'}</td>
-    <td>${t.active?'<span style="color:#16A34A">Active</span>':'<span style="color:#6B7280">Inactive</span>'}</td>
-  </tr>`).join('')||'<tr><td colspan="6">No data</td></tr>';
+  const opts=ALL_SYSTEM_NAMES.map(n=>`<option value="${n}">${n}</option>`).join('');
+  tbody.innerHTML=techs.map(t=>{
+    const cur=t.name_in_system||'';
+    const mapped=!!cur;
+    // Escape for use in select option attribute matching
+    const safeOpts=opts.replace(`value="${cur}"`,`value="${cur}" selected`);
+    return`<tr style="${!mapped?'background:#FEF2F2':''}">
+      <td style="font-size:.75rem;color:var(--muted);font-weight:600;">${t.employee_id||'—'}</td>
+      <td>
+        <b style="font-size:.82rem;">${t.name_normalized}</b>
+        <div style="font-size:.7rem;color:var(--muted);">${t.email||''}</div>
+      </td>
+      <td style="font-size:.75rem;">${t.name_normalized}</td>
+      <td>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <select style="flex:1;font-size:.72rem;padding:5px 8px;border:1px solid ${mapped?'var(--border)':'#FECACA'};border-radius:8px;font-family:inherit;background:${mapped?'#fff':'#FEF2F2'};"
+            onchange="saveSystemName('${t.id}',this.value)">
+            <option value="">— not mapped —</option>
+            ${safeOpts}
+          </select>
+          <span id="sys-status-${t.id}" style="font-size:.7rem;color:#16A34A;min-width:44px;"></span>
+        </div>
+      </td>
+      <td>${t.active?'<span style="color:#16A34A;font-size:.78rem;">Active</span>':'<span style="color:#6B7280;font-size:.78rem;">Inactive</span>'}</td>
+    </tr>`;
+  }).join('')||'<tr><td colspan="5">No data</td></tr>';
 }
 
 /* ── FILE UPLOAD ── */
@@ -1017,31 +1038,6 @@ async function processUpload(){
   }
 }
 
-function toggleLastWeek(){
-  const content=document.getElementById('last-week-content');
-  const toggle=document.getElementById('last-week-toggle');
-  const show=content.style.display==='none';
-  content.style.display=show?'block':'none';
-  toggle.textContent=show?'▾':'▸';
-  if(show)loadLastWeek();
-}
-
-async function loadLastWeek(){
-  try{
-    const weekStart=getWeekStart(new Date(Date.now()-7*24*3600000));
-    const{data:stats}=await sbClient.from('incentive_weekly_stats').select('*').eq('week_start',formatDate(weekStart)).order('eligible_jcs',{ascending:false});
-    const tbody=document.getElementById('last-week-tbody');
-    document.getElementById('last-week-subtitle').textContent=`Final — Week of ${formatDateRange(weekStart)}`;
-    tbody.innerHTML=stats?.map((s,i)=>`<tr>
-      <td>${i+1}</td>
-      <td><b>${s.tech_name}</b></td>
-      <td>${s.hub_name||'—'}</td>
-      <td><b>${s.eligible_jcs||0}</b></td>
-      <td><span class="badge">${['🔒','T1','T2','T3','T4'][getTierInfo(s.eligible_jcs).tier]}</span></td>
-      <td>₹${Math.round(calcPayout(s.eligible_jcs||0))}</td>
-    </tr>`).join('')||'<tr><td colspan="6">No data</td></tr>';
-  }catch(e){console.error('Last week error:',e);}
-}
 
 /* ── SUPERADMIN TECH SELECTOR ── */
 let adminViewingTech=null; // null = viewing own dashboard
@@ -1049,11 +1045,15 @@ let adminViewingTech=null; // null = viewing own dashboard
 async function populateAdminTechDropdown(){
   if(!CURRENT_SESSION?.user.app_metadata?.is_superadmin)return;
   try{
-    const{data:techs}=await sbClient.from('incentive_technicians').select('name_normalized,hub_name').order('name_normalized');
+    const{data:techs}=await sbClient.from('incentive_technicians').select('name_normalized,name_in_system,hub_name').order('name_normalized');
     const sel=document.getElementById('admin-tech-select');
     if(!sel||!techs)return;
     sel.style.display='block';
-    const opts=techs.map(t=>`<option value="${t.name_normalized}">${t.name_normalized}${t.hub_name?' · '+t.hub_name:''}</option>`).join('');
+    // Use name_in_system as the value (what stats are keyed on), display name_normalized
+    const opts=techs.map(t=>{
+      const sysName=t.name_in_system||t.name_normalized;
+      return`<option value="${sysName}">${t.name_normalized}${t.hub_name?' · '+t.hub_name:''}${!t.name_in_system?' ⚠️':''}</option>`;
+    }).join('');
     sel.innerHTML='<option value="">— View as technician —</option>'+opts;
     document.getElementById('dashboard-title').textContent='Dashboard (Superadmin)';
   }catch(e){console.error('Admin dropdown error:',e);}
