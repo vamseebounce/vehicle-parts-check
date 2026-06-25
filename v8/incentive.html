@@ -555,19 +555,36 @@ body.pinned #main{margin-left:var(--sb-width)}
 
       <!-- Technician Management -->
       <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px;box-shadow:var(--shadow);">
-        <div style="font-size:.85rem;font-weight:800;color:#0F172A;margin-bottom:14px;">Technician Directory</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:10px;">
+          <div style="font-size:.85rem;font-weight:800;color:#0F172A;">Technician Directory</div>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+            <input id="tech-search" type="text" placeholder="Search name / email / hub…"
+              oninput="filterTechTable()"
+              style="font-size:.78rem;padding:6px 12px;border:1px solid var(--border);border-radius:8px;font-family:inherit;width:200px;"/>
+            <select id="tech-filter-status" onchange="filterTechTable()"
+              style="font-size:.78rem;padding:6px 10px;border:1px solid var(--border);border-radius:8px;font-family:inherit;">
+              <option value="">All</option>
+              <option value="unmapped">Unmapped only</option>
+              <option value="active">Active only</option>
+              <option value="inactive">Inactive only</option>
+            </select>
+            <span id="tech-count" style="font-size:.75rem;color:var(--muted);"></span>
+          </div>
+        </div>
         <table class="admin-table" id="tech-table">
           <thead>
             <tr>
               <th>Emp ID</th>
-              <th>Actual Name</th>
-              <th>Correct Spelling (Leaderboard)</th>
+              <th>Name &amp; Contact</th>
+              <th>Hub / City</th>
+              <th>Leaderboard Name</th>
               <th>JC Name(s) in System</th>
-              <th>Status</th>
+              <th>Active</th>
+              <th>Actions</th>
             </tr>
           </thead>
           <tbody id="tech-tbody">
-            <tr><td colspan="5" style="text-align:center;color:var(--muted);">Loading…</td></tr>
+            <tr><td colspan="7" style="text-align:center;color:var(--muted);">Loading…</td></tr>
           </tbody>
         </table>
       </div>
@@ -868,7 +885,8 @@ async function loadAdminData(){
 
     // Technician directory
     const{data:techs}=await sbClient.from('incentive_technicians').select('*').order('name_normalized');
-    renderTechTable(techs||[]);
+    ALL_TECHS_DATA=techs||[];
+    renderTechTable(ALL_TECHS_DATA);
   }catch(e){
     console.error('Admin data error:',e);
   }
@@ -934,50 +952,135 @@ function renderBurnTable(stats){
   }).join('')||'<tr><td colspan="5">No data</td></tr>';
 }
 
+let ALL_TECHS_DATA=[];
+
+function filterTechTable(){
+  const q=(document.getElementById('tech-search')?.value||'').toLowerCase();
+  const f=document.getElementById('tech-filter-status')?.value||'';
+  const filtered=ALL_TECHS_DATA.filter(t=>{
+    const jcNames=Array.isArray(t.name_in_system)?t.name_in_system:[];
+    const mapped=jcNames.length>0;
+    if(f==='unmapped'&&mapped)return false;
+    if(f==='active'&&!t.active)return false;
+    if(f==='inactive'&&t.active)return false;
+    if(q){
+      const hay=`${t.name_normalized||''} ${t.email||''} ${t.hub_name||''} ${t.employee_id||''}`.toLowerCase();
+      if(!hay.includes(q))return false;
+    }
+    return true;
+  });
+  renderTechTable(filtered);
+}
+
 function renderTechTable(techs){
   const tbody=document.getElementById('tech-tbody');
+  const countEl=document.getElementById('tech-count');
+  if(countEl)countEl.textContent=`${techs.length} of ${ALL_TECHS_DATA.length} techs`;
+
   tbody.innerHTML=techs.map(t=>{
-    // name_in_system is now TEXT[] — may be null, array, or legacy string
     const currentJcNames=Array.isArray(t.name_in_system)?t.name_in_system:(t.name_in_system?[t.name_in_system]:[]);
     const mapped=currentJcNames.length>0;
-
-    // Build multi-select options; pre-select current jc names
     const opts=ALL_SYSTEM_NAMES.map(n=>{
       const sel=currentJcNames.includes(n)?'selected':'';
       return`<option value="${n}" ${sel}>${n}</option>`;
     }).join('');
+    const rowBg=!mapped?'background:#FEF2F2':'';
+    const tid=t.id;
 
-    return`<tr style="${!mapped?'background:#FEF2F2':''}">
-      <td style="font-size:.75rem;color:var(--muted);font-weight:600;">${t.employee_id||'—'}</td>
+    return`<tr style="${rowBg}" id="row-${tid}">
       <td>
-        <b style="font-size:.82rem;">${t.name_normalized}</b>
-        <div style="font-size:.7rem;color:var(--muted);">${t.email||''}</div>
+        <input id="empid-${tid}" value="${(t.employee_id||'').replace(/"/g,'&quot;')}"
+          style="width:80px;font-size:.72rem;padding:4px 6px;border:1px solid var(--border);border-radius:6px;font-family:inherit;"
+          placeholder="Emp ID"/>
       </td>
       <td>
-        <input id="norm-name-${t.id}"
-          value="${(t.name_normalized||'').replace(/"/g,'&quot;')}"
-          style="width:100%;font-size:.75rem;padding:5px 8px;border:1px solid var(--border);border-radius:8px;font-family:inherit;"
+        <input id="name-${tid}" value="${(t.name_normalized||'').replace(/"/g,'&quot;')}"
+          style="width:130px;font-size:.78rem;padding:4px 6px;border:1px solid var(--border);border-radius:6px;font-family:inherit;font-weight:600;"
+          placeholder="Name"/>
+        <input id="email-${tid}" value="${(t.email||'').replace(/"/g,'&quot;')}"
+          style="width:160px;font-size:.7rem;padding:4px 6px;border:1px solid var(--border);border-radius:6px;font-family:inherit;margin-top:4px;display:block;"
+          placeholder="email@domain.com"/>
+      </td>
+      <td>
+        <input id="hub-${tid}" value="${(t.hub_name||'').replace(/"/g,'&quot;')}"
+          style="width:110px;font-size:.72rem;padding:4px 6px;border:1px solid var(--border);border-radius:6px;font-family:inherit;"
+          placeholder="Hub"/>
+        <input id="city-${tid}" value="${(t.city||'').replace(/"/g,'&quot;')}"
+          style="width:70px;font-size:.7rem;padding:4px 6px;border:1px solid var(--border);border-radius:6px;font-family:inherit;margin-top:4px;display:block;"
+          placeholder="City"/>
+      </td>
+      <td>
+        <input id="norm-name-${tid}" value="${(t.name_normalized||'').replace(/"/g,'&quot;')}"
+          style="width:130px;font-size:.75rem;padding:4px 6px;border:1px solid var(--border);border-radius:6px;font-family:inherit;"
           placeholder="Correct spelling…"/>
       </td>
       <td>
-        <select id="jc-select-${t.id}" multiple
-          style="width:100%;min-height:60px;font-size:.72rem;padding:4px 6px;border:1px solid ${mapped?'var(--border)':'#FECACA'};border-radius:8px;font-family:inherit;background:${mapped?'#fff':'#FEF2F2'};">
+        <select id="jc-select-${tid}" multiple
+          style="width:180px;min-height:58px;font-size:.7rem;padding:4px 6px;border:1px solid ${mapped?'var(--border)':'#FECACA'};border-radius:6px;font-family:inherit;background:${mapped?'#fff':'#FEF2F2'};">
           ${opts}
         </select>
-        <div style="font-size:.65rem;color:var(--muted);margin-top:2px;">Ctrl/⌘+click to select multiple</div>
+        <div style="font-size:.62rem;color:var(--muted);margin-top:2px;">⌘/Ctrl+click for multiple</div>
+      </td>
+      <td style="text-align:center;">
+        <label style="position:relative;display:inline-block;width:36px;height:20px;cursor:pointer;">
+          <input type="checkbox" ${t.active?'checked':''} onchange="toggleTechActive('${tid}',this.checked)"
+            style="opacity:0;width:0;height:0;position:absolute"/>
+          <span style="position:absolute;inset:0;border-radius:20px;background:${t.active?'#16A34A':'#D1D5DB'};transition:.2s;">
+            <span style="position:absolute;top:2px;left:${t.active?'18':'2'}px;width:16px;height:16px;border-radius:50%;background:#fff;transition:.2s;"></span>
+          </span>
+        </label>
       </td>
       <td>
-        <div style="display:flex;flex-direction:column;align-items:flex-start;gap:4px;">
-          <button onclick="saveTechMapping('${t.id}')"
-            style="font-size:.7rem;padding:5px 10px;background:#E8191C;color:#fff;border:none;border-radius:8px;cursor:pointer;font-family:inherit;font-weight:600;white-space:nowrap;">
+        <div style="display:flex;flex-direction:column;gap:4px;">
+          <button onclick="saveTechDetails('${tid}')"
+            style="font-size:.68rem;padding:4px 8px;background:#0F172A;color:#fff;border:none;border-radius:6px;cursor:pointer;font-family:inherit;font-weight:600;white-space:nowrap;">
+            Save Details
+          </button>
+          <button onclick="saveTechMapping('${tid}')"
+            style="font-size:.68rem;padding:4px 8px;background:#E8191C;color:#fff;border:none;border-radius:6px;cursor:pointer;font-family:inherit;font-weight:600;white-space:nowrap;">
             Save &amp; Sync
           </button>
-          <span id="sys-status-${t.id}" style="font-size:.68rem;color:#16A34A;"></span>
-          ${t.active?'<span style="color:#16A34A;font-size:.72rem;">Active</span>':'<span style="color:#6B7280;font-size:.72rem;">Inactive</span>'}
+          <span id="sys-status-${tid}" style="font-size:.65rem;color:#16A34A;min-height:14px;"></span>
         </div>
       </td>
     </tr>`;
-  }).join('')||'<tr><td colspan="5">No data</td></tr>';
+  }).join('')||'<tr><td colspan="7" style="text-align:center;color:var(--muted);">No results</td></tr>';
+}
+
+async function saveTechDetails(techId){
+  const statusEl=document.getElementById('sys-status-'+techId);
+  const updates={
+    employee_id:document.getElementById('empid-'+techId)?.value.trim()||null,
+    name_normalized:document.getElementById('name-'+techId)?.value.trim()||null,
+    email:document.getElementById('email-'+techId)?.value.trim().toLowerCase()||null,
+    hub_name:document.getElementById('hub-'+techId)?.value.trim()||null,
+    city:document.getElementById('city-'+techId)?.value.trim()||null,
+    updated_at:new Date().toISOString()
+  };
+  if(statusEl){statusEl.textContent='Saving…';statusEl.style.color='#6B7280';}
+  const{error}=await sbClient.from('incentive_technicians').update(updates).eq('id',techId);
+  if(error){
+    if(statusEl){statusEl.textContent='❌ '+error.message;statusEl.style.color='#DC2626';}
+  }else{
+    if(statusEl){statusEl.textContent='✓ Saved';statusEl.style.color='#16A34A';}
+    setTimeout(()=>{if(statusEl)statusEl.textContent='';},2000);
+    // Update local cache
+    const idx=ALL_TECHS_DATA.findIndex(t=>t.id===techId);
+    if(idx>-1)Object.assign(ALL_TECHS_DATA[idx],updates);
+  }
+}
+
+async function toggleTechActive(techId, active){
+  const{error}=await sbClient.from('incentive_technicians').update({active,updated_at:new Date().toISOString()}).eq('id',techId);
+  const statusEl=document.getElementById('sys-status-'+techId);
+  if(error){
+    if(statusEl){statusEl.textContent='❌ Failed';statusEl.style.color='#DC2626';}
+  }else{
+    const idx=ALL_TECHS_DATA.findIndex(t=>t.id===techId);
+    if(idx>-1)ALL_TECHS_DATA[idx].active=active;
+    if(statusEl){statusEl.textContent=active?'✓ Activated':'✓ Deactivated';statusEl.style.color='#16A34A';}
+    setTimeout(()=>{if(statusEl)statusEl.textContent='';},2000);
+  }
 }
 
 /* ── FILE UPLOAD ── */
