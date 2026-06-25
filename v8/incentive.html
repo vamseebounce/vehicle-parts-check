@@ -826,9 +826,26 @@ async function processUpload(){
       const normalized=NAME_MAP[rawName]||rawName;
       if(!NAME_MAP[rawName])unresolvedNames.add(rawName);
 
-      // Normalise date/datetime — handle string 'yyyy-mm-dd', ISO, or numeric serial
-      const toDateStr=v=>{if(!v)return null;const s=String(v).trim();return s.match(/^\d{4}-\d{2}-\d{2}/)?s.slice(0,10):null;};
-      const toDtStr=v=>{if(!v)return null;const s=String(v).trim();return s.replace(' ','T').replace(/(\.\d{3})\d*/,'$1');};
+      // Normalise date/datetime — handle string 'yyyy-mm-dd', ISO, JS Date, or Excel serial number
+      const excelToDate=n=>{const d=new Date((n-25569)*86400000);return d;};
+      const toDateStr=v=>{
+        if(!v)return null;
+        if(v instanceof Date)return v.toISOString().split('T')[0];
+        const s=String(v).trim();
+        if(s.match(/^\d{4}-\d{2}-\d{2}/))return s.slice(0,10);
+        const n=Number(s);
+        if(!isNaN(n)&&n>40000&&n<60000)return excelToDate(n).toISOString().split('T')[0];
+        return null;
+      };
+      const toDtStr=v=>{
+        if(!v)return null;
+        if(v instanceof Date)return v.toISOString().replace('Z','');
+        const s=String(v).trim();
+        if(s.match(/^\d{4}-\d{2}-\d{2}/))return s.replace(' ','T').replace(/(\.\d{3})\d*/,'$1');
+        const n=Number(s);
+        if(!isNaN(n)&&n>40000&&n<60000)return excelToDate(n).toISOString().replace('Z','');
+        return null;
+      };
       const billedDate=toDateStr(row['jc_billed_date']||row['JC Billed Date']);
       const billedDt=toDtStr(row['jc_billed_datetime']||row['JC Billed DateTime']);
       const intrip=row['intrip']!=null?row['intrip']:(row['Intrip']||0);
