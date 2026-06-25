@@ -810,9 +810,9 @@ async function processUpload(){
 
   try{
     const data=await selectedFile.arrayBuffer();
-    const wb=XLSX.read(data,{type:'array'});
+    const wb=XLSX.read(data,{type:'array',cellDates:true});
     const ws=wb.Sheets[wb.SheetNames[0]];
-    const rows=XLSX.utils.sheet_to_json(ws);
+    const rows=XLSX.utils.sheet_to_json(ws,{raw:false,dateNF:'yyyy-mm-dd'});
 
     if(!rows.length){alert('No data in file');btn.textContent='Process Upload';btn.disabled=false;return;}
 
@@ -826,8 +826,11 @@ async function processUpload(){
       const normalized=NAME_MAP[rawName]||rawName;
       if(!NAME_MAP[rawName])unresolvedNames.add(rawName);
 
-      const billedDate=row['jc_billed_date']||row['JC Billed Date']||null;
-      const billedDt=row['jc_billed_datetime']||row['JC Billed DateTime']||null;
+      // Normalise date/datetime — handle string 'yyyy-mm-dd', ISO, or numeric serial
+      const toDateStr=v=>{if(!v)return null;const s=String(v).trim();return s.match(/^\d{4}-\d{2}-\d{2}/)?s.slice(0,10):null;};
+      const toDtStr=v=>{if(!v)return null;const s=String(v).trim();return s.replace(' ','T').replace(/(\.\d{3})\d*/,'$1');};
+      const billedDate=toDateStr(row['jc_billed_date']||row['JC Billed Date']);
+      const billedDt=toDtStr(row['jc_billed_datetime']||row['JC Billed DateTime']);
       const intrip=row['intrip']!=null?row['intrip']:(row['Intrip']||0);
       const regNum=row['reg_number']||row['Reg Number']||null;
       const bikeModel=row['bike_model']||row['Bike Model']||null;
