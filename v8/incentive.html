@@ -812,7 +812,7 @@ async function processUpload(){
     const data=await selectedFile.arrayBuffer();
     const wb=XLSX.read(data,{type:'array',cellDates:true});
     const ws=wb.Sheets[wb.SheetNames[0]];
-    const rows=XLSX.utils.sheet_to_json(ws,{raw:false,dateNF:'yyyy-mm-dd'});
+    const rows=XLSX.utils.sheet_to_json(ws,{raw:true});
 
     if(!rows.length){alert('No data in file');btn.textContent='Process Upload';btn.disabled=false;return;}
 
