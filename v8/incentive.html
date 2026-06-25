@@ -561,8 +561,8 @@ body.pinned #main{margin-left:var(--sb-width)}
             <tr>
               <th>Emp ID</th>
               <th>Actual Name</th>
-              <th>Normalized Name</th>
-              <th>Name in JC</th>
+              <th>Correct Spelling (Leaderboard)</th>
+              <th>JC Name(s) in System</th>
               <th>Status</th>
             </tr>
           </thead>
@@ -697,7 +697,10 @@ async function loadDashboard(){
       techName=userEmail.split('@')[0];
       try{
         const{data}=await sbClient.from('incentive_technicians').select('name_normalized,name_in_system').eq('email',userEmail).single();
-        if(data)techName=data.name_in_system||data.name_normalized;
+        if(data){
+          // name_in_system is TEXT[] — use normalized name (leaderboard key after sync)
+          techName=data.name_normalized;
+        }
       }catch(e){}
     }
 
@@ -861,11 +864,38 @@ async function loadAdminData(){
   }
 }
 
-async function saveSystemName(techId, value){
-  const{error}=await sbClient.from('incentive_technicians').update({name_in_system:value||null}).eq('id',techId);
-  const el=document.getElementById('sys-status-'+techId);
-  if(el)el.textContent=error?'❌':'✓ Saved';
-  if(!error&&el)setTimeout(()=>el.textContent='',2000);
+async function saveTechMapping(techId){
+  const normEl=document.getElementById('norm-name-'+techId);
+  const listEl=document.getElementById('jc-select-'+techId);
+  const statusEl=document.getElementById('sys-status-'+techId);
+
+  const normalizedName=normEl?normEl.value.trim():'';
+  // Collect all selected options in the multi-select
+  const jcNames=listEl?Array.from(listEl.selectedOptions).map(o=>o.value).filter(Boolean):[];
+
+  if(!normalizedName){if(statusEl)statusEl.textContent='⚠️ Name required';return;}
+
+  if(statusEl){statusEl.textContent='Syncing…';statusEl.style.color='#6B7280';}
+
+  const{data,error}=await sbClient.rpc('sync_technician_mapping',{
+    p_tech_id:techId,
+    p_normalized_name:normalizedName,
+    p_jc_names:jcNames.length?jcNames:null
+  });
+
+  if(error){
+    console.error('Sync error:',error);
+    if(statusEl){statusEl.textContent='❌ '+error.message;statusEl.style.color='#DC2626';}
+  }else{
+    if(statusEl){
+      const weeks=data?.weeks_updated??0;
+      statusEl.textContent=`✓ Saved · ${weeks}w updated`;
+      statusEl.style.color='#16A34A';
+      setTimeout(()=>{if(statusEl)statusEl.textContent='';},3000);
+    }
+    // Refresh admin data so new normalized name appears everywhere
+    loadAdminData();
+  }
 }
 
 function renderBurnTable(stats){
@@ -896,30 +926,46 @@ function renderBurnTable(stats){
 
 function renderTechTable(techs){
   const tbody=document.getElementById('tech-tbody');
-  const opts=ALL_SYSTEM_NAMES.map(n=>`<option value="${n}">${n}</option>`).join('');
   tbody.innerHTML=techs.map(t=>{
-    const cur=t.name_in_system||'';
-    const mapped=!!cur;
-    // Escape for use in select option attribute matching
-    const safeOpts=opts.replace(`value="${cur}"`,`value="${cur}" selected`);
+    // name_in_system is now TEXT[] — may be null, array, or legacy string
+    const currentJcNames=Array.isArray(t.name_in_system)?t.name_in_system:(t.name_in_system?[t.name_in_system]:[]);
+    const mapped=currentJcNames.length>0;
+
+    // Build multi-select options; pre-select current jc names
+    const opts=ALL_SYSTEM_NAMES.map(n=>{
+      const sel=currentJcNames.includes(n)?'selected':'';
+      return`<option value="${n}" ${sel}>${n}</option>`;
+    }).join('');
+
     return`<tr style="${!mapped?'background:#FEF2F2':''}">
       <td style="font-size:.75rem;color:var(--muted);font-weight:600;">${t.employee_id||'—'}</td>
       <td>
         <b style="font-size:.82rem;">${t.name_normalized}</b>
         <div style="font-size:.7rem;color:var(--muted);">${t.email||''}</div>
       </td>
-      <td style="font-size:.75rem;">${t.name_normalized}</td>
       <td>
-        <div style="display:flex;align-items:center;gap:6px;">
-          <select style="flex:1;font-size:.72rem;padding:5px 8px;border:1px solid ${mapped?'var(--border)':'#FECACA'};border-radius:8px;font-family:inherit;background:${mapped?'#fff':'#FEF2F2'};"
-            onchange="saveSystemName('${t.id}',this.value)">
-            <option value="">— not mapped —</option>
-            ${safeOpts}
-          </select>
-          <span id="sys-status-${t.id}" style="font-size:.7rem;color:#16A34A;min-width:44px;"></span>
+        <input id="norm-name-${t.id}"
+          value="${(t.name_normalized||'').replace(/"/g,'&quot;')}"
+          style="width:100%;font-size:.75rem;padding:5px 8px;border:1px solid var(--border);border-radius:8px;font-family:inherit;"
+          placeholder="Correct spelling…"/>
+      </td>
+      <td>
+        <select id="jc-select-${t.id}" multiple
+          style="width:100%;min-height:60px;font-size:.72rem;padding:4px 6px;border:1px solid ${mapped?'var(--border)':'#FECACA'};border-radius:8px;font-family:inherit;background:${mapped?'#fff':'#FEF2F2'};">
+          ${opts}
+        </select>
+        <div style="font-size:.65rem;color:var(--muted);margin-top:2px;">Ctrl/⌘+click to select multiple</div>
+      </td>
+      <td>
+        <div style="display:flex;flex-direction:column;align-items:flex-start;gap:4px;">
+          <button onclick="saveTechMapping('${t.id}')"
+            style="font-size:.7rem;padding:5px 10px;background:#E8191C;color:#fff;border:none;border-radius:8px;cursor:pointer;font-family:inherit;font-weight:600;white-space:nowrap;">
+            Save &amp; Sync
+          </button>
+          <span id="sys-status-${t.id}" style="font-size:.68rem;color:#16A34A;"></span>
+          ${t.active?'<span style="color:#16A34A;font-size:.72rem;">Active</span>':'<span style="color:#6B7280;font-size:.72rem;">Inactive</span>'}
         </div>
       </td>
-      <td>${t.active?'<span style="color:#16A34A;font-size:.78rem;">Active</span>':'<span style="color:#6B7280;font-size:.78rem;">Inactive</span>'}</td>
     </tr>`;
   }).join('')||'<tr><td colspan="5">No data</td></tr>';
 }
@@ -1049,10 +1095,11 @@ async function populateAdminTechDropdown(){
     const sel=document.getElementById('admin-tech-select');
     if(!sel||!techs)return;
     sel.style.display='block';
-    // Use name_in_system as the value (what stats are keyed on), display name_normalized
+    // Stats are now keyed on name_normalized (after sync); use that as option value
     const opts=techs.map(t=>{
-      const sysName=t.name_in_system||t.name_normalized;
-      return`<option value="${sysName}">${t.name_normalized}${t.hub_name?' · '+t.hub_name:''}${!t.name_in_system?' ⚠️':''}</option>`;
+      const jcNames=Array.isArray(t.name_in_system)?t.name_in_system:(t.name_in_system?[t.name_in_system]:[]);
+      const mapped=jcNames.length>0;
+      return`<option value="${t.name_normalized}">${t.name_normalized}${t.hub_name?' · '+t.hub_name:''}${!mapped?' ⚠️':''}</option>`;
     }).join('');
     sel.innerHTML='<option value="">— View as technician —</option>'+opts;
     document.getElementById('dashboard-title').textContent='Dashboard (Superadmin)';
