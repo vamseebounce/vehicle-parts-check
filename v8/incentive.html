@@ -397,7 +397,7 @@ body.pinned #main{margin-left:var(--sb-width)}
       <!-- Last Week Collapsible -->
       <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden;box-shadow:var(--shadow);">
         <button onclick="toggleLastWeek()" style="width:100%;padding:16px;border:none;background:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;font-weight:700;color:#0F172A;font-family:inherit;font-size:.85rem;">
-          <span id="last-week-toggle">▸</span> Last Week Results
+          <span id="last-week-toggle">▸</span> <span>Last Week Results</span><span id="last-week-date-range" style="font-size:.75rem;font-weight:400;color:var(--muted);margin-left:8px;"></span>
         </button>
         <div id="last-week-content" style="display:none;padding:20px;border-top:1px solid var(--border);">
           <div id="last-week-subtitle" style="font-size:.75rem;color:var(--muted);margin-bottom:14px;">Final — Week of DD MMM</div>
@@ -699,6 +699,12 @@ async function renderLeaderboard(){
 
     const weekStart=getWeekStart(new Date());
     q=q.eq('week_start',formatDate(weekStart));
+    document.getElementById('leaderboard-subtitle').textContent=`Current week · ${formatDateRange(weekStart)}`;
+
+    // Show last week date range in the collapsible header
+    const lastWeekStart=getWeekStart(new Date(Date.now()-7*24*3600000));
+    const el=document.getElementById('last-week-date-range');
+    if(el)el.textContent=`(${formatDateRange(lastWeekStart)})`;
 
     if(city)q=q.eq('city',city);
 
