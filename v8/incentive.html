@@ -268,6 +268,7 @@ body.pinned #main{margin-left:var(--sb-width)}
   <div class="tab-nav">
     <button class="tab-btn active" data-tab="dashboard" onclick="switchTab('dashboard')">My Dashboard</button>
     <button class="tab-btn" data-tab="leaderboard" onclick="switchTab('leaderboard')">Leaderboard</button>
+    <button class="tab-btn" data-tab="scheme" onclick="switchTab('scheme')">How It Works</button>
     <button class="tab-btn" data-tab="admin" onclick="switchTab('admin')" id="admin-tab" style="display:none">Admin</button>
   </div>
 
@@ -278,9 +279,13 @@ body.pinned #main{margin-left:var(--sb-width)}
     <div id="dashboard" class="content-pane active">
       <div class="tab-header">
         <div>
-          <div class="tab-title">My Dashboard</div>
+          <div class="tab-title" id="dashboard-title">My Dashboard</div>
           <div class="tab-subtitle" id="dashboard-subtitle">Loading…</div>
         </div>
+        <!-- Superadmin: tech selector -->
+        <select id="admin-tech-select" style="display:none;" class="filter-select" onchange="onAdminTechChange()">
+          <option value="">— View as technician —</option>
+        </select>
       </div>
 
       <!-- KPI Cards -->
@@ -311,11 +316,11 @@ body.pinned #main{margin-left:var(--sb-width)}
       <div class="payout-section">
         <div class="payout-title">Payout Progress — This Week</div>
         <div class="payout-bar" id="payout-bar">
-          <div class="payout-tier payout-tier-0" style="flex:0.3"><span>Below</span></div>
-          <div class="payout-tier payout-tier-1" style="flex:0.3"><span>T1</span></div>
-          <div class="payout-tier payout-tier-2" style="flex:0.3"><span>T2</span></div>
-          <div class="payout-tier payout-tier-3" style="flex:0.3"><span>T3</span></div>
-          <div class="payout-tier payout-tier-4" style="flex:0.3"><span>T4</span></div>
+          <div class="payout-tier payout-tier-0" style="flex:0.3"><span>Below 50</span></div>
+          <div class="payout-tier payout-tier-1" style="flex:0.3"><span>T1 · ₹25</span></div>
+          <div class="payout-tier payout-tier-2" style="flex:0.3"><span>T2 · ₹50</span></div>
+          <div class="payout-tier payout-tier-3" style="flex:0.3"><span>T3 · ₹75</span></div>
+          <div class="payout-tier payout-tier-4" style="flex:0.3"><span>T4 · ₹100</span></div>
           <div class="payout-marker" id="payout-marker"></div>
         </div>
         <div class="payout-label">
@@ -368,12 +373,15 @@ body.pinned #main{margin-left:var(--sb-width)}
           <div class="tab-title">Leaderboard</div>
           <div class="tab-subtitle" id="leaderboard-subtitle">Current week — live rankings</div>
         </div>
-        <select class="filter-select" id="city-filter" onchange="renderLeaderboard()">
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;">
+          <span id="leaderboard-last-refresh" style="font-size:.7rem;color:var(--muted);"></span>
+          <select class="filter-select" id="city-filter" onchange="renderLeaderboard()">
           <option value="">All Cities</option>
           <option value="Bangalore">Bangalore</option>
           <option value="Delhi">Delhi</option>
           <option value="Hyderabad">Hyderabad</option>
         </select>
+        </div>
       </div>
 
       <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px;box-shadow:var(--shadow);margin-bottom:28px;">
@@ -417,6 +425,102 @@ body.pinned #main{margin-left:var(--sb-width)}
             </tbody>
           </table>
         </div>
+      </div>
+    </div>
+
+    <!-- How It Works Tab -->
+    <div id="scheme" class="content-pane">
+      <div class="tab-header">
+        <div>
+          <div class="tab-title">How It Works</div>
+          <div class="tab-subtitle">Incentive scheme — visible to all technicians</div>
+        </div>
+      </div>
+
+      <!-- Overview -->
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:24px;margin-bottom:20px;box-shadow:var(--shadow);">
+        <div style="font-size:.9rem;font-weight:800;color:#0F172A;margin-bottom:10px;">📋 Overview</div>
+        <p style="font-size:.82rem;color:#374151;line-height:1.7;">Every week, the number of <b>eligible job cards</b> you complete determines your payout tier. You must cross a <b>threshold of 50 JCs</b> before any incentive starts. After that, each additional JC earns you a fixed amount per JC based on which tier you're in — higher tiers pay more per JC.</p>
+      </div>
+
+      <!-- Tiers -->
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:24px;margin-bottom:20px;box-shadow:var(--shadow);">
+        <div style="font-size:.9rem;font-weight:800;color:#0F172A;margin-bottom:16px;">🏆 Payout Tiers</div>
+        <div style="display:grid;gap:12px;">
+          <div style="display:flex;align-items:center;gap:14px;padding:14px;border-radius:10px;background:linear-gradient(90deg,#DBEAFE,#BFDBFE);">
+            <div style="min-width:56px;text-align:center;font-size:1.1rem;font-weight:900;color:#1D4ED8;">T1</div>
+            <div style="flex:1;">
+              <div style="font-size:.82rem;font-weight:700;color:#1E3A8A;">51–60 Job Cards</div>
+              <div style="font-size:.75rem;color:#1D4ED8;margin-top:2px;">₹25 per JC · Max ₹250 this band</div>
+            </div>
+            <div style="font-size:1.3rem;font-weight:900;color:#1D4ED8;">₹25<span style="font-size:.65rem;font-weight:600;">/JC</span></div>
+          </div>
+          <div style="display:flex;align-items:center;gap:14px;padding:14px;border-radius:10px;background:linear-gradient(90deg,#D1FAE5,#A7F3D0);">
+            <div style="min-width:56px;text-align:center;font-size:1.1rem;font-weight:900;color:#065F46;">T2</div>
+            <div style="flex:1;">
+              <div style="font-size:.82rem;font-weight:700;color:#064E3B;">61–80 Job Cards</div>
+              <div style="font-size:.75rem;color:#065F46;margin-top:2px;">₹50 per JC · Max ₹1,000 this band</div>
+            </div>
+            <div style="font-size:1.3rem;font-weight:900;color:#065F46;">₹50<span style="font-size:.65rem;font-weight:600;">/JC</span></div>
+          </div>
+          <div style="display:flex;align-items:center;gap:14px;padding:14px;border-radius:10px;background:linear-gradient(90deg,#FEF3C7,#FDE68A);">
+            <div style="min-width:56px;text-align:center;font-size:1.1rem;font-weight:900;color:#92400E;">T3</div>
+            <div style="flex:1;">
+              <div style="font-size:.82rem;font-weight:700;color:#78350F;">81–90 Job Cards</div>
+              <div style="font-size:.75rem;color:#92400E;margin-top:2px;">₹75 per JC · Max ₹750 this band</div>
+            </div>
+            <div style="font-size:1.3rem;font-weight:900;color:#92400E;">₹75<span style="font-size:.65rem;font-weight:600;">/JC</span></div>
+          </div>
+          <div style="display:flex;align-items:center;gap:14px;padding:14px;border-radius:10px;background:linear-gradient(90deg,#FED7AA,#FDBA74);">
+            <div style="min-width:56px;text-align:center;font-size:1.1rem;font-weight:900;color:#9A3412;">T4</div>
+            <div style="flex:1;">
+              <div style="font-size:.82rem;font-weight:700;color:#7C2D12;">91+ Job Cards</div>
+              <div style="font-size:.75rem;color:#9A3412;margin-top:2px;">₹100 per JC · Weekly cap ₹5,000</div>
+            </div>
+            <div style="font-size:1.3rem;font-weight:900;color:#9A3412;">₹100<span style="font-size:.65rem;font-weight:600;">/JC</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Example calc -->
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:24px;margin-bottom:20px;box-shadow:var(--shadow);">
+        <div style="font-size:.9rem;font-weight:800;color:#0F172A;margin-bottom:14px;">🧮 Example Calculation</div>
+        <div style="font-size:.82rem;color:#374151;line-height:1.8;">
+          Say you complete <b>75 JCs</b> in a week:<br>
+          • First 50 JCs → ₹0 (below threshold)<br>
+          • JCs 51–60 (10 JCs × ₹25) → <b>₹250</b><br>
+          • JCs 61–75 (15 JCs × ₹50) → <b>₹750</b><br>
+          <div style="margin-top:10px;padding:10px;background:#F0FDF4;border-radius:8px;font-weight:700;color:#16A34A;">
+            Total payout = ₹250 + ₹750 = <span style="font-size:1.1rem;">₹1,000</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Void rules -->
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:24px;margin-bottom:20px;box-shadow:var(--shadow);">
+        <div style="font-size:.9rem;font-weight:800;color:#0F172A;margin-bottom:14px;">🚫 Voided JCs — What Gets Excluded</div>
+        <p style="font-size:.82rem;color:#374151;line-height:1.7;margin-bottom:12px;">A job card is <b>voided</b> (not counted towards your weekly total) if the same bike comes back for a repeat repair within <b>3 days</b>.</p>
+        <div style="background:#FEF2F2;border:1px solid #FECACA;border-radius:10px;padding:14px;">
+          <div style="font-size:.78rem;color:#991B1B;font-weight:700;margin-bottom:6px;">Why voids exist:</div>
+          <div style="font-size:.78rem;color:#7F1D1D;line-height:1.7;">If a bike you repaired today comes back for repair within 3 days, the original JC is flagged as a comeback — meaning the repair wasn't fully effective. That JC is excluded to ensure quality repairs are rewarded, not just quantity.</div>
+        </div>
+        <div style="margin-top:14px;display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div style="padding:12px;background:#F0FDF4;border-radius:8px;text-align:center;">
+            <div style="font-size:.7rem;color:var(--muted);font-weight:700;margin-bottom:4px;">COUNTS ✓</div>
+            <div style="font-size:.8rem;color:#16A34A;font-weight:700;">Bike repaired<br>no comeback in 3 days</div>
+          </div>
+          <div style="padding:12px;background:#FEF2F2;border-radius:8px;text-align:center;">
+            <div style="font-size:.7rem;color:var(--muted);font-weight:700;margin-bottom:4px;">VOIDED ✗</div>
+            <div style="font-size:.8rem;color:#DC2626;font-weight:700;">Bike came back<br>within 3 days</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Cap -->
+      <div style="background:linear-gradient(135deg,#1A1A2E,#0f2460);border-radius:14px;padding:24px;color:#fff;text-align:center;">
+        <div style="font-size:1rem;font-weight:800;margin-bottom:6px;">Weekly Cap</div>
+        <div style="font-size:2.5rem;font-weight:900;color:#FCD34D;">₹5,000</div>
+        <div style="font-size:.78rem;color:rgba(255,255,255,.65);margin-top:6px;">Maximum incentive payout per technician per week</div>
       </div>
     </div>
 
@@ -594,16 +698,18 @@ function formatDateRange(startDate){
 
 async function loadDashboard(){
   if(!CURRENT_SESSION)return;
-  const userId=CURRENT_SESSION.user.id;
   const userEmail=CURRENT_SESSION.user.email;
 
   try{
-    // Get tech name from email or user table
-    let techName=userEmail.split('@')[0];
-    try{
-      const{data}=await sbClient.from('incentive_technicians').select('name_normalized').eq('email',userEmail).single();
-      if(data)techName=data.name_normalized;
-    }catch(e){}
+    // If superadmin has selected a tech to view, use that
+    let techName=adminViewingTech;
+    if(!techName){
+      techName=userEmail.split('@')[0];
+      try{
+        const{data}=await sbClient.from('incentive_technicians').select('name_normalized').eq('email',userEmail).single();
+        if(data)techName=data.name_normalized;
+      }catch(e){}
+    }
 
     // Load current week stats
     const weekStart=getWeekStart(new Date());
@@ -700,6 +806,11 @@ async function renderLeaderboard(){
     const weekStart=getWeekStart(new Date());
     q=q.eq('week_start',formatDate(weekStart));
     document.getElementById('leaderboard-subtitle').textContent=`Current week · ${formatDateRange(weekStart)}`;
+
+    // Last refresh
+    const refreshEl=document.getElementById('leaderboard-last-refresh');
+    if(refreshEl){const now=new Date();refreshEl.textContent=`Refreshed ${now.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})} on ${now.toLocaleDateString('en-IN',{day:'numeric',month:'short'})}`;}
+
 
     // Show last week date range in the collapsible header
     const lastWeekStart=getWeekStart(new Date(Date.now()-7*24*3600000));
@@ -932,6 +1043,28 @@ async function loadLastWeek(){
   }catch(e){console.error('Last week error:',e);}
 }
 
+/* ── SUPERADMIN TECH SELECTOR ── */
+let adminViewingTech=null; // null = viewing own dashboard
+
+async function populateAdminTechDropdown(){
+  if(!CURRENT_SESSION?.user.app_metadata?.is_superadmin)return;
+  try{
+    const{data:techs}=await sbClient.from('incentive_technicians').select('name_normalized,hub_name').order('name_normalized');
+    const sel=document.getElementById('admin-tech-select');
+    if(!sel||!techs)return;
+    sel.style.display='block';
+    const opts=techs.map(t=>`<option value="${t.name_normalized}">${t.name_normalized}${t.hub_name?' · '+t.hub_name:''}</option>`).join('');
+    sel.innerHTML='<option value="">— View as technician —</option>'+opts;
+    document.getElementById('dashboard-title').textContent='Dashboard (Superadmin)';
+  }catch(e){console.error('Admin dropdown error:',e);}
+}
+
+async function onAdminTechChange(){
+  const sel=document.getElementById('admin-tech-select');
+  adminViewingTech=sel?.value||null;
+  await loadDashboard();
+}
+
 /* ── SIDEBAR ── */
 let pinned=localStorage.getItem('sb_pinned')==='1';
 let sbOpen=false;
@@ -961,6 +1094,7 @@ applyPin();
     // Check if admin (show admin tab)
     if(session.user.app_metadata?.is_superadmin){
       document.getElementById('admin-tab').style.display='block';
+      populateAdminTechDropdown();
     }
 
     loadDashboard();
@@ -977,6 +1111,7 @@ applyPin();
       document.getElementById('logout-btn').style.display='block';
       if(session.user.app_metadata?.is_superadmin){
         document.getElementById('admin-tab').style.display='block';
+        populateAdminTechDropdown();
       }
       loadDashboard();
     }else if(event==='SIGNED_OUT'){
