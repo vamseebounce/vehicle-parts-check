@@ -870,6 +870,7 @@ async function renderLeaderboard(){
 }
 
 let ALL_SYSTEM_NAMES=[];
+let TECH_HUB_MAP={}; // tech_name → {hub_name, city} from most recent JC week
 
 async function loadAdminData(){
   if(!CURRENT_SESSION?.user.app_metadata?.is_superadmin)return;
@@ -880,8 +881,13 @@ async function loadAdminData(){
     renderBurnTable(burnStats||[]);
 
     // All distinct system names from stats table (for dropdown)
-    const{data:sysNames}=await sbClient.from('incentive_weekly_stats').select('tech_name').order('tech_name');
+    const{data:sysNames}=await sbClient.from('incentive_weekly_stats').select('tech_name,hub_name,city,week_start').order('week_start',{ascending:false});
     ALL_SYSTEM_NAMES=[...new Set((sysNames||[]).map(r=>r.tech_name))].sort();
+    // Build hub map: most recent hub/city per tech from JC stats
+    TECH_HUB_MAP={};
+    (sysNames||[]).forEach(r=>{
+      if(!TECH_HUB_MAP[r.tech_name]&&r.hub_name)TECH_HUB_MAP[r.tech_name]={hub_name:r.hub_name,city:r.city};
+    });
 
     // Technician directory
     const{data:techs}=await sbClient.from('incentive_technicians').select('*').order('name_normalized');
@@ -987,36 +993,29 @@ function renderTechTable(techs){
     const rowBg=!mapped?'background:#FEF2F2':'';
     const tid=t.id;
 
+    // Hub/city: prefer live JC data (TECH_HUB_MAP), fall back to DB value
+    const liveHub=TECH_HUB_MAP[t.name_normalized]||{};
+    const hubDisplay=liveHub.hub_name||t.hub_name||'—';
+    const cityDisplay=liveHub.city||t.city||'—';
+
     return`<tr style="${rowBg}" id="row-${tid}">
+      <td style="font-size:.75rem;color:var(--muted);font-weight:600;white-space:nowrap;">${t.employee_id||'—'}</td>
       <td>
-        <input id="empid-${tid}" value="${(t.employee_id||'').replace(/"/g,'&quot;')}"
-          style="width:80px;font-size:.72rem;padding:4px 6px;border:1px solid var(--border);border-radius:6px;font-family:inherit;"
-          placeholder="Emp ID"/>
+        <div style="font-size:.82rem;font-weight:700;color:#0F172A;">${t.name_normalized||'—'}</div>
+        <div style="font-size:.7rem;color:var(--muted);margin-top:2px;">${t.email||'—'}</div>
       </td>
       <td>
-        <input id="name-${tid}" value="${(t.name_normalized||'').replace(/"/g,'&quot;')}"
-          style="width:130px;font-size:.78rem;padding:4px 6px;border:1px solid var(--border);border-radius:6px;font-family:inherit;font-weight:600;"
-          placeholder="Name"/>
-        <input id="email-${tid}" value="${(t.email||'').replace(/"/g,'&quot;')}"
-          style="width:160px;font-size:.7rem;padding:4px 6px;border:1px solid var(--border);border-radius:6px;font-family:inherit;margin-top:4px;display:block;"
-          placeholder="email@domain.com"/>
-      </td>
-      <td>
-        <input id="hub-${tid}" value="${(t.hub_name||'').replace(/"/g,'&quot;')}"
-          style="width:110px;font-size:.72rem;padding:4px 6px;border:1px solid var(--border);border-radius:6px;font-family:inherit;"
-          placeholder="Hub"/>
-        <input id="city-${tid}" value="${(t.city||'').replace(/"/g,'&quot;')}"
-          style="width:70px;font-size:.7rem;padding:4px 6px;border:1px solid var(--border);border-radius:6px;font-family:inherit;margin-top:4px;display:block;"
-          placeholder="City"/>
+        <div style="font-size:.78rem;font-weight:600;color:#0F172A;">${hubDisplay}</div>
+        <div style="font-size:.7rem;color:var(--muted);margin-top:2px;">${cityDisplay}</div>
       </td>
       <td>
         <input id="norm-name-${tid}" value="${(t.name_normalized||'').replace(/"/g,'&quot;')}"
-          style="width:130px;font-size:.75rem;padding:4px 6px;border:1px solid var(--border);border-radius:6px;font-family:inherit;"
+          style="width:140px;font-size:.75rem;padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-family:inherit;"
           placeholder="Correct spelling…"/>
       </td>
       <td>
         <select id="jc-select-${tid}" multiple
-          style="width:180px;min-height:58px;font-size:.7rem;padding:4px 6px;border:1px solid ${mapped?'var(--border)':'#FECACA'};border-radius:6px;font-family:inherit;background:${mapped?'#fff':'#FEF2F2'};">
+          style="width:190px;min-height:58px;font-size:.7rem;padding:4px 6px;border:1px solid ${mapped?'var(--border)':'#FECACA'};border-radius:6px;font-family:inherit;background:${mapped?'#fff':'#FEF2F2'};">
           ${opts}
         </select>
         <div style="font-size:.62rem;color:var(--muted);margin-top:2px;">⌘/Ctrl+click for multiple</div>
@@ -1032,12 +1031,8 @@ function renderTechTable(techs){
       </td>
       <td>
         <div style="display:flex;flex-direction:column;gap:4px;">
-          <button onclick="saveTechDetails('${tid}')"
-            style="font-size:.68rem;padding:4px 8px;background:#0F172A;color:#fff;border:none;border-radius:6px;cursor:pointer;font-family:inherit;font-weight:600;white-space:nowrap;">
-            Save Details
-          </button>
           <button onclick="saveTechMapping('${tid}')"
-            style="font-size:.68rem;padding:4px 8px;background:#E8191C;color:#fff;border:none;border-radius:6px;cursor:pointer;font-family:inherit;font-weight:600;white-space:nowrap;">
+            style="font-size:.68rem;padding:5px 10px;background:#E8191C;color:#fff;border:none;border-radius:6px;cursor:pointer;font-family:inherit;font-weight:600;white-space:nowrap;">
             Save &amp; Sync
           </button>
           <span id="sys-status-${tid}" style="font-size:.65rem;color:#16A34A;min-height:14px;"></span>
