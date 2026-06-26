@@ -882,12 +882,14 @@ async function loadAdminData(){
 
     // All distinct system names from stats table (for dropdown)
     const{data:sysNames}=await sbClient.from('incentive_weekly_stats').select('tech_name,hub_name,city,week_start').order('week_start',{ascending:false});
-    ALL_SYSTEM_NAMES=[...new Set((sysNames||[]).map(r=>r.tech_name))].sort();
     // Build hub map: most recent hub/city per tech from JC stats
     TECH_HUB_MAP={};
     (sysNames||[]).forEach(r=>{
       if(!TECH_HUB_MAP[r.tech_name]&&r.hub_name)TECH_HUB_MAP[r.tech_name]={hub_name:r.hub_name,city:r.city};
     });
+    // ALL_SYSTEM_NAMES = raw JC names only (exclude already-normalized names from technician directory)
+    const normalizedSet=new Set((techs||[]).map(t=>t.name_normalized).filter(Boolean));
+    ALL_SYSTEM_NAMES=[...new Set((sysNames||[]).map(r=>r.tech_name))].filter(n=>!normalizedSet.has(n)).sort();
 
     // Technician directory
     const{data:techs}=await sbClient.from('incentive_technicians').select('*').order('name_normalized');
@@ -900,12 +902,11 @@ async function loadAdminData(){
 
 async function saveTechMapping(techId){
   const normEl=document.getElementById('norm-name-'+techId);
-  const listEl=document.getElementById('jc-select-'+techId);
   const statusEl=document.getElementById('sys-status-'+techId);
 
   const normalizedName=normEl?normEl.value.trim():'';
-  // Collect all selected options in the multi-select
-  const jcNames=listEl?Array.from(listEl.selectedOptions).map(o=>o.value).filter(Boolean):[];
+  // Collect checked checkboxes from the custom dropdown
+  const jcNames=Array.from(document.querySelectorAll(`#jc-list-${techId} input[type=checkbox]:checked`)).map(c=>c.value).filter(Boolean);
 
   if(!normalizedName){if(statusEl)statusEl.textContent='⚠️ Name required';return;}
 
@@ -927,7 +928,9 @@ async function saveTechMapping(techId){
       statusEl.style.color='#16A34A';
       setTimeout(()=>{if(statusEl)statusEl.textContent='';},3000);
     }
-    // Refresh admin data so new normalized name appears everywhere
+    // Update local cache + claimed map, then re-render
+    const idx=ALL_TECHS_DATA.findIndex(t=>t.id===techId);
+    if(idx>-1){ALL_TECHS_DATA[idx].name_normalized=normalizedName;ALL_TECHS_DATA[idx].name_in_system=jcNames;}
     loadAdminData();
   }
 }
@@ -978,25 +981,85 @@ function filterTechTable(){
   renderTechTable(filtered);
 }
 
+// Track which JC names are claimed by which tech (techId)
+let CLAIMED_JC_NAMES={}; // jcName → techId
+let ACTIVE_DROPDOWN_ID=null; // only one open at a time
+
+function buildClaimedMap(){
+  CLAIMED_JC_NAMES={};
+  ALL_TECHS_DATA.forEach(t=>{
+    const names=Array.isArray(t.name_in_system)?t.name_in_system:[];
+    names.forEach(n=>{CLAIMED_JC_NAMES[n]=t.id;});
+  });
+}
+
+function openJcDropdown(tid){
+  // Close any other open dropdown first
+  if(ACTIVE_DROPDOWN_ID&&ACTIVE_DROPDOWN_ID!==tid)closeJcDropdown(ACTIVE_DROPDOWN_ID);
+  ACTIVE_DROPDOWN_ID=tid;
+  document.getElementById('jc-chips-'+tid).style.display='none';
+  document.getElementById('jc-dropdown-'+tid).style.display='block';
+}
+
+function closeJcDropdown(tid){
+  if(ACTIVE_DROPDOWN_ID===tid)ACTIVE_DROPDOWN_ID=null;
+  document.getElementById('jc-dropdown-'+tid).style.display='none';
+  document.getElementById('jc-chips-'+tid).style.display='flex';
+  refreshChips(tid);
+}
+
+function refreshChips(tid){
+  const checked=Array.from(document.querySelectorAll(`#jc-list-${tid} input[type=checkbox]:checked`)).map(c=>c.value);
+  const chipsEl=document.getElementById('jc-chips-'+tid);
+  if(!chipsEl)return;
+  if(checked.length===0){
+    chipsEl.innerHTML='<span style="font-size:.72rem;color:#9CA3AF;font-style:italic;">None selected</span>';
+  }else{
+    chipsEl.innerHTML=checked.map(n=>`<span style="display:inline-block;background:#EFF6FF;color:#1D4ED8;border:1px solid #BFDBFE;border-radius:12px;padding:2px 8px;font-size:.68rem;font-weight:600;white-space:nowrap;">${n}</span>`).join('');
+  }
+}
+
+function filterJcList(tid){
+  const q=(document.getElementById('jc-search-'+tid)?.value||'').toLowerCase();
+  document.querySelectorAll(`#jc-list-${tid} label`).forEach(lbl=>{
+    lbl.style.display=lbl.textContent.toLowerCase().includes(q)?'flex':'none';
+  });
+}
+
 function renderTechTable(techs){
   const tbody=document.getElementById('tech-tbody');
   const countEl=document.getElementById('tech-count');
   if(countEl)countEl.textContent=`${techs.length} of ${ALL_TECHS_DATA.length} techs`;
+  buildClaimedMap();
 
   tbody.innerHTML=techs.map(t=>{
     const currentJcNames=Array.isArray(t.name_in_system)?t.name_in_system:(t.name_in_system?[t.name_in_system]:[]);
     const mapped=currentJcNames.length>0;
-    const opts=ALL_SYSTEM_NAMES.map(n=>{
-      const sel=currentJcNames.includes(n)?'selected':'';
-      return`<option value="${n}" ${sel}>${n}</option>`;
-    }).join('');
-    const rowBg=!mapped?'background:#FEF2F2':'';
     const tid=t.id;
 
-    // Hub/city: prefer live JC data (TECH_HUB_MAP), fall back to DB value
+    // Chips (closed state)
+    const chipsHtml=currentJcNames.length>0
+      ?currentJcNames.map(n=>`<span style="display:inline-block;background:#EFF6FF;color:#1D4ED8;border:1px solid #BFDBFE;border-radius:12px;padding:2px 8px;font-size:.68rem;font-weight:600;white-space:nowrap;">${n}</span>`).join('')
+      :'<span style="font-size:.72rem;color:#9CA3AF;font-style:italic;">None selected</span>';
+
+    // Checkbox list
+    const checkboxItems=ALL_SYSTEM_NAMES.map(n=>{
+      const isChecked=currentJcNames.includes(n);
+      const claimedBy=CLAIMED_JC_NAMES[n];
+      const takenByOther=claimedBy&&claimedBy!==tid;
+      return`<label style="display:flex;align-items:center;gap:6px;padding:4px 6px;border-radius:4px;cursor:${takenByOther?'not-allowed':'pointer'};opacity:${takenByOther?'0.35':'1'};${takenByOther?'':''}hover:background:#F9FAFB;">
+        <input type="checkbox" value="${n}" ${isChecked?'checked':''} ${takenByOther?'disabled':''}
+          style="accent-color:#E8191C;cursor:${takenByOther?'not-allowed':'pointer'};"
+          onchange="refreshChips('${tid}')"/>
+        <span style="font-size:.72rem;color:#0F172A;">${n}</span>
+        ${takenByOther?`<span style="font-size:.62rem;color:#9CA3AF;margin-left:auto;">taken</span>`:''}
+      </label>`;
+    }).join('');
+
     const liveHub=TECH_HUB_MAP[t.name_normalized]||{};
     const hubDisplay=liveHub.hub_name||t.hub_name||'—';
     const cityDisplay=liveHub.city||t.city||'—';
+    const rowBg=!mapped?'background:#FEF2F2':'';
 
     return`<tr style="${rowBg}" id="row-${tid}">
       <td style="font-size:.75rem;color:var(--muted);font-weight:600;white-space:nowrap;">${t.employee_id||'—'}</td>
@@ -1013,12 +1076,28 @@ function renderTechTable(techs){
           style="width:140px;font-size:.75rem;padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-family:inherit;"
           placeholder="Correct spelling…"/>
       </td>
-      <td>
-        <select id="jc-select-${tid}" multiple
-          style="width:190px;min-height:58px;font-size:.7rem;padding:4px 6px;border:1px solid ${mapped?'var(--border)':'#FECACA'};border-radius:6px;font-family:inherit;background:${mapped?'#fff':'#FEF2F2'};">
-          ${opts}
-        </select>
-        <div style="font-size:.62rem;color:var(--muted);margin-top:2px;">⌘/Ctrl+click for multiple</div>
+      <td style="min-width:220px;">
+        <!-- Chips view (closed) -->
+        <div id="jc-chips-${tid}" style="display:flex;flex-wrap:wrap;gap:4px;min-height:28px;align-items:center;">
+          ${chipsHtml}
+        </div>
+        <!-- Dropdown (open) -->
+        <div id="jc-dropdown-${tid}" style="display:none;">
+          <input id="jc-search-${tid}" type="text" placeholder="Search JC names…" oninput="filterJcList('${tid}')"
+            style="width:100%;font-size:.72rem;padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-family:inherit;margin-bottom:4px;"/>
+          <div id="jc-list-${tid}" style="max-height:160px;overflow-y:auto;border:1px solid var(--border);border-radius:6px;padding:4px;background:#fff;">
+            ${checkboxItems}
+          </div>
+          <button onclick="closeJcDropdown('${tid}')"
+            style="margin-top:5px;font-size:.68rem;padding:4px 10px;background:#0F172A;color:#fff;border:none;border-radius:6px;cursor:pointer;font-family:inherit;font-weight:600;">
+            Done
+          </button>
+        </div>
+        <!-- Edit button -->
+        <button onclick="openJcDropdown('${tid}')" id="jc-edit-btn-${tid}"
+          style="margin-top:4px;font-size:.65rem;padding:3px 8px;background:none;border:1px solid var(--border);border-radius:6px;cursor:pointer;font-family:inherit;color:var(--muted);">
+          ✏️ Edit
+        </button>
       </td>
       <td style="text-align:center;">
         <label style="position:relative;display:inline-block;width:36px;height:20px;cursor:pointer;">
