@@ -514,24 +514,18 @@ body.pinned #main{margin-left:var(--sb-width)}
         </div>
       </div>
 
-      <!-- Upload Panel -->
+      <!-- Sync Panel -->
       <div class="upload-panel">
-        <div class="upload-title">Upload Weekly Data</div>
+        <div class="upload-title">Data Sync</div>
         <div class="upload-area">
-          <div class="upload-input-wrapper">
-            <button class="upload-btn" onclick="document.getElementById('xlsx-input').click()">📁 Choose XLSX</button>
-            <input type="file" id="xlsx-input" class="upload-input" accept=".xlsx,.xls" onchange="handleFileSelect()"/>
-          </div>
-          <button class="upload-btn" id="process-btn" onclick="processUpload()" disabled>Process Upload</button>
-          <div class="upload-file-name" id="file-name">No file selected</div>
+          <button class="upload-btn" id="sync-btn" onclick="triggerSync()">🔄 Sync Now</button>
           <div class="upload-progress" id="upload-progress"></div>
         </div>
       </div>
 
-      <!-- Unresolved Names -->
-      <div style="background:#FEF2F2;border:1px solid #FECACA;border-radius:14px;padding:16px;margin-bottom:28px;display:none;" id="unresolved-panel">
-        <div style="font-size:.8rem;font-weight:700;color:#DC2626;margin-bottom:10px;">⚠️ Unresolved Technician Names</div>
-        <div id="unresolved-list" style="font-size:.75rem;color:#991B1B;line-height:1.8;"></div>
+      <!-- Unresolved Names (kept for legacy) -->
+      <div style="display:none;" id="unresolved-panel">
+        <div id="unresolved-list"></div>
       </div>
 
       <!-- Burn Overview Table -->
@@ -880,20 +874,21 @@ async function loadAdminData(){
     const{data:burnStats}=await sbClient.from('incentive_weekly_stats').select('week_start,tech_name,eligible_jcs').order('week_start',{ascending:false}).limit(100);
     renderBurnTable(burnStats||[]);
 
-    // All distinct system names from stats table (for dropdown)
+    // Technician directory — fetch FIRST so normalizedSet is available for sysNames filter
+    const{data:techs}=await sbClient.from('incentive_technicians').select('*').order('name_normalized');
+    ALL_TECHS_DATA=techs||[];
+
+    // All distinct system names from stats table (for JC name dropdown)
     const{data:sysNames}=await sbClient.from('incentive_weekly_stats').select('tech_name,hub_name,city,week_start').order('week_start',{ascending:false});
     // Build hub map: most recent hub/city per tech from JC stats
     TECH_HUB_MAP={};
     (sysNames||[]).forEach(r=>{
       if(!TECH_HUB_MAP[r.tech_name]&&r.hub_name)TECH_HUB_MAP[r.tech_name]={hub_name:r.hub_name,city:r.city};
     });
-    // ALL_SYSTEM_NAMES = raw JC names only (exclude already-normalized names from technician directory)
-    const normalizedSet=new Set((techs||[]).map(t=>t.name_normalized).filter(Boolean));
+    // Exclude already-normalized names — only show raw JC name variants
+    const normalizedSet=new Set((ALL_TECHS_DATA).map(t=>t.name_normalized).filter(Boolean));
     ALL_SYSTEM_NAMES=[...new Set((sysNames||[]).map(r=>r.tech_name))].filter(n=>!normalizedSet.has(n)).sort();
 
-    // Technician directory
-    const{data:techs}=await sbClient.from('incentive_technicians').select('*').order('name_normalized');
-    ALL_TECHS_DATA=techs||[];
     renderTechTable(ALL_TECHS_DATA);
   }catch(e){
     console.error('Admin data error:',e);
@@ -1157,16 +1152,30 @@ async function toggleTechActive(techId, active){
   }
 }
 
-/* ── FILE UPLOAD ── */
-let selectedFile=null;
-function handleFileSelect(){
-  const input=document.getElementById('xlsx-input');
-  selectedFile=input.files[0];
-  if(selectedFile){
-    document.getElementById('file-name').textContent=selectedFile.name;
-    document.getElementById('process-btn').disabled=false;
+/* ── SYNC ── */
+async function triggerSync(){
+  const btn=document.getElementById('sync-btn');
+  const prog=document.getElementById('upload-progress');
+  btn.disabled=true;btn.textContent='Syncing…';
+  if(prog)prog.textContent='Fetching latest data from production…';
+  try{
+    const EDGE_URL='https://clkfvmmlgwcvntxnolsv.supabase.co/functions/v1/sync-incentive-data';
+    const{data:{session}}=await sbClient.auth.getSession();
+    const res=await fetch(EDGE_URL,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+(session?.access_token||'')},body:JSON.stringify({lookback_days:14})});
+    const json=await res.json();
+    if(!res.ok)throw new Error(json.error||'Sync failed');
+    if(prog)prog.textContent=`✓ Synced ${json.rows_fetched} JCs · ${json.weeks_updated} weeks updated · ${json.name_mappings_applied} name mappings applied`;
+    await loadAdminData();
+  }catch(e){
+    if(prog)prog.textContent='❌ '+e.message;
+    console.error('Sync error:',e);
+  }finally{
+    btn.disabled=false;btn.textContent='🔄 Sync Now';
   }
 }
+
+function handleFileSelect(){}
+function processUpload(){}
 
 async function processUpload(){
   if(!selectedFile)return;
