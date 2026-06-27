@@ -1,11 +1,13 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 
-// Spreadsheet: 1BQLXsYQS2KfFS9MRkQWQMBgUH9kr5TizmhyB4r2hbRU
-// Sheet1         → hr_employees  (Employee ID, Candidate Name, Designation, City, Working Location, Contact, Email)
-// Nomenclature Map → incentive_technicians (Employee ID, JC Name Raw, Normalized Name, Hub, City, Status, Remarks)
-const SHEET_ID = '1BQLXsYQS2KfFS9MRkQWQMBgUH9kr5TizmhyB4r2hbRU';
-const HR_SHEET_URL    = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=Sheet1`;
-const NOMEN_SHEET_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=Nomenclature+Map`;
+// Spreadsheet 1: 1BQLXsYQS2KfFS9MRkQWQMBgUH9kr5TizmhyB4r2hbRU
+// Sheet1 → hr_employees (Employee ID, Candidate Name, Designation, City, Working Location, Contact, Email)
+//
+// Spreadsheet 2: 17-Ix-tVo2ekew5dogOFm9K8XsuMsdCb0MjQcnQGdxFs (Incentive Dashboard)
+// gid=572681529 (Technician Nomenclature Map) → incentive_technicians
+//   Columns: Employee ID, JC Name (Raw), Normalized Name, Hub, City, Status, Email id, Contact Number, Remarks
+const HR_SHEET_URL    = `https://docs.google.com/spreadsheets/d/1BQLXsYQS2KfFS9MRkQWQMBgUH9kr5TizmhyB4r2hbRU/gviz/tq?tqx=out:csv&sheet=Sheet1`;
+const NOMEN_SHEET_URL = `https://docs.google.com/spreadsheets/d/17-Ix-tVo2ekew5dogOFm9K8XsuMsdCb0MjQcnQGdxFs/export?format=csv&gid=572681529`;
 
 const NOT_A_PERSON = new Set(['FREELANCER', 'VECNOCOM', 'VECMOCON', 'READY ASSET', 'VAMSEE - HEBBALA']);
 
@@ -66,12 +68,14 @@ Deno.serve(async (req: Request) => {
 
     const header = rows[0].map((h: string) => h.trim().toLowerCase());
     const col = (name: string) => header.findIndex((h: string) => h.includes(name));
-    const iEmpId  = col('employee id');
-    const iJcName = col('jc name');
-    const iNorm   = col('normalized');
-    const iHub    = col('hub');
-    const iCity   = col('city');
-    const iStatus = col('status');
+    const iEmpId   = col('employee id');
+    const iJcName  = col('jc name');
+    const iNorm    = col('normalized');
+    const iHub     = col('hub');
+    const iCity    = col('city');
+    const iStatus  = col('status');
+    const iEmail   = col('email');
+    const iContact = col('contact');
 
     if (iJcName === -1) throw new Error(`Nomenclature sheet: missing columns. Header: ${JSON.stringify(header)}`);
 
@@ -86,25 +90,32 @@ Deno.serve(async (req: Request) => {
     });
 
     // Group by employee_id — collect all JC raw names per employee
-    const byEmpId: Record<string, { jcNames: string[]; norm: string; hub: string; city: string }> = {};
-    const noEmpId: Array<{ jcName: string; norm: string; hub: string; city: string }> = [];
+    const byEmpId: Record<string, { jcNames: string[]; norm: string; hub: string; city: string; email: string; contact: string }> = {};
+    const noEmpId: Array<{ jcName: string; norm: string; hub: string; city: string; email: string; contact: string }> = [];
 
     for (const r of validRows) {
-      const empId  = iEmpId !== -1 ? r[iEmpId]?.trim()  : '';
-      const jcName = r[iJcName]?.trim() || '';
-      const norm   = iNorm   !== -1 ? r[iNorm]?.trim()   || '' : '';
-      const hub    = iHub    !== -1 ? r[iHub]?.trim()    || '' : '';
-      const city   = iCity   !== -1 ? r[iCity]?.trim()   || '' : '';
+      const empId    = iEmpId   !== -1 ? r[iEmpId]?.trim()    : '';
+      const jcName   = r[iJcName]?.trim() || '';
+      const norm     = iNorm    !== -1 ? r[iNorm]?.trim()     || '' : '';
+      const hub      = iHub     !== -1 ? r[iHub]?.trim()      || '' : '';
+      const city     = iCity    !== -1 ? r[iCity]?.trim()     || '' : '';
+      const rawEmail = iEmail   !== -1 ? (r[iEmail]?.trim()   || '') : '';
+      const contact  = iContact !== -1 ? (r[iContact]?.trim() || '') : '';
+      // Validate email — ignore placeholder dashes and malformed
+      const emailValid = rawEmail.length > 0 && rawEmail !== '-' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(rawEmail);
+      const email = emailValid ? rawEmail.toLowerCase() : '';
 
       if (empId) {
-        if (!byEmpId[empId]) byEmpId[empId] = { jcNames: [], norm, hub, city };
+        if (!byEmpId[empId]) byEmpId[empId] = { jcNames: [], norm, hub, city, email, contact };
         byEmpId[empId].jcNames.push(jcName);
-        // Keep the most complete normalized name
-        if (norm && !byEmpId[empId].norm) byEmpId[empId].norm = norm;
-        if (hub  && !byEmpId[empId].hub)  byEmpId[empId].hub  = hub;
-        if (city && !byEmpId[empId].city) byEmpId[empId].city = city;
+        // Keep the most complete values (first non-empty wins)
+        if (norm    && !byEmpId[empId].norm)    byEmpId[empId].norm    = norm;
+        if (hub     && !byEmpId[empId].hub)     byEmpId[empId].hub     = hub;
+        if (city    && !byEmpId[empId].city)    byEmpId[empId].city    = city;
+        if (email   && !byEmpId[empId].email)   byEmpId[empId].email   = email;
+        if (contact && !byEmpId[empId].contact) byEmpId[empId].contact = contact;
       } else {
-        noEmpId.push({ jcName, norm, hub, city });
+        noEmpId.push({ jcName, norm, hub, city, email, contact });
       }
     }
 
@@ -112,13 +123,15 @@ Deno.serve(async (req: Request) => {
 
     // Upsert mapped rows (have employee_id) — conflict on employee_id
     const mappedRows = Object.entries(byEmpId).map(([empId, d]) => ({
-      employee_id:    empId,
-      name_in_system: d.jcNames,
-      name_normalized: d.norm || null,
-      hub_name:       d.hub  || null,
-      city:           d.city || null,
-      active:         true,
-      updated_at:     new Date().toISOString(),
+      employee_id:     empId,
+      name_in_system:  d.jcNames,
+      name_normalized: d.norm    || null,
+      hub_name:        d.hub     || null,
+      city:            d.city    || null,
+      email:           d.email   || null,
+      contact_number:  d.contact || null,
+      active:          true,
+      updated_at:      new Date().toISOString(),
     }));
 
     if (mappedRows.length > 0) {
@@ -141,21 +154,25 @@ Deno.serve(async (req: Request) => {
       if (existing) {
         // Update existing
         await supabase.from('incentive_technicians').update({
-          name_normalized: row.norm || null,
-          hub_name:  row.hub  || null,
-          city:      row.city || null,
-          updated_at: new Date().toISOString(),
+          name_normalized: row.norm    || null,
+          hub_name:        row.hub     || null,
+          city:            row.city    || null,
+          email:           row.email   || null,
+          contact_number:  row.contact || null,
+          updated_at:      new Date().toISOString(),
         }).eq('id', existing.id);
       } else {
         // Insert new
         await supabase.from('incentive_technicians').insert({
-          employee_id:    null,
-          name_in_system: [row.jcName],
-          name_normalized: row.norm || null,
-          hub_name:  row.hub  || null,
-          city:      row.city || null,
-          active:    true,
-          updated_at: new Date().toISOString(),
+          employee_id:     null,
+          name_in_system:  [row.jcName],
+          name_normalized: row.norm    || null,
+          hub_name:        row.hub     || null,
+          city:            row.city    || null,
+          email:           row.email   || null,
+          contact_number:  row.contact || null,
+          active:          true,
+          updated_at:      new Date().toISOString(),
         });
       }
       upsertedUnmatched++;
