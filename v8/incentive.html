@@ -684,12 +684,15 @@ async function sendMagicLink(){
   const btn=document.getElementById('auth-submit');
   if(!email){msg.textContent='Please enter your email.';return;}
   btn.disabled=true;btn.textContent='Checking…';msg.textContent='';
-  // Allow @bounceshare.com, explicit whitelist, OR any email registered in hr_employees
+  // Allow @bounceshare.com, explicit whitelist, OR any email in hr_employees / incentive_technicians
   const isStaff=email.endsWith('@bounceshare.com')||ALLOWED_EMAILS.includes(email);
   if(!isStaff){
-    const{data:emp}=await sbClient.from('hr_employees').select('employee_id').eq('email',email).maybeSingle();
-    if(!emp){
-      msg.textContent='Your email is not registered in HR. Contact your hub manager.';
+    const[{data:emp},{data:tech}]=await Promise.all([
+      sbClient.from('hr_employees').select('employee_id').eq('email',email).maybeSingle(),
+      sbClient.from('incentive_technicians').select('id').eq('email',email).maybeSingle(),
+    ]);
+    if(!emp&&!tech){
+      msg.textContent='Your email is not registered. Contact your hub manager.';
       btn.disabled=false;btn.textContent='Send Magic Link';
       return;
     }
