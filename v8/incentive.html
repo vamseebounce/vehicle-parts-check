@@ -298,15 +298,15 @@ body.pinned #main{margin-left:var(--sb-width)}
       <button class="tab-btn active" data-tab="dashboard" onclick="switchTab('dashboard')">My Dashboard</button>
       <button class="tab-btn" data-tab="leaderboard" onclick="switchTab('leaderboard')">Leaderboard</button>
       <button class="tab-btn" data-tab="scheme" onclick="switchTab('scheme')">How It Works</button>
-      <button class="tab-btn" data-tab="admin" onclick="switchTab('admin')" id="admin-tab" style="display:none">Admin</button>
+      <button class="tab-btn" data-tab="admin" onclick="switchTab('admin')" id="admin-tab" data-feature="incentive-admin" style="display:none">Admin</button>
     </div>
     <div style="display:flex;gap:8px;align-items:center;padding-right:8px;">
       <!-- Week selector — shared by dashboard + leaderboard -->
       <select id="week-select" class="filter-select" onchange="onWeekChange()" style="font-size:.78rem;">
         <option value="current">Current Week</option>
       </select>
-      <!-- Admin: tech selector -->
-      <select id="admin-tech-select" style="display:none;" class="filter-select" onchange="onAdminTechChange()">
+      <!-- Admin only: view any technician's dashboard -->
+      <select id="admin-tech-select" data-feature="incentive-admin" style="display:none;" class="filter-select" onchange="onAdminTechChange()">
         <option value="">— View as technician —</option>
       </select>
     </div>
@@ -760,8 +760,9 @@ async function loadDashboard(){
   const userEmail=CURRENT_SESSION.user.email;
 
   try{
-    // If admin has selected a tech to view, use that
-    let techName=adminViewingTech;
+    const isAdmin=fpCan('incentive-admin');
+    // Admin can view any tech via dropdown; regular techs always see their own data
+    let techName=isAdmin?adminViewingTech:null;
     let techEmployeeId=null;
     if(!techName){
       // Resolve via hr_employees: email → employee_id → incentive_jc_log
@@ -775,6 +776,12 @@ async function loadDashboard(){
         }
       }catch(e){}
       if(!techName)techName=userEmail.split('@')[0];
+    }
+    // Update dashboard title
+    const titleEl=document.getElementById('dashboard-title');
+    if(titleEl){
+      if(isAdmin&&adminViewingTech){titleEl.textContent=adminViewingTech+"'s Dashboard";}
+      else{titleEl.textContent='My Dashboard';}
     }
 
     // Use selected week
@@ -1370,9 +1377,6 @@ function applyRoleView(){
   if(el)el.style.display=isAdmin?'block':'none';
   if(isAdmin){
     populateAdminTechDropdown();
-    // Show dashboard title indicator
-    const titleEl=document.getElementById('dashboard-title');
-    if(titleEl&&adminViewingTech===null)titleEl.textContent='Dashboard (Admin View)';
   }
 }
 
