@@ -293,11 +293,23 @@ body.pinned #main{margin-left:var(--sb-width)}
   </header>
 
   <!-- Tab Navigation -->
-  <div class="tab-nav">
-    <button class="tab-btn active" data-tab="dashboard" onclick="switchTab('dashboard')">My Dashboard</button>
-    <button class="tab-btn" data-tab="leaderboard" onclick="switchTab('leaderboard')">Leaderboard</button>
-    <button class="tab-btn" data-tab="scheme" onclick="switchTab('scheme')">How It Works</button>
-    <button class="tab-btn" data-tab="admin" onclick="switchTab('admin')" id="admin-tab" style="display:none">Admin</button>
+  <div class="tab-nav" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;">
+    <div style="display:flex;gap:2px;">
+      <button class="tab-btn active" data-tab="dashboard" onclick="switchTab('dashboard')">My Dashboard</button>
+      <button class="tab-btn" data-tab="leaderboard" onclick="switchTab('leaderboard')">Leaderboard</button>
+      <button class="tab-btn" data-tab="scheme" onclick="switchTab('scheme')">How It Works</button>
+      <button class="tab-btn" data-tab="admin" onclick="switchTab('admin')" id="admin-tab" style="display:none">Admin</button>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;padding-right:8px;">
+      <!-- Week selector — shared by dashboard + leaderboard -->
+      <select id="week-select" class="filter-select" onchange="onWeekChange()" style="font-size:.78rem;">
+        <option value="current">Current Week</option>
+      </select>
+      <!-- Admin: tech selector -->
+      <select id="admin-tech-select" style="display:none;" class="filter-select" onchange="onAdminTechChange()">
+        <option value="">— View as technician —</option>
+      </select>
+    </div>
   </div>
 
   <!-- Content -->
@@ -310,16 +322,7 @@ body.pinned #main{margin-left:var(--sb-width)}
           <div class="tab-title" id="dashboard-title">My Dashboard</div>
           <div class="tab-subtitle" id="dashboard-subtitle">Loading…</div>
         </div>
-        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-          <!-- Week selector — shared by dashboard + leaderboard -->
-          <select id="week-select" class="filter-select" onchange="onWeekChange()" style="font-size:.78rem;">
-            <option value="current">Current Week</option>
-          </select>
-          <!-- Admin: tech selector -->
-          <select id="admin-tech-select" style="display:none;" class="filter-select" onchange="onAdminTechChange()">
-            <option value="">— View as technician —</option>
-          </select>
-        </div>
+        <div></div>
       </div>
 
       <!-- KPI Cards -->
@@ -410,7 +413,6 @@ body.pinned #main{margin-left:var(--sb-width)}
         <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;">
           <span id="leaderboard-last-refresh" style="font-size:.7rem;color:var(--muted);"></span>
           <div style="display:flex;gap:8px;align-items:center;">
-            <span style="font-size:.75rem;color:var(--muted);">Use week selector above ↑</span>
             <select class="filter-select" id="city-filter" onchange="renderLeaderboard()">
               <option value="">All Cities</option>
               <option value="Bangalore">Bangalore</option>
@@ -933,7 +935,7 @@ async function loadAdminData(){
 
   try{
     // Burn overview
-    const{data:burnStats}=await sbClient.from('incentive_weekly_stats').select('week_start,tech_name,eligible_jcs').gte('week_start',TECH_SINCE).order('week_start',{ascending:false}).limit(200);
+    const{data:burnStats}=await sbClient.from('incentive_weekly_stats').select('week_start,tech_name,eligible_jcs,payout_amount').gte('week_start',TECH_SINCE).order('week_start',{ascending:false}).limit(200);
     renderBurnTable(burnStats||[]);
 
     // HR employee directory + alias mapping status
@@ -1016,9 +1018,10 @@ function renderBurnTable(stats){
   const grouped={};
   stats.forEach(s=>{
     const week=s.week_start;
-    if(!grouped[week])grouped[week]={techs:new Set(),jcs:[]};
+    if(!grouped[week])grouped[week]={techs:new Set(),jcs:[],payouts:[]};
     grouped[week].techs.add(s.tech_name);
     grouped[week].jcs.push(s.eligible_jcs||0);
+    grouped[week].payouts.push(s.payout_amount||0);
   });
 
   const tbody=document.getElementById('burn-tbody');
@@ -1027,7 +1030,7 @@ function renderBurnTable(stats){
     const jcs=g.jcs.sort((a,b)=>a-b);
     const median=jcs.length%2===0?(jcs[jcs.length/2-1]+jcs[jcs.length/2])/2:jcs[Math.floor(jcs.length/2)];
     const earners=jcs.filter(j=>j>50).length;
-    const total=jcs.reduce((s,j)=>s+calcPayout(j),0);
+    const total=g.payouts.reduce((s,p)=>s+p,0);
     return`<tr>
       <td>${formatDateRange(new Date(week))}</td>
       <td>${g.techs.size}</td>
