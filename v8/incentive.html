@@ -1372,10 +1372,14 @@ function applyNavPermissions(features){
     const key=el.getAttribute('data-feature');
     if(!features[key])el.style.display='none';
   });
-  // Tech-only users: hide ungated nav items (Home) that lead to pages they can't access
   const keys=Object.keys(features);
-  if(keys.length===1&&features['incentive-tech']){
+  const techOnly=keys.length===1&&features['incentive-tech'];
+  if(techOnly){
+    // Hide ungated nav items (Home) that lead to pages they can't access
     document.querySelectorAll('.sb-item:not([data-feature])').forEach(el=>el.style.display='none');
+  } else {
+    // Admins/multi-feature: logo goes to home, not incentive
+    document.querySelectorAll('.sb-brand,.tb-logo').forEach(el=>el.setAttribute('href','./index.html'));
   }
 }
 
