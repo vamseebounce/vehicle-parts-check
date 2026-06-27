@@ -632,7 +632,7 @@ let CURRENT_USER_EMAIL=null;
 let CURRENT_SESSION=null;
 window.FP_FEATURES={};
 
-const sbClient=supabase.createClient(SB_URL,ANON_KEY,{auth:{persistSession:true,storageKey:'incentive_session',autoRefreshToken:true}});
+const sbClient=supabase.createClient(SB_URL,ANON_KEY,{auth:{persistSession:true,storageKey:'fleetpro_session',autoRefreshToken:true}});
 
 /* ── NAME NORMALISATION MAP (45 entries) ── */
 const NAME_MAP={
