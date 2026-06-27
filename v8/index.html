@@ -325,6 +325,11 @@ body.pinned #hbg{display:none}
   </section>
 
   <section class="tile-section">
+    <div id="no-access-msg" style="display:none;padding:60px 24px;text-align:center;color:#6B7280;">
+      <div style="font-size:2.5rem;margin-bottom:12px">🔒</div>
+      <div style="font-size:1.1rem;font-weight:600;color:#374151;margin-bottom:8px">No modules assigned yet</div>
+      <div style="font-size:0.9rem">Contact your admin to get access. Your account is active.</div>
+    </div>
     <div class="tile-grid">
 
       <!-- PM Tile — Fleet Health dept → red -->
@@ -557,11 +562,17 @@ async function loadUserPermissions(userId){
 }
 // Hide tiles and sidebar links for features the user doesn't have.
 function applyTilePermissions(features){
-  if(!features)return; // safety: null means skip (should not happen with default group trigger)
+  if(!features)return;
   document.querySelectorAll('[data-feature]').forEach(function(el){
     var key=el.getAttribute('data-feature');
     if(!features[key])el.style.display='none';
   });
+  // Show no-access message if user has no features at all
+  var noAccess=document.getElementById('no-access-msg');
+  if(noAccess){
+    var hasAny=Object.keys(features).length>0;
+    noAccess.style.display=hasAny?'none':'block';
+  }
 }
 
 (async function(){
