@@ -12,6 +12,8 @@ area. If you find a duplicate, fold it into the canonical and delete the copy.
 |-----|------|---------|
 | Project memory / rules | `CLAUDE.md` | Auth pattern, deploy, tables, do-not-violate decisions. Always-loaded. |
 | Edit locks | `LOCKS.md` | Claim a page before editing. Protocol at top. |
+| Cowork primer | `../docs/COWORK-PRIMER.md` | Paste into Cowork at session start (it doesn't auto-load CLAUDE.md). Includes the always-re-clone rule. |
+| Daily prompts | `../START-HERE.md` | START prompt on open, END prompt on close (per window/project). |
 | This index | `docs/INDEX.md` | Map of all FleetPro docs. |
 
 ## Core context & roadmap
@@ -32,6 +34,9 @@ area. If you find a duplicate, fold it into the canonical and delete the copy.
 | Doc | Path | Canonical? | Purpose |
 |-----|------|-----------|---------|
 | JC Approval context | `docs/jc-approval-context.md` | ✅ CANONICAL | Manual JC Approval Check — tiers, architecture, tables, Cowork↔Code collab |
+| Incentive portal status | `Fleetpro-context.md` (§2026-06-27) | ✅ | Technician Incentive Portal + `sync-incentive-data` status (Option A auth, 2000-row cap closed) |
+| Incentive edge fn source | `supabase/functions/sync-incentive-data/index.ts` | ✅ | Deployed **v16** (`/query/json`, frozen weeks, rebuild RPC) |
+| Incentive migrations | `supabase/migrations/20260620000001*`, `20260627000001-4*` | ✅ | identity schema + dedup/rebuild/frozen-weeks/Jun15 patch |
 
 ## Launch notes
 | Doc | Path | Purpose |

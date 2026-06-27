@@ -1,7 +1,21 @@
 # Fleetpro — Productization Task Tracker
-*Last updated: 2026-06-13 (session 11 — Tasks 2.6 + 2.7 done: partition + archival pipeline)*
+*Last updated: 2026-06-22 (session 18 — Deployment Queue upgraded: blocked bikes, real scores, All Hubs, auto-refresh)*
 
 Legend: ⬜ TODO · 🔄 IN PROGRESS · ✅ DONE · ⏸ BLOCKED
+
+---
+
+## Deployment Queue (session 18 — 2026-06-22)
+
+| # | Feature | Status | Notes |
+|---|---------|--------|-------|
+| DQ1 | Blocked bikes in deployment_queue_cache with real scores | ✅ | Metabase Q1 fea85b30 updated; COALESCE on fifo/allotment scores |
+| DQ2 | Pending bookings cache excludes renewals + test bikes | ✅ | `AND b.id = b.first_booking` + test reg filter |
+| DQ3 | Allocated bikes show real guardrail in kanban | ✅ | commit ef7ae05; small blue Allocated tag alongside OK/STARVATION/OVERUSE |
+| DQ4 | Swap suggestion uses real cached score | ✅ | commit fe61f4f; pipelineBikes excludes blocked; computeRowStatus uses assigned_reg lookup |
+| DQ5 | All Hubs dropdown + hub tag on cards | ✅ | commit ef7ae05; localStorage remembers hub |
+| DQ6 | 5-min auto-refresh + tab visibility pause | ✅ | setInterval inside loadQueue(); visibilitychange listener |
+| DQ7 | computeBikeTier dead code removal | ⬜ | Minor cleanup; function has no callers since session 18 |
 
 ---
 
@@ -35,6 +49,7 @@ sidebar's **Admin** section.
 | # | Feature | Status | Notes |
 |---|---------|--------|-------|
 | A1 | Manual JC Approval Check (`jc-approval.html`) | ✅ | Search a vehicle → automated verdict (T0–T6) on whether to approve a manual draft-JC creation request. Replaces manual manager review. |
+| A2 | Technician Incentive Portal (`incentive.html`) | ✅ | Magic-link dashboard/leaderboard/admin. `sync-incentive-data` v10 working (`/query/json`, 20719 rows / 9 weeks, 2026-06-27). 2000-row cap CLOSED. Remaining is ops-side name mapping (15053 unresolved) — not code. See Fleetpro-context.md. |
 
 ### A1 — Manual JC Approval Check
 

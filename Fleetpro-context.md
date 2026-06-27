@@ -1,5 +1,71 @@
 # Fleetpro — Context File
-*Last updated: 2026-06-22 (session 18 — Deployment Queue upgrade: blocked bikes in cache, real scores, All Hubs view, 5-min auto-refresh)*
+*Last updated: 2026-06-27 (session 19 — Technician Incentive Portal built + shipped; sync-incentive-data edge fn)*
+
+## 🆕 2026-06-23 → 27 — Technician Incentive Portal (`v8/incentive.html`)
+
+New superadmin-gated page (sidebar Admin section). Magic-link auth; Dashboard (KPI cards,
+payout tiers, 8-week trend), Leaderboard (rankings, city filter, medals, email under name,
+This-Week/Last-Week filter with date ranges), Admin (technician directory + name mapping).
+Reads Supabase `incentive_weekly_stats` / `incentive_jc_log` / `incentive_technicians`.
+
+### Data sync: XLSX upload → "Sync Now" edge function
+- Originally a manual XLSX upload (Excel serial/ISO date parsing via `cellDates:true` + `raw:true`).
+- Replaced (2026-06-26) by a **"Sync Now" button** → `sync-incentive-data` edge fn, which pulls
+  JCs from the Bounce production DB server-side and rebuilds the incentive tables.
+- **Admin directory:** read-only emp/name/email, hub/city auto from JC stats, multi-select JC-name
+  mapping (excludes already-normalized names), `sync_technician_mapping` RPC ("Save & Sync").
+
+### `sync-incentive-data` edge function — status (2026-06-27)
+- Deployed via Cowork MCP. CORS fixed in v3 (OPTIONS→204, `Access-Control-Allow-*` on all responses).
+- **Source captured in repo** at `supabase/functions/sync-incentive-data/index.ts` (commit `7e905ca`).
+  Source-of-record file: `RRR/edge-functions/sync-incentive-data.ts`.
+- 🔴 **BLOCKED — `BOUNCE_DB_URL` secret not set.** Debug (2026-06-27) showed 500 `AggregateError`
+  → unwrapped to `ECONNREFUSED 127.0.0.1:5432` + `bounce_db_set:false`. With the env var unset,
+  `postgres(undefined)` defaults to localhost → refused. **Fix: set `BOUNCE_DB_URL` secret on the
+  function** (Bounce prod DB connection string), then re-curl to confirm sync. Consider a hard
+  guard instead of the `!` non-null assertion at line 6 so it fails loudly if unset.
+- **Auth model (decided 2026-06-27, Option A):** `verify_jwt=true` (gateway validates JWT) + **SYNC_SECRET
+  check removed** from the function. The "Sync Now" button (user session JWT) and anon-key calls both pass.
+  Rationale: SYNC_SECRET-as-Bearer is dead under verify_jwt (gateway 401s any non-JWT bearer with
+  `UNAUTHORIZED_INVALID_JWT_FORMAT` before the fn runs). ⚠️ **Known tradeoff:** the anon key is public
+  (shipped in page source), so verify_jwt=true allows *anyone with the anon key* to trigger the sync —
+  NOT only authenticated users. Accepted as low-stakes (sync is idempotent, refresh-only — no data
+  loss/exposure, worst case extra Metabase load). To restrict to logged-in users later, check JWT
+  `role='authenticated'` in the fn. For cron/machine calls, use Option B (valid JWT + `x-sync-secret` header).
+- **2026-06-27 — #1 RESOLVED.** Test POST returned `{ok:true, rows_fetched:2000, rows_upserted:2000,
+  weeks_updated:1, employee_id_resolved:499, employee_id_unresolved:1501}`, HTTP 200, 21s. The earlier
+  `ECONNREFUSED`/`bounce_db_set:false` was an older deployed version; v9 is clean. (Endpoint returns its
+  own error — the ECONNREFUSED *was* from sync-incentive-data at curl time, since fixed.)
+- ✅ **CLOSED (2026-06-27, v10): 2000-row cap.** v9 used Metabase `/query` (capped at 2000 by
+  `max-results-bare-rows`). v10 switched to the export endpoint `/query/json` (POST; returns
+  `[{col:val}]` not `{data:{cols,rows}}`, so parsing changed too). Verified: `rows_fetched` 2000→**20719**,
+  `weeks_updated` 1→**9**. Confirms v9 was dropping ~90% of data. (The `LIMIT 50000`-in-card shortcut was
+  rejected — the API cap ignores SQL LIMIT, would've stayed at 2000.) See [[metabase-full-export-endpoint]].
+  - 🟡 Minor: `lookback_days:14` returned 9 weeks back to 2026-04-27 — the param likely does NOT constrain
+    the Metabase fetch (card returns full history; fn buckets all into weeks). Harmless for full rebuild;
+    cosmetic/misleading for incremental use.
+- 🟡 **OPEN (ops, not code): name mapping.** 1501/2000 rows unresolved to employee_id (only 499 mapped via
+  18 alias + 50 legacy). Leaderboard/payouts incomplete until ops maps names in the admin (`jc_name_aliases`).
+- **Migration captured:** `supabase/migrations/20260620000001_incentive_identity_schema.sql`
+  (`hr_employees`, `jc_name_aliases`, `backfill_employee_ids()`, `incentive_jc_log` cols) — commit `eec12bf`.
+
+### Commits (live, 2026-06-23 → 27): `a570de6` (portal) → … → `7e905ca` (edge fn source)
+Reminder: this local `fleetpro/` is NOT a git repo — pushes go via `/tmp` clone of
+`vamseebounce/vehicle-parts-check`. Cowork deploys edge fns via MCP (may diverge from git;
+reconcile after — as happened with the v2→v3 CORS source).
+
+### 2026-06-27 — Blank-page-on-logout fix + GitHub Pages cache gotcha
+- **Bug:** deployment/queue/maintenance/fw-map/rsa showed a **blank white page when logged out**.
+  Cause: `#perm-veil` (white overlay, z-index 8000) was only removed inside `loadAndApplyPermissions`
+  (logged-in path). Logged-out → `showAuthScreen()` un-hid the auth screen (z-1000) but the veil
+  stayed on top. **Fix (commit `fcda48e`):** `showAuthScreen()` now removes the perm-veil. Applied
+  to all 5 affected pages. (trace-ho/jc-approval/index/incentive use the newer no-veil pattern.)
+- **GitHub Pages cache gotcha:** Pages serves HTML with `cache-control: max-age=600` (10 min) and
+  it's **not overridable on Pages**. After any push, users who had the old page cached see the stale
+  version (need cmd+shift+R) until the 10-min cache expires. Self-resolves; not a code bug. During
+  heavy iteration, expect a ~10-min "some users on old version" window per push. This is the concrete
+  argument for **D1 → Vercel** (custom `Cache-Control: no-cache` on HTML = instant propagation).
+  See PRODUCTIZATION-TASKS Phase 5.5.
 
 ## 🆕 2026-06-22 — Deployment Queue Upgrade
 
