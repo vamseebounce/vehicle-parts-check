@@ -240,11 +240,39 @@ body.pinned #main{margin-left:var(--sb-width)}
     <a href="./index.html" class="sb-item"><span class="si">🏠</span><span>Home</span></a>
   </div>
   <div class="sb-section" style="margin-top:4px">
-    <div class="sb-label">Operations</div>
-    <a href="./incentive.html" class="sb-item active"><span class="si">🏆</span><span>Technician Incentives</span></a>
+    <div class="sb-label">Service Operations</div>
+    <a href="./maintenance.html" class="sb-item" data-feature="maintenance"><span class="si">🔧</span><span>Preventive Maintenance</span></a>
+    <a href="./queue.html" class="sb-item" data-feature="oos-queue"><span class="si">📋</span><span>OOS Queue</span></a>
+  </div>
+  <div class="sb-section" style="margin-top:4px">
+    <div class="sb-label">Hub Operations</div>
+    <a href="./deployment.html" class="sb-item" data-feature="deployment"><span class="si">🚲</span><span>Deployment Queue</span></a>
+  </div>
+  <div class="sb-section" style="margin-top:4px">
+    <div class="sb-label">RSA Operations</div>
+    <a href="./fw-map.html" class="sb-item" data-feature="fw-map"><span class="si">🗺️</span><span>FW Pending Map</span></a>
+    <a href="./rsa.html" class="sb-item" data-feature="rsa-warroom"><span class="si">🦺</span><span>RSA Warroom</span></a>
+  </div>
+  <div class="sb-section" style="margin-top:4px" data-feature="trace-ho">
+    <div class="sb-label">Recovery Operations</div>
+    <a href="./trace-ho.html" class="sb-item" data-feature="trace-ho"><span class="si">🎯</span><span>Trace</span></a>
+    <a href="./trace-hunter.html" class="sb-item" data-feature="trace-hunter"><span class="si">📱</span><span>Hunter</span></a>
+  </div>
+  <div class="sb-section" style="margin-top:4px">
+    <div class="sb-label">Incentives</div>
+    <a href="./incentive.html" class="sb-item active" data-feature="incentive-tech"><span class="si">🏆</span><span>Technician Incentives</span></a>
+  </div>
+  <div class="sb-section" style="margin-top:8px" data-feature="admin-panel">
+    <div class="sb-label">Admin</div>
+    <a href="./admin-techs.html" class="sb-item" data-feature="admin-panel"><span class="si">👤</span><span>Manage Technicians</span></a>
+    <a href="./admin-permissions.html" class="sb-item" data-feature="admin-panel"><span class="si">🔐</span><span>Permissions</span></a>
+    <a href="./jc-approval.html" class="sb-item" data-feature="admin-panel"><span class="si">🔧</span><span>JC Approval Check</span></a>
   </div>
   <div class="sb-spacer"></div>
-  <div class="sb-footer"><div class="sb-ver">FleetPro v8 · Incentives</div></div>
+  <div class="sb-section" style="margin-top:0;padding-top:4px">
+    <button class="sb-item" onclick="openSettings()" style="width:100%;background:none;border:none;cursor:pointer;text-align:left"><span class="si">⚙️</span><span>Settings</span></button>
+  </div>
+  <div class="sb-footer"><div class="sb-ver">FleetPro v8 · Data synced hourly</div></div>
 </nav>
 
 <!-- Main -->
@@ -282,10 +310,16 @@ body.pinned #main{margin-left:var(--sb-width)}
           <div class="tab-title" id="dashboard-title">My Dashboard</div>
           <div class="tab-subtitle" id="dashboard-subtitle">Loading…</div>
         </div>
-        <!-- Superadmin: tech selector -->
-        <select id="admin-tech-select" style="display:none;" class="filter-select" onchange="onAdminTechChange()">
-          <option value="">— View as technician —</option>
-        </select>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+          <!-- Week selector — shared by dashboard + leaderboard -->
+          <select id="week-select" class="filter-select" onchange="onWeekChange()" style="font-size:.78rem;">
+            <option value="current">Current Week</option>
+          </select>
+          <!-- Admin: tech selector -->
+          <select id="admin-tech-select" style="display:none;" class="filter-select" onchange="onAdminTechChange()">
+            <option value="">— View as technician —</option>
+          </select>
+        </div>
       </div>
 
       <!-- KPI Cards -->
@@ -375,11 +409,8 @@ body.pinned #main{margin-left:var(--sb-width)}
         </div>
         <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;">
           <span id="leaderboard-last-refresh" style="font-size:.7rem;color:var(--muted);"></span>
-          <div style="display:flex;gap:8px;">
-            <select class="filter-select" id="week-filter" onchange="renderLeaderboard()">
-              <option value="current">This Week</option>
-              <option value="last">Last Week</option>
-            </select>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <span style="font-size:.75rem;color:var(--muted);">Use week selector above ↑</span>
             <select class="filter-select" id="city-filter" onchange="renderLeaderboard()">
               <option value="">All Cities</option>
               <option value="Bangalore">Bangalore</option>
@@ -593,9 +624,11 @@ const SB_URL='https://clkfvmmlgwcvntxnolsv.supabase.co';
 const ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNsa2Z2bW1sZ3djdm50eG5vbHN2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ1NDQ2NTgsImV4cCI6MjA5MDEyMDY1OH0.FA33GFQisWX_hDeGCWqL5yAZmPcuQRdxZX32I23lyoY';
 const ALLOWED_EMAILS=['vamsee@bounceshare.com','vamsee@scalability.club','nishanthshetty2024@gmail.com'];
 const SB=SB_URL;
+const TECH_SINCE='2026-06-15'; // show tech data from this date onwards
 let K=ANON_KEY;
 let CURRENT_USER_EMAIL=null;
 let CURRENT_SESSION=null;
+window.FP_FEATURES={};
 
 const sbClient=supabase.createClient(SB_URL,ANON_KEY,{auth:{persistSession:true,storageKey:'incentive_session',autoRefreshToken:true}});
 
@@ -649,12 +682,12 @@ async function sendMagicLink(){
   const btn=document.getElementById('auth-submit');
   if(!email){msg.textContent='Please enter your email.';return;}
   btn.disabled=true;btn.textContent='Checking…';msg.textContent='';
-  // Allow @bounceshare.com, explicit whitelist, OR any email registered as a technician
+  // Allow @bounceshare.com, explicit whitelist, OR any email registered in hr_employees
   const isStaff=email.endsWith('@bounceshare.com')||ALLOWED_EMAILS.includes(email);
   if(!isStaff){
-    const{data:tech}=await sbClient.from('incentive_technicians').select('id').eq('email',email).maybeSingle();
-    if(!tech){
-      msg.textContent='Your email is not registered. Contact your hub manager.';
+    const{data:emp}=await sbClient.from('hr_employees').select('employee_id').eq('email',email).maybeSingle();
+    if(!emp){
+      msg.textContent='Your email is not registered in HR. Contact your hub manager.';
       btn.disabled=false;btn.textContent='Send Magic Link';
       return;
     }
@@ -697,27 +730,55 @@ function formatDateRange(startDate){
   return `${fmt(s)} – ${fmt(e)}`;
 }
 
+async function populateWeekSelector(){
+  try{
+    const{data}=await sbClient.from('incentive_weekly_stats').select('week_start').gte('week_start',TECH_SINCE).order('week_start',{ascending:false});
+    const weeks=[...new Set((data||[]).map(r=>r.week_start))];
+    const sel=document.getElementById('week-select');
+    if(!sel)return;
+    const curWeek=formatDate(getWeekStart(new Date()));
+    const opts=weeks.map(w=>`<option value="${w}"${w===curWeek?' selected':''}>${formatDateRange(new Date(w))}</option>`).join('');
+    sel.innerHTML=opts||`<option value="${curWeek}">Current Week</option>`;
+  }catch(e){}
+}
+
+function getSelectedWeek(){
+  const sel=document.getElementById('week-select');
+  if(!sel||!sel.value)return formatDate(getWeekStart(new Date()));
+  return sel.value;
+}
+
+async function onWeekChange(){
+  await loadDashboard();
+  renderLeaderboard();
+}
+
 async function loadDashboard(){
   if(!CURRENT_SESSION)return;
   const userEmail=CURRENT_SESSION.user.email;
 
   try{
-    // If superadmin has selected a tech to view, use that
+    // If admin has selected a tech to view, use that
     let techName=adminViewingTech;
+    let techEmployeeId=null;
     if(!techName){
-      techName=userEmail.split('@')[0];
+      // Resolve via hr_employees: email → employee_id → incentive_jc_log
       try{
-        const{data}=await sbClient.from('incentive_technicians').select('name_normalized,name_in_system').eq('email',userEmail).single();
-        if(data){
-          // name_in_system is TEXT[] — use normalized name (leaderboard key after sync)
-          techName=data.name_normalized;
+        const{data:emp}=await sbClient.from('hr_employees').select('employee_id,employee_name').eq('email',userEmail).maybeSingle();
+        if(emp){
+          techEmployeeId=emp.employee_id;
+          // Use technician_name from the most recent JC for this employee
+          const{data:jcRow}=await sbClient.from('incentive_jc_log').select('technician_name').eq('employee_id',emp.employee_id).order('jc_billed_date',{ascending:false}).limit(1).maybeSingle();
+          techName=jcRow?.technician_name||emp.employee_name;
         }
       }catch(e){}
+      if(!techName)techName=userEmail.split('@')[0];
     }
 
-    // Load current week stats
-    const weekStart=getWeekStart(new Date());
-    const{data:weekStats}=await sbClient.from('incentive_weekly_stats').select('*').eq('tech_name',techName).eq('week_start',formatDate(weekStart)).single();
+    // Use selected week
+    const selectedWeek=getSelectedWeek();
+    const weekStart=new Date(selectedWeek);
+    const{data:weekStats}=await sbClient.from('incentive_weekly_stats').select('*').eq('tech_name',techName).eq('week_start',selectedWeek).maybeSingle();
 
     if(!weekStats){
       document.querySelectorAll('[id^="kpi-"]').forEach(e=>e.textContent='—');
@@ -741,20 +802,20 @@ async function loadDashboard(){
     const hub=weekStats.hub_name||'Unknown';
     document.getElementById('dashboard-subtitle').textContent=`${hub} · ${formatDateRange(weekStart)}`;
 
-    // Get leaderboard rank
-    const{data:allStats}=await sbClient.from('incentive_weekly_stats').select('tech_name,eligible_jcs').eq('week_start',formatDate(weekStart)).order('eligible_jcs',{ascending:false});
-    let rank=allStats?.findIndex(s=>s.tech_name===techName)+1||'—';
+    // Get leaderboard rank for selected week
+    const{data:allStats}=await sbClient.from('incentive_weekly_stats').select('tech_name,eligible_jcs').eq('week_start',selectedWeek).order('eligible_jcs',{ascending:false});
+    const rank=(allStats?.findIndex(s=>s.tech_name===techName)??-1)+1||'—';
     const earners=(allStats?.filter(s=>s.eligible_jcs>50)||[]).length;
-    document.getElementById('kpi-rank').textContent=`#${rank}`;
+    document.getElementById('kpi-rank').textContent=rank?`#${rank}`:'—';
     document.getElementById('kpi-rank-detail').textContent=`of ${earners} earners`;
 
     // Payout progress bar
     const tierInfo=getTierInfo(eligible);
     updatePayoutBar(eligible,tierInfo);
 
-    // Load trend (8 weeks)
-    const{data:trendStats}=await sbClient.from('incentive_weekly_stats').select('*').eq('tech_name',techName).order('week_start',{ascending:false}).limit(8);
-    renderTrendTable(trendStats?.reverse()||[],formatDate(weekStart));
+    // Load trend (8 weeks, from TECH_SINCE)
+    const{data:trendStats}=await sbClient.from('incentive_weekly_stats').select('*').eq('tech_name',techName).gte('week_start',TECH_SINCE).order('week_start',{ascending:false}).limit(8);
+    renderTrendTable(trendStats?.reverse()||[],selectedWeek);
   }catch(e){
     console.error('Dashboard load error:',e);
   }
@@ -804,17 +865,14 @@ function renderTrendTable(stats,currentWeek){
 
 async function renderLeaderboard(){
   const city=document.getElementById('city-filter').value;
-  const weekSel=document.getElementById('week-filter')?.value||'current';
+  // Use the shared week selector (same as dashboard)
+  const selectedWeek=getSelectedWeek();
   try{
     let q=sbClient.from('incentive_weekly_stats').select('*').order('eligible_jcs',{ascending:false});
+    q=q.eq('week_start',selectedWeek);
 
-    const isLast=weekSel==='last';
-    const weekStart=isLast
-      ?getWeekStart(new Date(Date.now()-7*24*3600000))
-      :getWeekStart(new Date());
-    q=q.eq('week_start',formatDate(weekStart));
-
-    const label=isLast?`Last week · ${formatDateRange(weekStart)} (Final)`:`Current week · ${formatDateRange(weekStart)}`;
+    const weekStart=new Date(selectedWeek);
+    const label=`Week of ${formatDateRange(weekStart)}`;
     document.getElementById('leaderboard-subtitle').textContent=label;
 
     // Last refresh
@@ -831,11 +889,15 @@ async function renderLeaderboard(){
       return;
     }
 
-    // Fetch email map: name_normalized → email
+    // Fetch email map: tech_name → email via jc_name_aliases → hr_employees
     const techNames=stats.map(s=>s.tech_name);
-    const{data:techDir}=await sbClient.from('incentive_technicians').select('name_normalized,email').in('name_normalized',techNames);
+    const{data:aliases}=await sbClient.from('jc_name_aliases').select('technician_name,employee_id').in('technician_name',techNames);
+    const empIds=(aliases||[]).map(a=>a.employee_id).filter(Boolean);
+    const empIdToTech={};
+    (aliases||[]).forEach(a=>{if(a.employee_id)empIdToTech[a.employee_id]=a.technician_name;});
+    const{data:emps}=empIds.length?await sbClient.from('hr_employees').select('employee_id,email').in('employee_id',empIds):{data:[]};
     const emailMap={};
-    (techDir||[]).forEach(t=>{if(t.email)emailMap[t.name_normalized]=t.email;});
+    (emps||[]).forEach(e=>{const tName=empIdToTech[e.employee_id];if(tName&&e.email)emailMap[tName]=e.email;});
 
     const medals=['🥇','🥈','🥉'];
     const userEmail=CURRENT_SESSION?.user.email;
@@ -867,27 +929,43 @@ let ALL_SYSTEM_NAMES=[];
 let TECH_HUB_MAP={}; // tech_name → {hub_name, city} from most recent JC week
 
 async function loadAdminData(){
-  if(!CURRENT_SESSION?.user.app_metadata?.is_superadmin)return;
+  if(!fpCan('incentive-admin'))return;
 
   try{
     // Burn overview
-    const{data:burnStats}=await sbClient.from('incentive_weekly_stats').select('week_start,tech_name,eligible_jcs').order('week_start',{ascending:false}).limit(100);
+    const{data:burnStats}=await sbClient.from('incentive_weekly_stats').select('week_start,tech_name,eligible_jcs').gte('week_start',TECH_SINCE).order('week_start',{ascending:false}).limit(200);
     renderBurnTable(burnStats||[]);
 
-    // Technician directory — fetch FIRST so normalizedSet is available for sysNames filter
-    const{data:techs}=await sbClient.from('incentive_technicians').select('*').order('name_normalized');
-    ALL_TECHS_DATA=techs||[];
+    // HR employee directory + alias mapping status
+    const{data:hrEmps}=await sbClient.from('hr_employees').select('employee_id,employee_name,designation,hub,city,email').order('employee_name');
+    const{data:aliasRows}=await sbClient.from('jc_name_aliases').select('technician_name,employee_id,created_by');
 
-    // All distinct system names from stats table (for JC name dropdown)
-    const{data:sysNames}=await sbClient.from('incentive_weekly_stats').select('tech_name,hub_name,city,week_start').order('week_start',{ascending:false});
-    // Build hub map: most recent hub/city per tech from JC stats
-    TECH_HUB_MAP={};
-    (sysNames||[]).forEach(r=>{
-      if(!TECH_HUB_MAP[r.tech_name]&&r.hub_name)TECH_HUB_MAP[r.tech_name]={hub_name:r.hub_name,city:r.city};
+    // Build alias map: employee_id → list of JC names
+    const aliasMap={};
+    (aliasRows||[]).forEach(a=>{
+      if(!aliasMap[a.employee_id])aliasMap[a.employee_id]=[];
+      aliasMap[a.employee_id].push(a.technician_name);
     });
-    // Exclude already-normalized names — only show raw JC name variants
-    const normalizedSet=new Set((ALL_TECHS_DATA).map(t=>t.name_normalized).filter(Boolean));
-    ALL_SYSTEM_NAMES=[...new Set((sysNames||[]).map(r=>r.tech_name))].filter(n=>!normalizedSet.has(n)).sort();
+
+    ALL_TECHS_DATA=(hrEmps||[]).map(e=>({
+      id:e.employee_id,
+      employee_id:e.employee_id,
+      name_normalized:e.employee_name,
+      email:e.email,
+      hub_name:e.hub,
+      city:e.city,
+      designation:e.designation,
+      name_in_system:aliasMap[e.employee_id]||[],
+      active:true,
+    }));
+
+    // All distinct unresolved JC names: in stats but NOT in any alias
+    const{data:sysNames}=await sbClient.from('incentive_weekly_stats').select('tech_name,hub_name,city').gte('week_start',TECH_SINCE).order('tech_name');
+    TECH_HUB_MAP={};
+    (sysNames||[]).forEach(r=>{if(!TECH_HUB_MAP[r.tech_name]&&r.hub_name)TECH_HUB_MAP[r.tech_name]={hub_name:r.hub_name,city:r.city};});
+
+    const resolvedNames=new Set((aliasRows||[]).map(a=>a.technician_name));
+    ALL_SYSTEM_NAMES=[...new Set((sysNames||[]).map(r=>r.tech_name))].filter(n=>!resolvedNames.has(n)).sort();
 
     renderTechTable(ALL_TECHS_DATA);
   }catch(e){
@@ -896,37 +974,41 @@ async function loadAdminData(){
 }
 
 async function saveTechMapping(techId){
-  const normEl=document.getElementById('norm-name-'+techId);
+  // techId here is employee_id
   const statusEl=document.getElementById('sys-status-'+techId);
-
-  const normalizedName=normEl?normEl.value.trim():'';
-  // Collect checked checkboxes from the custom dropdown
+  // Collect checked JC names from the custom dropdown
   const jcNames=Array.from(document.querySelectorAll(`#jc-list-${techId} input[type=checkbox]:checked`)).map(c=>c.value).filter(Boolean);
 
-  if(!normalizedName){if(statusEl)statusEl.textContent='⚠️ Name required';return;}
+  if(statusEl){statusEl.textContent='Saving…';statusEl.style.color='#6B7280';}
 
-  if(statusEl){statusEl.textContent='Syncing…';statusEl.style.color='#6B7280';}
+  try{
+    // Get current aliases for this employee to diff
+    const{data:existing}=await sbClient.from('jc_name_aliases').select('id,technician_name').eq('employee_id',techId);
+    const existingNames=new Set((existing||[]).map(a=>a.technician_name));
+    const newNames=new Set(jcNames);
 
-  const{data,error}=await sbClient.rpc('sync_technician_mapping',{
-    p_tech_id:techId,
-    p_normalized_name:normalizedName,
-    p_jc_names:jcNames.length?jcNames:null
-  });
-
-  if(error){
-    console.error('Sync error:',error);
-    if(statusEl){statusEl.textContent='❌ '+error.message;statusEl.style.color='#DC2626';}
-  }else{
-    if(statusEl){
-      const weeks=data?.weeks_updated??0;
-      statusEl.textContent=`✓ Saved · ${weeks}w updated`;
-      statusEl.style.color='#16A34A';
-      setTimeout(()=>{if(statusEl)statusEl.textContent='';},3000);
+    // Delete removed aliases
+    const toDelete=(existing||[]).filter(a=>!newNames.has(a.technician_name)).map(a=>a.id);
+    if(toDelete.length){
+      const{error}=await sbClient.from('jc_name_aliases').delete().in('id',toDelete);
+      if(error)throw error;
     }
-    // Update local cache + claimed map, then re-render
-    const idx=ALL_TECHS_DATA.findIndex(t=>t.id===techId);
-    if(idx>-1){ALL_TECHS_DATA[idx].name_normalized=normalizedName;ALL_TECHS_DATA[idx].name_in_system=jcNames;}
+
+    // Insert new aliases
+    const toInsert=jcNames.filter(n=>!existingNames.has(n)).map(n=>({technician_name:n,employee_id:techId,created_by:'admin'}));
+    if(toInsert.length){
+      const{error}=await sbClient.from('jc_name_aliases').insert(toInsert);
+      if(error)throw error;
+    }
+
+    // Run backfill
+    await sbClient.rpc('backfill_employee_ids');
+
+    if(statusEl){statusEl.textContent='✓ Saved';statusEl.style.color='#16A34A';setTimeout(()=>{if(statusEl)statusEl.textContent='';},3000);}
     loadAdminData();
+  }catch(e){
+    console.error('Save error:',e);
+    if(statusEl){statusEl.textContent='❌ '+e.message;statusEl.style.color='#DC2626';}
   }
 }
 
@@ -1116,40 +1198,13 @@ function renderTechTable(techs){
   }).join('')||'<tr><td colspan="7" style="text-align:center;color:var(--muted);">No results</td></tr>';
 }
 
-async function saveTechDetails(techId){
-  const statusEl=document.getElementById('sys-status-'+techId);
-  const updates={
-    employee_id:document.getElementById('empid-'+techId)?.value.trim()||null,
-    name_normalized:document.getElementById('name-'+techId)?.value.trim()||null,
-    email:document.getElementById('email-'+techId)?.value.trim().toLowerCase()||null,
-    hub_name:document.getElementById('hub-'+techId)?.value.trim()||null,
-    city:document.getElementById('city-'+techId)?.value.trim()||null,
-    updated_at:new Date().toISOString()
-  };
-  if(statusEl){statusEl.textContent='Saving…';statusEl.style.color='#6B7280';}
-  const{error}=await sbClient.from('incentive_technicians').update(updates).eq('id',techId);
-  if(error){
-    if(statusEl){statusEl.textContent='❌ '+error.message;statusEl.style.color='#DC2626';}
-  }else{
-    if(statusEl){statusEl.textContent='✓ Saved';statusEl.style.color='#16A34A';}
-    setTimeout(()=>{if(statusEl)statusEl.textContent='';},2000);
-    // Update local cache
-    const idx=ALL_TECHS_DATA.findIndex(t=>t.id===techId);
-    if(idx>-1)Object.assign(ALL_TECHS_DATA[idx],updates);
-  }
-}
+// Legacy stubs — no longer used (directory moved to hr_employees + jc_name_aliases)
+async function saveTechDetails(techId){console.warn('saveTechDetails: legacy, no-op');}
 
 async function toggleTechActive(techId, active){
-  const{error}=await sbClient.from('incentive_technicians').update({active,updated_at:new Date().toISOString()}).eq('id',techId);
+  // hr_employees has no active flag — no-op
   const statusEl=document.getElementById('sys-status-'+techId);
-  if(error){
-    if(statusEl){statusEl.textContent='❌ Failed';statusEl.style.color='#DC2626';}
-  }else{
-    const idx=ALL_TECHS_DATA.findIndex(t=>t.id===techId);
-    if(idx>-1)ALL_TECHS_DATA[idx].active=active;
-    if(statusEl){statusEl.textContent=active?'✓ Activated':'✓ Deactivated';statusEl.style.color='#16A34A';}
-    setTimeout(()=>{if(statusEl)statusEl.textContent='';},2000);
-  }
+  if(statusEl){statusEl.textContent='(N/A — managed in HR)';statusEl.style.color='#6B7280';setTimeout(()=>{if(statusEl)statusEl.textContent='';},2000);}
 }
 
 /* ── SYNC ── */
@@ -1281,24 +1336,59 @@ async function processUpload(){
 }
 
 
-/* ── SUPERADMIN TECH SELECTOR ── */
+/* ── PERMISSIONS ── */
+function fpCan(key){return !!(window.FP_FEATURES&&window.FP_FEATURES[key]);}
+
+async function loadUserPermissions(userId){
+  try{
+    const r1=await sbClient.from('user_groups').select('group_id').eq('user_id',userId);
+    if(!r1.data||!r1.data.length)return {};
+    const ids=r1.data.map(r=>r.group_id);
+    const r2=await sbClient.from('group_features').select('feature_key').in('group_id',ids);
+    const f={};(r2.data||[]).forEach(r=>{f[r.feature_key]=true;});
+    const{data:{session:s}}=await sbClient.auth.getSession();
+    if(s?.user?.app_metadata?.is_superadmin){
+      f['admin-panel']=true;f['incentive-admin']=true;f['incentive-tech']=true;
+    }
+    return f;
+  }catch(e){console.warn('[FP] Permission check failed',e);return {};}
+}
+
+function applyNavPermissions(features){
+  document.querySelectorAll('[data-feature]').forEach(el=>{
+    const key=el.getAttribute('data-feature');
+    if(!features[key])el.style.display='none';
+  });
+}
+
+function applyRoleView(){
+  const isAdmin=fpCan('incentive-admin');
+  const el=document.getElementById('admin-tab');
+  if(el)el.style.display=isAdmin?'block':'none';
+  if(isAdmin){
+    populateAdminTechDropdown();
+    // Show dashboard title indicator
+    const titleEl=document.getElementById('dashboard-title');
+    if(titleEl&&adminViewingTech===null)titleEl.textContent='Dashboard (Admin View)';
+  }
+}
+
+/* ── ADMIN TECH SELECTOR ── */
 let adminViewingTech=null; // null = viewing own dashboard
 
 async function populateAdminTechDropdown(){
-  if(!CURRENT_SESSION?.user.app_metadata?.is_superadmin)return;
+  if(!fpCan('incentive-admin'))return;
   try{
-    const{data:techs}=await sbClient.from('incentive_technicians').select('name_normalized,name_in_system,hub_name').order('name_normalized');
+    // Get distinct tech names from weekly_stats (from TECH_SINCE)
+    const{data:stats}=await sbClient.from('incentive_weekly_stats').select('tech_name,hub_name').gte('week_start',TECH_SINCE).order('tech_name');
     const sel=document.getElementById('admin-tech-select');
-    if(!sel||!techs)return;
+    if(!sel||!stats)return;
+    // Deduplicate by tech_name
+    const seen=new Set();
+    const unique=stats.filter(s=>{if(seen.has(s.tech_name))return false;seen.add(s.tech_name);return true;});
     sel.style.display='block';
-    // Stats are now keyed on name_normalized (after sync); use that as option value
-    const opts=techs.map(t=>{
-      const jcNames=Array.isArray(t.name_in_system)?t.name_in_system:(t.name_in_system?[t.name_in_system]:[]);
-      const mapped=jcNames.length>0;
-      return`<option value="${t.name_normalized}">${t.name_normalized}${t.hub_name?' · '+t.hub_name:''}${!mapped?' ⚠️':''}</option>`;
-    }).join('');
+    const opts=unique.map(t=>`<option value="${t.tech_name}">${t.tech_name}${t.hub_name?' · '+t.hub_name:''}</option>`).join('');
     sel.innerHTML='<option value="">— View as technician —</option>'+opts;
-    document.getElementById('dashboard-title').textContent='Dashboard (Superadmin)';
   }catch(e){console.error('Admin dropdown error:',e);}
 }
 
@@ -1321,10 +1411,16 @@ function togglePin(){pinned=!pinned;localStorage.setItem('sb_pinned',pinned?'1':
 document.getElementById('ov').addEventListener('click',closeSidebar);
 applyPin();
 
+/* ── SETTINGS ── */
+function openSettings(){
+  const modal=document.getElementById('settings-modal');
+  if(modal){modal.classList.add('show');}
+}
+
 /* ── BOOT ── */
 (async function(){
   const mainLogo=document.querySelector('.sb-brand img');
-  if(mainLogo)document.getElementById('auth-logo-img').src=mainLogo.src;
+  if(mainLogo){const ai=document.getElementById('auth-logo-img');if(ai)ai.src=mainLogo.src;}
 
   const{data:{session}}=await sbClient.auth.getSession();
   if(session){
@@ -1333,13 +1429,11 @@ applyPin();
     CURRENT_SESSION=session;
     hideAuthScreen();
     document.getElementById('logout-btn').style.display='block';
-
-    // Check if admin (show admin tab)
-    if(session.user.app_metadata?.is_superadmin){
-      document.getElementById('admin-tab').style.display='block';
-      populateAdminTechDropdown();
-    }
-
+    const features=await loadUserPermissions(session.user.id);
+    window.FP_FEATURES=features;
+    applyNavPermissions(features);
+    applyRoleView();
+    await populateWeekSelector();
     loadDashboard();
   }else{
     showAuthScreen();
@@ -1352,14 +1446,16 @@ applyPin();
       CURRENT_SESSION=session;
       hideAuthScreen();
       document.getElementById('logout-btn').style.display='block';
-      if(session.user.app_metadata?.is_superadmin){
-        document.getElementById('admin-tab').style.display='block';
-        populateAdminTechDropdown();
-      }
+      const features=await loadUserPermissions(session.user.id);
+      window.FP_FEATURES=features;
+      applyNavPermissions(features);
+      applyRoleView();
+      await populateWeekSelector();
       loadDashboard();
     }else if(event==='SIGNED_OUT'){
       K=ANON_KEY;
       CURRENT_SESSION=null;
+      window.FP_FEATURES={};
       document.getElementById('logout-btn').style.display='none';
       showAuthScreen();
     }else if(event==='TOKEN_REFRESHED'&&session){
