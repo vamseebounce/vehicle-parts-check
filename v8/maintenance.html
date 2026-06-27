@@ -502,7 +502,14 @@ async function sendMagicLink(){
   var msg=document.getElementById('auth-msg');
   var btn=document.getElementById('auth-submit');
   if(!email){msg.textContent='Please enter your email.';return;}
-  if(!email.endsWith('@bounceshare.com')&&email!=='vamsee@scalability.club'){msg.textContent='Only @bounceshare.com emails are allowed.';return;}
+  const isStaff=email.endsWith('@bounceshare.com')||email==='vamsee@scalability.club';
+  if(!isStaff){
+    const[{data:emp},{data:tech}]=await Promise.all([
+      sbClient.from('hr_employees').select('employee_id').eq('email',email).maybeSingle(),
+      sbClient.from('incentive_technicians').select('id').eq('email',email).maybeSingle(),
+    ]);
+    if(!emp&&!tech){msg.textContent='Only @bounceshare.com emails are allowed.';return;}
+  }
   btn.disabled=true;btn.textContent='Sending…';msg.textContent='';
   var res=await sbClient.auth.signInWithOtp({email:email,options:{emailRedirectTo:window.location.origin+window.location.pathname}});
   btn.disabled=false;btn.textContent='Send Magic Link';
