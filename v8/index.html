@@ -591,6 +591,9 @@ function applyTilePermissions(features){
     // Load permissions async — hides gated tiles once resolved
     loadUserPermissions(session.user.id).then(function(features){
       window.FP_FEATURES=features;
+      // Techs with only incentive-tech have nothing on this page — send them home
+      var keys=Object.keys(features);
+      if(keys.length===1&&features['incentive-tech']){window.location.replace('./incentive.html');return;}
       applyTilePermissions(features);
       if(!isHashLogin)enforce24hReauth(session.user.id).then(function(){checkGlobalLogout(session.user.id);});
     });

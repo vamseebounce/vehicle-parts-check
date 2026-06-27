@@ -1372,6 +1372,11 @@ function applyNavPermissions(features){
     const key=el.getAttribute('data-feature');
     if(!features[key])el.style.display='none';
   });
+  // Tech-only users: hide ungated nav items (Home) that lead to pages they can't access
+  const keys=Object.keys(features);
+  if(keys.length===1&&features['incentive-tech']){
+    document.querySelectorAll('.sb-item:not([data-feature])').forEach(el=>el.style.display='none');
+  }
 }
 
 function applyRoleView(){
