@@ -316,3 +316,50 @@ SELECT cron.schedule(
   $$
 );
 --  20  | jc-approval-sync-5min     | */5 * * * *  | jc_approval_status + alerts (every 5 min)
+
+-- ============================================================
+-- TECHNICIAN INCENTIVE PORTAL — Cron Jobs (added 2026-06-27)
+-- Edge fn: sync-incentive-data (v16, verify_jwt=false)
+-- Replaces old incentive-metabase-sync-daily (job 29, called old fn v1).
+--
+-- Two crons:
+--   JOB I1: Daily data sync — pulls Metabase card, upserts incentive_jc_log,
+--            rebuilds incentive_weekly_stats. freeze_completed_weeks() runs
+--            but gates itself: only freezes on Thursdays at/after noon IST.
+--   JOB I2: Thursday noon IST dedicated trigger (06:30 UTC) — ensures freeze
+--            + weekly rebuild fires even if daily sync timing drifts.
+--            Both crons call the same fn; freeze RPC is idempotent.
+-- ============================================================
+
+-- JOB I1: incentive-sync-daily (02:30 UTC = 08:00 IST daily)
+SELECT cron.schedule(
+  'incentive-sync-daily',
+  '30 2 * * *',
+  $$
+    SELECT net.http_post(
+      url     := 'https://clkfvmmlgwcvntxnolsv.supabase.co/functions/v1/sync-incentive-data',
+      headers := jsonb_build_object('Content-Type', 'application/json'),
+      body    := '{}'::jsonb,
+      timeout_milliseconds := 120000
+    );
+  $$
+);
+
+-- JOB I2: incentive-freeze-thursday-noon (06:30 UTC = 12:00 IST every Thursday)
+-- Dedicated freeze trigger — freeze_completed_weeks() gates on Thu noon IST internally.
+SELECT cron.schedule(
+  'incentive-freeze-thursday-noon',
+  '30 6 * * 4',
+  $$
+    SELECT net.http_post(
+      url     := 'https://clkfvmmlgwcvntxnolsv.supabase.co/functions/v1/sync-incentive-data',
+      headers := jsonb_build_object('Content-Type', 'application/json'),
+      body    := '{}'::jsonb,
+      timeout_milliseconds := 120000
+    );
+  $$
+);
+
+-- SUMMARY (Incentive Portal additions):
+--   I1 | incentive-sync-daily           | 30 2 * * *   | daily data pull + conditional freeze (08:00 IST)
+--   I2 | incentive-freeze-thursday-noon | 30 6 * * 4   | dedicated Thu noon IST freeze trigger
