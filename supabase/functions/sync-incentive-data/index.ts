@@ -1,6 +1,6 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 
-// v14 — rebuild weekly_stats via single SQL query instead of 9 TS iterations (fixes 150s timeout)
+// v16 — dedup fix (timestamp(0)), freeze completed weeks (Thursday +10d), SQL rebuild, alias-priority name fix
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
