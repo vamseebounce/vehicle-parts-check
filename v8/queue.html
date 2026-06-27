@@ -392,7 +392,7 @@ var sortDir='asc';
 
 var sbClient=supabase.createClient(SB_URL,ANON_KEY,{auth:{persistSession:true,storageKey:'fleetpro_session',autoRefreshToken:true}});
 
-function showAuthScreen(){document.getElementById('auth-screen').classList.remove('hidden');showForm();}
+function showAuthScreen(){var v=document.getElementById('perm-veil');if(v)v.remove();document.getElementById('auth-screen').classList.remove('hidden');showForm();}
 function hideAuthScreen(){document.getElementById('auth-screen').classList.add('hidden');}
 function showForm(){document.getElementById('auth-form').style.display='block';document.getElementById('auth-sent').style.display='none';document.getElementById('auth-msg').textContent='';document.getElementById('auth-email').value='';}
 async function sendMagicLink(){

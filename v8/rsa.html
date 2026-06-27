@@ -1320,7 +1320,7 @@ function renderDashboard(){
 }
 
 // ── Auth ──
-function showAuthScreen(){document.getElementById('auth-screen').classList.remove('hidden');}
+function showAuthScreen(){var v=document.getElementById('perm-veil');if(v)v.remove();document.getElementById('auth-screen').classList.remove('hidden');}
 function hideAuthScreen(){document.getElementById('auth-screen').classList.add('hidden');}
 async function sendMagicLink(){
   var email=document.getElementById('auth-email').value.trim().toLowerCase();
