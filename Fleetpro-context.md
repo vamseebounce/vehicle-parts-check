@@ -48,6 +48,17 @@ Reads Supabase `incentive_weekly_stats` / `incentive_jc_log` / `incentive_techni
   18 alias + 50 legacy). Leaderboard/payouts incomplete until ops maps names in the admin (`jc_name_aliases`).
 - **Migration captured:** `supabase/migrations/20260620000001_incentive_identity_schema.sql`
   (`hr_employees`, `jc_name_aliases`, `backfill_employee_ids()`, `incentive_jc_log` cols) — commit `eec12bf`.
+- **Edge fn v16 + 4 migrations captured** (2026-06-27): `supabase/functions/sync-incentive-data/index.ts`
+  (canonical path) commit `435f4d6`; migrations `20260627000001-4` (dedup ts, rebuild RPC, frozen weeks,
+  Jun15 patch) commit `d47b746`. UI tweaks (week selector in tab-nav, burn total uses stored
+  `payout_amount`) commit `de40efc`.
+- **Freeze timing → Thursday 12 noon IST** (2026-06-27, commit `c0c0420`,
+  `20260627000005_freeze_thursday_noon_ist.sql`): `freeze_completed_weeks()` now gates on
+  `week_start + 10d + 06:30 UTC`. ⚠️ **Two gaps the migration does NOT cover:**
+  (a) the **cron schedule** must be moved to `30 6 * * 4` in Supabase for noon timing — not in any migration;
+  (b) the incentive **freeze + weekly-rebuild crons are NOT in `supabase/cron-jobs.sql`** at all — they live
+  only in Supabase. A fresh repo rebuild would have the functions but nothing scheduling them. Cowork to
+  capture both crons in `cron-jobs.sql`. See [[edge-fn-deploy-via-mcp]] / [[cowork-deploys-may-diverge-from-git]].
 
 ### Commits (live, 2026-06-23 → 27): `a570de6` (portal) → … → `7e905ca` (edge fn source)
 Reminder: this local `fleetpro/` is NOT a git repo — pushes go via `/tmp` clone of

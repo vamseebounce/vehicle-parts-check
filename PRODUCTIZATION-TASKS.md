@@ -49,7 +49,7 @@ sidebar's **Admin** section.
 | # | Feature | Status | Notes |
 |---|---------|--------|-------|
 | A1 | Manual JC Approval Check (`jc-approval.html`) | ✅ | Search a vehicle → automated verdict (T0–T6) on whether to approve a manual draft-JC creation request. Replaces manual manager review. |
-| A2 | Technician Incentive Portal (`incentive.html`) | ✅ | Magic-link dashboard/leaderboard/admin. `sync-incentive-data` v10 working (`/query/json`, 20719 rows / 9 weeks, 2026-06-27). 2000-row cap CLOSED. Remaining is ops-side name mapping (15053 unresolved) — not code. See Fleetpro-context.md. |
+| A2 | Technician Incentive Portal (`incentive.html`) | ✅ | Magic-link dashboard/leaderboard/admin. `sync-incentive-data` v16 (`/query/json`, ~20.7k rows / 9 weeks; frozen weeks + rebuild RPC; Thursday-noon-IST freeze). 2000-row cap CLOSED; Option A auth. Name mapping now ~89% resolved (ops backlog, not code). ⚠️ Freeze/rebuild crons not yet in `cron-jobs.sql`. See Fleetpro-context.md 2026-06-27. |
 
 ### A1 — Manual JC Approval Check
 

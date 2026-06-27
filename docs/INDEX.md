@@ -36,7 +36,7 @@ area. If you find a duplicate, fold it into the canonical and delete the copy.
 | JC Approval context | `docs/jc-approval-context.md` | ✅ CANONICAL | Manual JC Approval Check — tiers, architecture, tables, Cowork↔Code collab |
 | Incentive portal status | `Fleetpro-context.md` (§2026-06-27) | ✅ | Technician Incentive Portal + `sync-incentive-data` status (Option A auth, 2000-row cap closed) |
 | Incentive edge fn source | `supabase/functions/sync-incentive-data/index.ts` | ✅ | Deployed **v16** (`/query/json`, frozen weeks, rebuild RPC) |
-| Incentive migrations | `supabase/migrations/20260620000001*`, `20260627000001-4*` | ✅ | identity schema + dedup/rebuild/frozen-weeks/Jun15 patch |
+| Incentive migrations | `supabase/migrations/20260620000001*`, `20260627000001-5*` | ✅ | identity schema + dedup/rebuild/frozen-weeks/Jun15 patch/noon-IST freeze |
 
 ## Launch notes
 | Doc | Path | Purpose |
