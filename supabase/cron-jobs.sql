@@ -363,3 +363,24 @@ SELECT cron.schedule(
 -- SUMMARY (Incentive Portal additions):
 --   I1 | incentive-sync-daily           | 30 2 * * *   | daily data pull + conditional freeze (08:00 IST)
 --   I2 | incentive-freeze-thursday-noon | 30 6 * * 4   | dedicated Thu noon IST freeze trigger
+
+-- ============================================================
+-- JOB 36: sync-hr-employees-daily (18:30 UTC = 00:00 IST daily)
+-- Reads Nomenclature Map tab → upserts incentive_technicians
+-- Also reads Sheet1 → upserts hr_employees
+-- Sheet: 1BQLXsYQS2KfFS9MRkQWQMBgUH9kr5TizmhyB4r2hbRU (public, anyone with link)
+-- Skips rows where Status = "Not a person"
+-- ============================================================
+SELECT cron.schedule(
+  'sync-hr-employees-daily',
+  '30 18 * * *',
+  $$
+    SELECT net.http_post(
+      url     := 'https://clkfvmmlgwcvntxnolsv.supabase.co/functions/v1/sync-hr-employees',
+      headers := '{"Content-Type":"application/json"}'::jsonb,
+      body    := '{}'::jsonb,
+      timeout_milliseconds := 60000
+    );
+  $$
+);
+--  36  | sync-hr-employees-daily | 30 18 * * * | hr_employees + incentive_technicians (00:00 IST)
