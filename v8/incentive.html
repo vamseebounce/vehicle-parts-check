@@ -290,9 +290,9 @@ body.pinned #main{margin-left:var(--sb-width)}
     <div class="tb-right">
       <!-- Language switcher -->
       <div id="lang-switcher" style="display:flex;gap:2px;background:#F3F4F6;border-radius:8px;padding:2px;">
-        <button onclick="setLang('en')" id="lang-en" style="border:none;cursor:pointer;padding:3px 8px;border-radius:6px;font-size:.7rem;font-weight:700;font-family:inherit;transition:all .15s;background:#fff;color:#111827;box-shadow:0 1px 3px rgba(0,0,0,.1);">EN</button>
-        <button onclick="setLang('hi')" id="lang-hi" style="border:none;cursor:pointer;padding:3px 8px;border-radius:6px;font-size:.7rem;font-weight:700;font-family:inherit;transition:all .15s;background:transparent;color:#6B7280;">हिं</button>
-        <button onclick="setLang('kn')" id="lang-kn" style="border:none;cursor:pointer;padding:3px 8px;border-radius:6px;font-size:.7rem;font-weight:700;font-family:inherit;transition:all .15s;background:transparent;color:#6B7280;">ಕನ್ನ</button>
+        <button onclick="setLang('en',true)" id="lang-en" style="border:none;cursor:pointer;padding:3px 8px;border-radius:6px;font-size:.7rem;font-weight:700;font-family:inherit;transition:all .15s;background:#fff;color:#111827;box-shadow:0 1px 3px rgba(0,0,0,.1);">EN</button>
+        <button onclick="setLang('hi',true)" id="lang-hi" style="border:none;cursor:pointer;padding:3px 8px;border-radius:6px;font-size:.7rem;font-weight:700;font-family:inherit;transition:all .15s;background:transparent;color:#6B7280;">हिं</button>
+        <button onclick="setLang('kn',true)" id="lang-kn" style="border:none;cursor:pointer;padding:3px 8px;border-radius:6px;font-size:.7rem;font-weight:700;font-family:inherit;transition:all .15s;background:transparent;color:#6B7280;">ಕನ್ನ</button>
       </div>
       <button id="logout-btn" onclick="signOut()" style="display:none;background:none;border:1px solid #E5E7EB;border-radius:8px;padding:5px 12px;font-size:.72rem;font-weight:600;color:#6B7280;cursor:pointer;font-family:'Inter',sans-serif;transition:all .15s" onmouseover="this.style.borderColor='#E8191C';this.style.color='#E8191C'" onmouseout="this.style.borderColor='#E5E7EB';this.style.color='#6B7280'" data-i18n="signOut">Sign out</button>
     </div>
@@ -1547,9 +1547,13 @@ const TRANSLATIONS = {
   }
 };
 
-function setLang(lang) {
+function setLang(lang, save) {
   if (!TRANSLATIONS[lang]) lang = 'en';
   localStorage.setItem('fp_lang', lang);
+  // Persist to Supabase user_metadata if logged in (save=true when user manually switches)
+  if (save && typeof sbClient !== 'undefined') {
+    sbClient.auth.updateUser({ data: { lang_pref: lang } }).catch(() => {});
+  }
   // Update button active states
   ['en','hi','kn'].forEach(l => {
     const btn = document.getElementById('lang-' + l);
@@ -1595,6 +1599,9 @@ function setLang(lang) {
     K=session.access_token;
     CURRENT_USER_EMAIL=session.user.email;
     CURRENT_SESSION=session;
+    // Load language pref from Supabase metadata, fall back to localStorage
+    const savedLang = (session.user.user_metadata||{}).lang_pref || localStorage.getItem('fp_lang') || 'en';
+    setLang(savedLang);
     hideAuthScreen();
     document.getElementById('logout-btn').style.display='block';
     const features=await loadUserPermissions(session.user.id);
@@ -1612,6 +1619,8 @@ function setLang(lang) {
       K=session.access_token;
       CURRENT_USER_EMAIL=session.user.email;
       CURRENT_SESSION=session;
+      const savedLang = (session.user.user_metadata||{}).lang_pref || localStorage.getItem('fp_lang') || 'en';
+      setLang(savedLang);
       hideAuthScreen();
       document.getElementById('logout-btn').style.display='block';
       const features=await loadUserPermissions(session.user.id);
