@@ -201,19 +201,19 @@ body.pinned #main{margin-left:var(--sb-width)}
         <div class="auth-logo-sub">FleetPro</div>
       </div>
     </div>
-    <div class="auth-title">Technician Incentives</div>
-    <div class="auth-sub">Enter your email and we'll send you a one-click sign-in link.</div>
-    <div class="auth-domain">Bounce technicians &amp; staff</div>
+    <div class="auth-title" data-i18n="authTitle">Technician Incentives</div>
+    <div class="auth-sub" data-i18n="authSub">Enter your email and we'll send you a one-click sign-in link.</div>
+    <div class="auth-domain" data-i18n="authDomain">Bounce technicians &amp; staff</div>
     <div id="auth-form">
       <input id="auth-email" class="auth-input" type="email" placeholder="your@email.com" autocomplete="email"/>
-      <button id="auth-submit" class="auth-btn" onclick="sendMagicLink()">Send Magic Link</button>
+      <button id="auth-submit" class="auth-btn" onclick="sendMagicLink()" data-i18n="authBtn">Send Magic Link</button>
       <div id="auth-msg" class="auth-msg"></div>
     </div>
     <div id="auth-sent" class="auth-sent">
       <div class="big-icon">📬</div>
-      <h3>Check your inbox</h3>
-      <p>Magic link sent to<br/><b id="auth-sent-email"></b><br/>Click it to sign in — expires in 15 min.</p>
-      <button class="resend" onclick="showForm()">← Use a different email</button>
+      <h3 data-i18n="authSentTitle">Check your inbox</h3>
+      <p data-i18n="authSentBody">Magic link sent to<br/><b id="auth-sent-email"></b><br/>Click it to sign in — expires in 15 min.</p>
+      <button class="resend" onclick="showForm()" data-i18n="authSentBack">← Use a different email</button>
     </div>
   </div>
 </div>
@@ -288,17 +288,23 @@ body.pinned #main{margin-left:var(--sb-width)}
       </a>
     </div>
     <div class="tb-right">
-      <button id="logout-btn" onclick="signOut()" style="display:none;background:none;border:1px solid #E5E7EB;border-radius:8px;padding:5px 12px;font-size:.72rem;font-weight:600;color:#6B7280;cursor:pointer;font-family:'Inter',sans-serif;transition:all .15s" onmouseover="this.style.borderColor='#E8191C';this.style.color='#E8191C'" onmouseout="this.style.borderColor='#E5E7EB';this.style.color='#6B7280'">Sign out</button>
+      <!-- Language switcher -->
+      <div id="lang-switcher" style="display:flex;gap:2px;background:#F3F4F6;border-radius:8px;padding:2px;">
+        <button onclick="setLang('en')" id="lang-en" style="border:none;cursor:pointer;padding:3px 8px;border-radius:6px;font-size:.7rem;font-weight:700;font-family:inherit;transition:all .15s;background:#fff;color:#111827;box-shadow:0 1px 3px rgba(0,0,0,.1);">EN</button>
+        <button onclick="setLang('hi')" id="lang-hi" style="border:none;cursor:pointer;padding:3px 8px;border-radius:6px;font-size:.7rem;font-weight:700;font-family:inherit;transition:all .15s;background:transparent;color:#6B7280;">हिं</button>
+        <button onclick="setLang('kn')" id="lang-kn" style="border:none;cursor:pointer;padding:3px 8px;border-radius:6px;font-size:.7rem;font-weight:700;font-family:inherit;transition:all .15s;background:transparent;color:#6B7280;">ಕನ್ನ</button>
+      </div>
+      <button id="logout-btn" onclick="signOut()" style="display:none;background:none;border:1px solid #E5E7EB;border-radius:8px;padding:5px 12px;font-size:.72rem;font-weight:600;color:#6B7280;cursor:pointer;font-family:'Inter',sans-serif;transition:all .15s" onmouseover="this.style.borderColor='#E8191C';this.style.color='#E8191C'" onmouseout="this.style.borderColor='#E5E7EB';this.style.color='#6B7280'" data-i18n="signOut">Sign out</button>
     </div>
   </header>
 
   <!-- Tab Navigation -->
   <div class="tab-nav" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;">
     <div style="display:flex;gap:2px;">
-      <button class="tab-btn active" data-tab="dashboard" onclick="switchTab('dashboard')">My Dashboard</button>
-      <button class="tab-btn" data-tab="leaderboard" onclick="switchTab('leaderboard')">Leaderboard</button>
-      <button class="tab-btn" data-tab="scheme" onclick="switchTab('scheme')">How It Works</button>
-      <button class="tab-btn" data-tab="admin" onclick="switchTab('admin')" id="admin-tab" data-feature="incentive-admin" style="display:none">Admin</button>
+      <button class="tab-btn active" data-tab="dashboard" onclick="switchTab('dashboard')" data-i18n="tabDashboard">My Dashboard</button>
+      <button class="tab-btn" data-tab="leaderboard" onclick="switchTab('leaderboard')" data-i18n="tabLeaderboard">Leaderboard</button>
+      <button class="tab-btn" data-tab="scheme" onclick="switchTab('scheme')" data-i18n="tabHowItWorks">How It Works</button>
+      <button class="tab-btn" data-tab="admin" onclick="switchTab('admin')" id="admin-tab" data-feature="incentive-admin" style="display:none" data-i18n="tabAdmin">Admin</button>
     </div>
     <div style="display:flex;gap:8px;align-items:center;padding-right:8px;">
       <!-- Week selector — shared by dashboard + leaderboard -->
@@ -328,30 +334,30 @@ body.pinned #main{margin-left:var(--sb-width)}
       <!-- KPI Cards -->
       <div class="kpi-grid">
         <div class="kpi-card">
-          <div class="kpi-label">Eligible JCs This Week</div>
+          <div class="kpi-label" data-i18n="kpiEligibleLabel">Eligible JCs This Week</div>
           <div class="kpi-value" id="kpi-eligible">—</div>
-          <div class="kpi-detail">Job cards that qualify</div>
+          <div class="kpi-detail" data-i18n="kpiEligibleDetail">Job cards that qualify</div>
         </div>
         <div class="kpi-card">
-          <div class="kpi-label">Estimated Payout</div>
+          <div class="kpi-label" data-i18n="kpiPayoutLabel">Estimated Payout</div>
           <div class="kpi-value" id="kpi-payout">₹ —</div>
-          <div class="kpi-detail" id="kpi-payout-detail">Based on tier calculation</div>
+          <div class="kpi-detail" id="kpi-payout-detail" data-i18n="kpiPayoutDetail">Based on tier calculation</div>
         </div>
         <div class="kpi-card">
-          <div class="kpi-label">Voided JCs</div>
+          <div class="kpi-label" data-i18n="kpiVoidedLabel">Voided JCs</div>
           <div class="kpi-value" id="kpi-voided">—</div>
-          <div class="kpi-detail">Excluded from this week</div>
+          <div class="kpi-detail" data-i18n="kpiVoidedDetail">Excluded from this week</div>
         </div>
         <div class="kpi-card">
-          <div class="kpi-label">Leaderboard Rank</div>
+          <div class="kpi-label" data-i18n="kpiRankLabel">Leaderboard Rank</div>
           <div class="kpi-value" id="kpi-rank">—</div>
-          <div class="kpi-detail" id="kpi-rank-detail">Among active earners</div>
+          <div class="kpi-detail" id="kpi-rank-detail" data-i18n="kpiRankDetail">Among active earners</div>
         </div>
       </div>
 
       <!-- Payout Progress -->
       <div class="payout-section">
-        <div class="payout-title">Payout Progress — This Week</div>
+        <div class="payout-title" data-i18n="payoutProgress">Payout Progress — This Week</div>
         <div class="payout-bar" id="payout-bar">
           <div class="payout-tier payout-tier-0" style="flex:0.3"><span>Below 50</span></div>
           <div class="payout-tier payout-tier-1" style="flex:0.3"><span>T1 · ₹25</span></div>
@@ -369,14 +375,14 @@ body.pinned #main{margin-left:var(--sb-width)}
 
       <!-- JC Split -->
       <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px;margin-bottom:28px;box-shadow:var(--shadow);">
-        <div style="font-size:.85rem;font-weight:800;color:#0F172A;margin-bottom:14px;">JC Split This Week</div>
+        <div style="font-size:.85rem;font-weight:800;color:#0F172A;margin-bottom:14px;" data-i18n="jcSplitTitle">JC Split This Week</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
           <div>
-            <div style="font-size:.7rem;color:var(--muted);font-weight:700;margin-bottom:6px;">Intrip Fixes</div>
+            <div style="font-size:.7rem;color:var(--muted);font-weight:700;margin-bottom:6px;" data-i18n="splitIntrip">Intrip Fixes</div>
             <div style="font-size:1.8rem;font-weight:900;color:#0F172A;" id="split-intrip">—</div>
           </div>
           <div>
-            <div style="font-size:.7rem;color:var(--muted);font-weight:700;margin-bottom:6px;">OOS → RFD Moves</div>
+            <div style="font-size:.7rem;color:var(--muted);font-weight:700;margin-bottom:6px;" data-i18n="splitRfd">OOS → RFD Moves</div>
             <div style="font-size:1.8rem;font-weight:900;color:#0F172A;" id="split-rfd">—</div>
           </div>
         </div>
@@ -384,16 +390,16 @@ body.pinned #main{margin-left:var(--sb-width)}
 
       <!-- Trend Table -->
       <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px;box-shadow:var(--shadow);">
-        <div style="font-size:.85rem;font-weight:800;color:#0F172A;margin-bottom:14px;">8-Week Trend</div>
+        <div style="font-size:.85rem;font-weight:800;color:#0F172A;margin-bottom:14px;" data-i18n="trendTitle">8-Week Trend</div>
         <table class="trend-table" id="trend-table">
           <thead>
             <tr>
-              <th>Week</th>
-              <th>Intrip</th>
-              <th>OOS→RFD</th>
-              <th>Voided</th>
-              <th>Eligible</th>
-              <th>Payout</th>
+              <th data-i18n="thWeek">Week</th>
+              <th data-i18n="thIntrip">Intrip</th>
+              <th data-i18n="thRfd">OOS→RFD</th>
+              <th data-i18n="thVoided">Voided</th>
+              <th data-i18n="thEligible">Eligible</th>
+              <th data-i18n="thPayout">Payout</th>
             </tr>
           </thead>
           <tbody id="trend-tbody">
@@ -407,8 +413,8 @@ body.pinned #main{margin-left:var(--sb-width)}
     <div id="leaderboard" class="content-pane">
       <div class="tab-header">
         <div>
-          <div class="tab-title">Leaderboard</div>
-          <div class="tab-subtitle" id="leaderboard-subtitle">Current week — live rankings</div>
+          <div class="tab-title" data-i18n="tabLeaderboard">Leaderboard</div>
+          <div class="tab-subtitle" id="leaderboard-subtitle" data-i18n="leaderboardSubtitle">Current week — live rankings</div>
         </div>
         <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;">
           <span id="leaderboard-last-refresh" style="font-size:.7rem;color:var(--muted);"></span>
@@ -427,12 +433,12 @@ body.pinned #main{margin-left:var(--sb-width)}
         <table class="leaderboard-table" id="leaderboard-table">
           <thead>
             <tr>
-              <th style="width:50px">Rank</th>
-              <th>Technician</th>
-              <th>Hub</th>
-              <th>Eligible JCs</th>
-              <th>Tier</th>
-              <th>Est. Payout</th>
+              <th style="width:50px" data-i18n="thRank">Rank</th>
+              <th data-i18n="thTechnician">Technician</th>
+              <th data-i18n="thHub">Hub</th>
+              <th data-i18n="thEligibleJCs">Eligible JCs</th>
+              <th data-i18n="thTier">Tier</th>
+              <th data-i18n="thEstPayout">Est. Payout</th>
             </tr>
           </thead>
           <tbody id="leaderboard-tbody">
@@ -446,20 +452,20 @@ body.pinned #main{margin-left:var(--sb-width)}
     <div id="scheme" class="content-pane">
       <div class="tab-header">
         <div>
-          <div class="tab-title">How It Works</div>
-          <div class="tab-subtitle">Incentive scheme — visible to all technicians</div>
+          <div class="tab-title" data-i18n="tabHowItWorks">How It Works</div>
+          <div class="tab-subtitle" data-i18n="howSubtitle">Incentive scheme — visible to all technicians</div>
         </div>
       </div>
 
       <!-- Overview -->
       <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:24px;margin-bottom:20px;box-shadow:var(--shadow);">
-        <div style="font-size:.9rem;font-weight:800;color:#0F172A;margin-bottom:10px;">📋 Overview</div>
-        <p style="font-size:.82rem;color:#374151;line-height:1.7;">Every week, the number of <b>eligible job cards</b> you complete determines your payout tier. You must cross a <b>threshold of 50 JCs</b> before any incentive starts. After that, each additional JC earns you a fixed amount per JC based on which tier you're in — higher tiers pay more per JC.</p>
+        <div style="font-size:.9rem;font-weight:800;color:#0F172A;margin-bottom:10px;" data-i18n="overviewTitle">📋 Overview</div>
+        <p style="font-size:.82rem;color:#374151;line-height:1.7;" data-i18n="overviewBody">Every week, the number of <b>eligible job cards</b> you complete determines your payout tier. You must cross a <b>threshold of 50 JCs</b> before any incentive starts. After that, each additional JC earns you a fixed amount per JC based on which tier you're in — higher tiers pay more per JC.</p>
       </div>
 
       <!-- Tiers -->
       <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:24px;margin-bottom:20px;box-shadow:var(--shadow);">
-        <div style="font-size:.9rem;font-weight:800;color:#0F172A;margin-bottom:16px;">🏆 Payout Tiers</div>
+        <div style="font-size:.9rem;font-weight:800;color:#0F172A;margin-bottom:16px;" data-i18n="tiersTitle">🏆 Payout Tiers</div>
         <div style="display:grid;gap:12px;">
           <div style="display:flex;align-items:center;gap:14px;padding:14px;border-radius:10px;background:linear-gradient(90deg,#DBEAFE,#BFDBFE);">
             <div style="min-width:56px;text-align:center;font-size:1.1rem;font-weight:900;color:#1D4ED8;">T1</div>
@@ -498,9 +504,8 @@ body.pinned #main{margin-left:var(--sb-width)}
 
       <!-- Example calc -->
       <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:24px;margin-bottom:20px;box-shadow:var(--shadow);">
-        <div style="font-size:.9rem;font-weight:800;color:#0F172A;margin-bottom:14px;">🧮 Example Calculation</div>
-        <div style="font-size:.82rem;color:#374151;line-height:1.8;">
-          Say you complete <b>75 JCs</b> in a week:<br>
+        <div style="font-size:.9rem;font-weight:800;color:#0F172A;margin-bottom:14px;" data-i18n="exampleTitle">🧮 Example Calculation</div>
+        <div style="font-size:.82rem;color:#374151;line-height:1.8;" data-i18n="exampleBody">Say you complete <b>75 JCs</b> in a week:<br>
           • First 50 JCs → ₹0 (below threshold)<br>
           • JCs 51–60 (10 JCs × ₹25) → <b>₹250</b><br>
           • JCs 61–75 (15 JCs × ₹50) → <b>₹750</b><br>
@@ -512,29 +517,29 @@ body.pinned #main{margin-left:var(--sb-width)}
 
       <!-- Void rules -->
       <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:24px;margin-bottom:20px;box-shadow:var(--shadow);">
-        <div style="font-size:.9rem;font-weight:800;color:#0F172A;margin-bottom:14px;">🚫 Voided JCs — What Gets Excluded</div>
-        <p style="font-size:.82rem;color:#374151;line-height:1.7;margin-bottom:12px;">A job card is <b>voided</b> (not counted towards your weekly total) if the same bike comes back for a repeat repair within <b>3 days</b>.</p>
+        <div style="font-size:.9rem;font-weight:800;color:#0F172A;margin-bottom:14px;" data-i18n="voidTitle">🚫 Voided JCs — What Gets Excluded</div>
+        <p style="font-size:.82rem;color:#374151;line-height:1.7;margin-bottom:12px;" data-i18n="voidBody">A job card is <b>voided</b> (not counted towards your weekly total) if the same bike comes back for a repeat repair within <b>3 days</b>.</p>
         <div style="background:#FEF2F2;border:1px solid #FECACA;border-radius:10px;padding:14px;">
-          <div style="font-size:.78rem;color:#991B1B;font-weight:700;margin-bottom:6px;">Why voids exist:</div>
-          <div style="font-size:.78rem;color:#7F1D1D;line-height:1.7;">If a bike you repaired today comes back for repair within 3 days, the original JC is flagged as a comeback — meaning the repair wasn't fully effective. That JC is excluded to ensure quality repairs are rewarded, not just quantity.</div>
+          <div style="font-size:.78rem;color:#991B1B;font-weight:700;margin-bottom:6px;" data-i18n="voidWhyTitle">Why voids exist:</div>
+          <div style="font-size:.78rem;color:#7F1D1D;line-height:1.7;" data-i18n="voidWhyBody">If a bike you repaired today comes back for repair within 3 days, the original JC is flagged as a comeback — meaning the repair wasn't fully effective. That JC is excluded to ensure quality repairs are rewarded, not just quantity.</div>
         </div>
         <div style="margin-top:14px;display:grid;grid-template-columns:1fr 1fr;gap:12px;">
           <div style="padding:12px;background:#F0FDF4;border-radius:8px;text-align:center;">
-            <div style="font-size:.7rem;color:var(--muted);font-weight:700;margin-bottom:4px;">COUNTS ✓</div>
-            <div style="font-size:.8rem;color:#16A34A;font-weight:700;">Bike repaired<br>no comeback in 3 days</div>
+            <div style="font-size:.7rem;color:var(--muted);font-weight:700;margin-bottom:4px;" data-i18n="countsLabel">COUNTS ✓</div>
+            <div style="font-size:.8rem;color:#16A34A;font-weight:700;" data-i18n="countsDesc">Bike repaired<br>no comeback in 3 days</div>
           </div>
           <div style="padding:12px;background:#FEF2F2;border-radius:8px;text-align:center;">
-            <div style="font-size:.7rem;color:var(--muted);font-weight:700;margin-bottom:4px;">VOIDED ✗</div>
-            <div style="font-size:.8rem;color:#DC2626;font-weight:700;">Bike came back<br>within 3 days</div>
+            <div style="font-size:.7rem;color:var(--muted);font-weight:700;margin-bottom:4px;" data-i18n="voidedLabel">VOIDED ✗</div>
+            <div style="font-size:.8rem;color:#DC2626;font-weight:700;" data-i18n="voidedDesc">Bike came back<br>within 3 days</div>
           </div>
         </div>
       </div>
 
       <!-- Cap -->
       <div style="background:linear-gradient(135deg,#1A1A2E,#0f2460);border-radius:14px;padding:24px;color:#fff;text-align:center;">
-        <div style="font-size:1rem;font-weight:800;margin-bottom:6px;">Weekly Cap</div>
+        <div style="font-size:1rem;font-weight:800;margin-bottom:6px;" data-i18n="capTitle">Weekly Cap</div>
         <div style="font-size:2.5rem;font-weight:900;color:#FCD34D;">₹5,000</div>
-        <div style="font-size:.78rem;color:rgba(255,255,255,.65);margin-top:6px;">Maximum incentive payout per technician per week</div>
+        <div style="font-size:.78rem;color:rgba(255,255,255,.65);margin-top:6px;" data-i18n="capDesc">Maximum incentive payout per technician per week</div>
       </div>
     </div>
 
@@ -1436,8 +1441,152 @@ function openSettings(){
   if(modal){modal.classList.add('show');}
 }
 
+/* ── i18n ── */
+const TRANSLATIONS = {
+  en: {
+    signOut:'Sign out',
+    tabDashboard:'My Dashboard', tabLeaderboard:'Leaderboard', tabHowItWorks:'How It Works', tabAdmin:'Admin',
+    kpiEligibleLabel:'Eligible JCs This Week', kpiEligibleDetail:'Job cards that qualify',
+    kpiPayoutLabel:'Estimated Payout', kpiPayoutDetail:'Based on tier calculation',
+    kpiVoidedLabel:'Voided JCs', kpiVoidedDetail:'Excluded from this week',
+    kpiRankLabel:'Leaderboard Rank', kpiRankDetail:'Among active earners',
+    payoutProgress:'Payout Progress — This Week',
+    jcSplitTitle:'JC Split This Week', splitIntrip:'Intrip Fixes', splitRfd:'OOS → RFD Moves',
+    trendTitle:'8-Week Trend',
+    thWeek:'Week', thIntrip:'Intrip', thRfd:'OOS→RFD', thVoided:'Voided', thEligible:'Eligible', thPayout:'Payout',
+    leaderboardSubtitle:'Current week — live rankings',
+    thRank:'Rank', thTechnician:'Technician', thHub:'Hub', thEligibleJCs:'Eligible JCs', thTier:'Tier', thEstPayout:'Est. Payout',
+    howSubtitle:'Incentive scheme — visible to all technicians',
+    overviewTitle:'📋 Overview',
+    overviewBody:'Every week, the number of <b>eligible job cards</b> you complete determines your payout tier. You must cross a <b>threshold of 50 JCs</b> before any incentive starts. After that, each additional JC earns you a fixed amount per JC based on which tier you\'re in — higher tiers pay more per JC.',
+    tiersTitle:'🏆 Payout Tiers',
+    exampleTitle:'🧮 Example Calculation',
+    exampleBody:'Say you complete <b>75 JCs</b> in a week:<br>',
+    voidTitle:'🚫 Voided JCs — What Gets Excluded',
+    voidBody:'A job card is <b>voided</b> (not counted towards your weekly total) if the same bike comes back for a repeat repair within <b>3 days</b>.',
+    voidWhyTitle:'Why voids exist:',
+    voidWhyBody:'If a bike you repaired today comes back for repair within 3 days, the original JC is flagged as a comeback — meaning the repair wasn\'t fully effective. That JC is excluded to ensure quality repairs are rewarded, not just quantity.',
+    countsLabel:'COUNTS ✓', countsDesc:'Bike repaired<br>no comeback in 3 days',
+    voidedLabel:'VOIDED ✗', voidedDesc:'Bike came back<br>within 3 days',
+    capTitle:'Weekly Cap', capDesc:'Maximum incentive payout per technician per week',
+    authTitle:'Technician Incentives',
+    authSub:'Enter your email and we\'ll send you a one-click sign-in link.',
+    authDomain:'Bounce technicians &amp; staff',
+    authBtn:'Send Magic Link',
+    authSentTitle:'Check your inbox',
+    authSentBody:'Magic link sent to<br/><b id="auth-sent-email"></b><br/>Click it to sign in — expires in 15 min.',
+    authSentBack:'← Use a different email',
+  },
+  hi: {
+    signOut:'लॉग आउट',
+    tabDashboard:'मेरा डैशबोर्ड', tabLeaderboard:'लीडरबोर्ड', tabHowItWorks:'कैसे काम करता है', tabAdmin:'एडमिन',
+    kpiEligibleLabel:'इस हफ्ते के JC', kpiEligibleDetail:'जो JC गिने जाएंगे',
+    kpiPayoutLabel:'अनुमानित पेमेंट', kpiPayoutDetail:'टियर के हिसाब से',
+    kpiVoidedLabel:'रद्द JC', kpiVoidedDetail:'इस हफ्ते नहीं गिने',
+    kpiRankLabel:'रैंक', kpiRankDetail:'अन्य टेक्नीशियनों में',
+    payoutProgress:'इस हफ्ते का पेमेंट',
+    jcSplitTitle:'इस हफ्ते JC टूटना', splitIntrip:'Intrip Fixes', splitRfd:'OOS → RFD Moves',
+    trendTitle:'8 हफ्तों का ट्रेंड',
+    thWeek:'हफ्ता', thIntrip:'Intrip', thRfd:'OOS→RFD', thVoided:'रद्द', thEligible:'गिने गए', thPayout:'पेमेंट',
+    leaderboardSubtitle:'इस हफ्ते — लाइव रैंकिंग',
+    thRank:'रैंक', thTechnician:'टेक्नीशियन', thHub:'Hub', thEligibleJCs:'गिने गए JC', thTier:'टियर', thEstPayout:'अनुमानित पेमेंट',
+    howSubtitle:'इनसेंटिव का तरीका — सभी टेक्नीशियन देख सकते हैं',
+    overviewTitle:'📋 जानकारी',
+    overviewBody:'हर हफ्ते आपके <b>गिने गए job cards</b> से पता चलता है कि आप किस टियर में हैं। पहले <b>50 JC</b> पूरे करने होंगे — उसके बाद हर JC पर पैसा मिलता है।',
+    tiersTitle:'🏆 पेमेंट टियर',
+    exampleTitle:'🧮 उदाहरण',
+    exampleBody:'मान लो आपने <b>75 JC</b> किए इस हफ्ते:<br>',
+    voidTitle:'🚫 रद्द JC — क्या बाहर होता है',
+    voidBody:'अगर एक ही बाइक <b>3 दिन के अंदर</b> वापस आती है, तो वो JC <b>रद्द</b> हो जाता है।',
+    voidWhyTitle:'रद्द क्यों होता है:',
+    voidWhyBody:'अगर आपने जो बाइक ठीक की थी, वो 3 दिन में वापस आई — तो मतलब काम पूरा नहीं हुआ था। इसलिए वो JC नहीं गिना जाएगा।',
+    countsLabel:'गिना जाएगा ✓', countsDesc:'बाइक ठीक हुई<br>3 दिन में वापस नहीं आई',
+    voidedLabel:'रद्द ✗', voidedDesc:'बाइक 3 दिन में<br>वापस आई',
+    capTitle:'हफ्ते की सीमा', capDesc:'एक टेक्नीशियन को हफ्ते में ज्यादा से ज्यादा मिल सकता है',
+    authTitle:'टेक्नीशियन इनसेंटिव',
+    authSub:'अपना ईमेल डालें — हम एक लिंक भेजेंगे जिससे आप लॉगिन कर सकते हैं।',
+    authDomain:'Bounce टेक्नीशियन और स्टाफ',
+    authBtn:'लॉगिन लिंक भेजें',
+    authSentTitle:'इनबॉक्स चेक करें',
+    authSentBody:'लिंक भेज दिया गया<br/><b id="auth-sent-email"></b><br/>लिंक पर क्लिक करें — 15 मिनट में एक्सपायर होगा।',
+    authSentBack:'← अलग ईमेल से करें',
+  },
+  kn: {
+    signOut:'ಲಾಗ್ ಔಟ್',
+    tabDashboard:'ನನ್ನ ಡ್ಯಾಶ್‌ಬೋರ್ಡ್', tabLeaderboard:'ಲೀಡರ್‌ಬೋರ್ಡ್', tabHowItWorks:'ಹೇಗೆ ಕೆಲಸ ಮಾಡುತ್ತದೆ', tabAdmin:'ಅಡ್ಮಿನ್',
+    kpiEligibleLabel:'ಈ ವಾರ JC ಗಳು', kpiEligibleDetail:'ಲೆಕ್ಕ ಹಾಕಲ್ಪಡುವ JC ಗಳು',
+    kpiPayoutLabel:'ಅಂದಾಜು ಹಣ', kpiPayoutDetail:'ಟಿಯರ್ ಪ್ರಕಾರ',
+    kpiVoidedLabel:'ರದ್ದಾದ JC', kpiVoidedDetail:'ಈ ವಾರ ಲೆಕ್ಕಕ್ಕಿಲ್ಲ',
+    kpiRankLabel:'ರ್ಯಾಂಕ್', kpiRankDetail:'ಇತರ ಟೆಕ್ನಿಶಿಯನ್‌ಗಳಲ್ಲಿ',
+    payoutProgress:'ಈ ವಾರ ಹಣ — ಮುಂದುವರಿಕೆ',
+    jcSplitTitle:'ಈ ವಾರ JC ವಿಭಜನೆ', splitIntrip:'Intrip Fixes', splitRfd:'OOS → RFD Moves',
+    trendTitle:'8 ವಾರಗಳ ಟ್ರೆಂಡ್',
+    thWeek:'ವಾರ', thIntrip:'Intrip', thRfd:'OOS→RFD', thVoided:'ರದ್ದು', thEligible:'ಲೆಕ್ಕ', thPayout:'ಹಣ',
+    leaderboardSubtitle:'ಈ ವಾರ — ಲೈವ್ ರ್ಯಾಂಕಿಂಗ್',
+    thRank:'ರ್ಯಾಂಕ್', thTechnician:'ಟೆಕ್ನಿಶಿಯನ್', thHub:'Hub', thEligibleJCs:'ಲೆಕ್ಕದ JC', thTier:'ಟಿಯರ್', thEstPayout:'ಅಂದಾಜು ಹಣ',
+    howSubtitle:'ಇನ್ಸೆಂಟಿವ್ ಯೋಜನೆ — ಎಲ್ಲ ಟೆಕ್ನಿಶಿಯನ್‌ಗಳಿಗೆ',
+    overviewTitle:'📋 ಮಾಹಿತಿ',
+    overviewBody:'ಪ್ರತಿ ವಾರ ನೀವು ಮಾಡಿದ <b>ಲೆಕ್ಕದ job cards</b> ಯಿಂದ ನಿಮ್ಮ ಟಿಯರ್ ಗೊತ್ತಾಗುತ್ತದೆ. ಮೊದಲು <b>50 JC</b> ಮಾಡಬೇಕು — ನಂತರ ಪ್ರತಿ JC ಗೆ ಹಣ ಸಿಗುತ್ತದೆ.',
+    tiersTitle:'🏆 ಹಣ ಟಿಯರ್‌ಗಳು',
+    exampleTitle:'🧮 ಉದಾಹರಣೆ',
+    exampleBody:'ನೀವು ಈ ವಾರ <b>75 JC</b> ಮಾಡಿದ್ದರೆ:<br>',
+    voidTitle:'🚫 ರದ್ದಾದ JC — ಏನು ಹೊರಗಾಗುತ್ತದೆ',
+    voidBody:'<b>3 ದಿನ</b>ದಲ್ಲಿ ಅದೇ ಬೈಕ್ ತಿರಿಗಿ ಬಂದರೆ, ಆ JC <b>ರದ್ದಾಗುತ್ತದೆ</b>.',
+    voidWhyTitle:'ರದ್ದಾಗುವ ಕಾರಣ:',
+    voidWhyBody:'ನೀವು ಸರಿಪಡಿಸಿದ ಬೈಕ್ 3 ದಿನದಲ್ಲಿ ತಿರಿಗಿ ಬಂದರೆ — ಕೆಲಸ ಸರಿಯಾಗಿ ಆಗಿಲ್ಲ ಎಂದರ್ಥ. ಆ JC ಲೆಕ್ಕಕ್ಕೆ ಬರುವುದಿಲ್ಲ.',
+    countsLabel:'ಲೆಕ್ಕ ✓', countsDesc:'ಬೈಕ್ ಸರಿಯಾಯಿತು<br>3 ದಿನ ಒಳಗೆ ಬರಲಿಲ್ಲ',
+    voidedLabel:'ರದ್ದು ✗', voidedDesc:'ಬೈಕ್ 3 ದಿನದಲ್ಲಿ<br>ತಿರಿಗಿ ಬಂತು',
+    capTitle:'ವಾರದ ಮಿತಿ', capDesc:'ಒಬ್ಬ ಟೆಕ್ನಿಶಿಯನ್‌ಗೆ ವಾರದಲ್ಲಿ ಗರಿಷ್ಠ ಸಿಗಬಹುದಾದ ಹಣ',
+    authTitle:'ಟೆಕ್ನಿಶಿಯನ್ ಇನ್ಸೆಂಟಿವ್',
+    authSub:'ನಿಮ್ಮ ಇಮೇಲ್ ಹಾಕಿ — ನಾವು ಲಾಗಿನ್ ಲಿಂಕ್ ಕಳುಹಿಸುತ್ತೇವೆ.',
+    authDomain:'Bounce ಟೆಕ್ನಿಶಿಯನ್ ಮತ್ತು ಸ್ಟಾಫ್',
+    authBtn:'ಲಾಗಿನ್ ಲಿಂಕ್ ಕಳುಹಿಸಿ',
+    authSentTitle:'ನಿಮ್ಮ ಇನ್‌ಬಾಕ್ಸ್ ನೋಡಿ',
+    authSentBody:'ಲಿಂಕ್ ಕಳುಹಿಸಲಾಗಿದೆ<br/><b id="auth-sent-email"></b><br/>ಕ್ಲಿಕ್ ಮಾಡಿ — 15 ನಿಮಿಷದಲ್ಲಿ ಮುಗಿಯುತ್ತದೆ.',
+    authSentBack:'← ಬೇರೆ ಇಮೇಲ್ ಬಳಸಿ',
+  }
+};
+
+function setLang(lang) {
+  if (!TRANSLATIONS[lang]) lang = 'en';
+  localStorage.setItem('fp_lang', lang);
+  // Update button active states
+  ['en','hi','kn'].forEach(l => {
+    const btn = document.getElementById('lang-' + l);
+    if (!btn) return;
+    if (l === lang) {
+      btn.style.background = '#fff';
+      btn.style.color = '#111827';
+      btn.style.boxShadow = '0 1px 3px rgba(0,0,0,.1)';
+    } else {
+      btn.style.background = 'transparent';
+      btn.style.color = '#6B7280';
+      btn.style.boxShadow = 'none';
+    }
+  });
+  // Apply translations
+  const T = TRANSLATIONS[lang];
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.getAttribute('data-i18n');
+    if (T[key] !== undefined) el.innerHTML = T[key];
+  });
+  // auth-sent-email id gets wiped by innerHTML — restore it
+  const sentEmail = document.getElementById('auth-sent-email');
+  if (!sentEmail) {
+    const p = document.querySelector('#auth-sent p');
+    if (p) {
+      const b = document.createElement('b');
+      b.id = 'auth-sent-email';
+      // insert b into the right place — already done by innerHTML above
+    }
+  }
+}
+
 /* ── BOOT ── */
 (async function(){
+  // Apply saved language immediately
+  setLang(localStorage.getItem('fp_lang') || 'en');
+
   const mainLogo=document.querySelector('.sb-brand img');
   if(mainLogo){const ai=document.getElementById('auth-logo-img');if(ai)ai.src=mainLogo.src;}
 
