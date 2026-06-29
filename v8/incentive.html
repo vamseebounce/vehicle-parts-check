@@ -895,9 +895,9 @@ async function renderLeaderboard(){
     const label=`Week of ${formatDateRange(weekStart)}`;
     document.getElementById('leaderboard-subtitle').textContent=label;
 
-    // Last refresh
+    // Last refresh — cleared; actual sync time shown in topbar sync-note
     const refreshEl=document.getElementById('leaderboard-last-refresh');
-    if(refreshEl){const now=new Date();refreshEl.textContent=`Refreshed ${now.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})} · ${now.toLocaleDateString('en-IN',{day:'numeric',month:'short'})}`;}
+    if(refreshEl)refreshEl.textContent='';
 
     if(city)q=q.eq('city',city);
 
@@ -1632,7 +1632,7 @@ async function loadLastSyncTime(){
     if(data?.synced_at){
       const d=new Date(data.synced_at);
       const ist=d.toLocaleString('en-IN',{timeZone:'Asia/Kolkata',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit',hour12:true});
-      el.textContent='Synced '+ist;
+      el.textContent='Data as of '+ist+' IST';
       el.style.display='inline';
     }
   }catch(e){}
