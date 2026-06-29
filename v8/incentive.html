@@ -288,11 +288,14 @@ body.pinned #main{margin-left:var(--sb-width)}
       </a>
     </div>
     <div class="tb-right">
+      <!-- Last sync note -->
+      <span id="sync-note" style="font-size:.68rem;color:#9CA3AF;white-space:nowrap;display:none;">Synced —</span>
       <!-- Language switcher -->
       <div id="lang-switcher" style="display:flex;gap:2px;background:#F3F4F6;border-radius:8px;padding:2px;">
         <button onclick="setLang('en',true)" id="lang-en" style="border:none;cursor:pointer;padding:3px 8px;border-radius:6px;font-size:.7rem;font-weight:700;font-family:inherit;transition:all .15s;background:#fff;color:#111827;box-shadow:0 1px 3px rgba(0,0,0,.1);">EN</button>
         <button onclick="setLang('hi',true)" id="lang-hi" style="border:none;cursor:pointer;padding:3px 8px;border-radius:6px;font-size:.7rem;font-weight:700;font-family:inherit;transition:all .15s;background:transparent;color:#6B7280;">हिं</button>
         <button onclick="setLang('kn',true)" id="lang-kn" style="border:none;cursor:pointer;padding:3px 8px;border-radius:6px;font-size:.7rem;font-weight:700;font-family:inherit;transition:all .15s;background:transparent;color:#6B7280;">ಕನ್ನ</button>
+        <button onclick="setLang('te',true)" id="lang-te" style="border:none;cursor:pointer;padding:3px 8px;border-radius:6px;font-size:.7rem;font-weight:700;font-family:inherit;transition:all .15s;background:transparent;color:#6B7280;">తెలు</button>
       </div>
       <button id="logout-btn" onclick="signOut()" style="display:none;background:none;border:1px solid #E5E7EB;border-radius:8px;padding:5px 12px;font-size:.72rem;font-weight:600;color:#6B7280;cursor:pointer;font-family:'Inter',sans-serif;transition:all .15s" onmouseover="this.style.borderColor='#E8191C';this.style.color='#E8191C'" onmouseout="this.style.borderColor='#E5E7EB';this.style.color='#6B7280'" data-i18n="signOut">Sign out</button>
     </div>
@@ -1544,6 +1547,40 @@ const TRANSLATIONS = {
     authSentTitle:'ನಿಮ್ಮ ಇನ್‌ಬಾಕ್ಸ್ ನೋಡಿ',
     authSentBody:'ಲಿಂಕ್ ಕಳುಹಿಸಲಾಗಿದೆ<br/><b id="auth-sent-email"></b><br/>ಕ್ಲಿಕ್ ಮಾಡಿ — 15 ನಿಮಿಷದಲ್ಲಿ ಮುಗಿಯುತ್ತದೆ.',
     authSentBack:'← ಬೇರೆ ಇಮೇಲ್ ಬಳಸಿ',
+  },
+  te: {
+    signOut:'సైన్ అవుట్',
+    tabDashboard:'నా డాష్‌బోర్డ్', tabLeaderboard:'లీడర్‌బోర్డ్', tabHowItWorks:'ఎలా పని చేస్తుంది', tabAdmin:'అడ్మిన్',
+    kpiEligibleLabel:'ఈ వారం JC లు', kpiEligibleDetail:'లెక్కించబడే JC లు',
+    kpiPayoutLabel:'అంచనా చెల్లింపు', kpiPayoutDetail:'టయర్ ప్రకారం',
+    kpiVoidedLabel:'రద్దు చేసిన JC', kpiVoidedDetail:'ఈ వారం లెక్కలో లేవు',
+    kpiRankLabel:'ర్యాంక్', kpiRankDetail:'ఇతర టెక్నీషియన్‌లలో',
+    payoutProgress:'ఈ వారం చెల్లింపు',
+    jcSplitTitle:'ఈ వారం JC విభజన', splitIntrip:'Intrip Fixes', splitRfd:'OOS → RFD Moves',
+    trendTitle:'8 వారాల ట్రెండ్',
+    thWeek:'వారం', thIntrip:'Intrip', thRfd:'OOS→RFD', thVoided:'రద్దు', thEligible:'లెక్క', thPayout:'చెల్లింపు',
+    leaderboardSubtitle:'ఈ వారం — లైవ్ ర్యాంకింగ్',
+    thRank:'ర్యాంక్', thTechnician:'టెక్నీషియన్', thHub:'Hub', thEligibleJCs:'లెక్కించిన JC', thTier:'టయర్', thEstPayout:'అంచనా చెల్లింపు',
+    howSubtitle:'ప్రోత్సాహక పథకం — అందరికీ',
+    overviewTitle:'📋 సమాచారం',
+    overviewBody:'ప్రతి వారం మీరు చేసిన <b>లెక్కించిన job cards</b> మీ టయర్‌ను నిర్ణయిస్తాయి. ముందు <b>50 JC</b> పూర్తి చేయాలి — తర్వాత ప్రతి JC కి డబ్బు వస్తుంది.',
+    tiersTitle:'🏆 చెల్లింపు టయర్లు',
+    exampleTitle:'🧮 ఉదాహరణ',
+    exampleBody:'మీరు ఈ వారం <b>75 JC</b> చేసినట్లైతే:<br>',
+    voidTitle:'🚫 రద్దు JC — ఏమి మినహాయించబడుతుంది',
+    voidBody:'అదే బైక్ <b>3 రోజుల్లో</b> తిరిగి వస్తే, ఆ JC <b>రద్దు</b> అవుతుంది.',
+    voidWhyTitle:'రద్దు ఎందుకు:',
+    voidWhyBody:'మీరు సరిచేసిన బైక్ 3 రోజుల్లో తిరిగి వస్తే — పని సరిగ్గా జరగలేదని అర్థం. ఆ JC లెక్కలోకి రాదు.',
+    countsLabel:'లెక్కలో ✓', countsDesc:'బైక్ సరిదిద్దబడింది<br>3 రోజుల్లో తిరిగి రాలేదు',
+    voidedLabel:'రద్దు ✗', voidedDesc:'బైక్ 3 రోజుల్లో<br>తిరిగి వచ్చింది',
+    capTitle:'వారపు పరిమితి', capDesc:'ఒక టెక్నీషియన్‌కు వారానికి గరిష్ట చెల్లింపు',
+    authTitle:'టెక్నీషియన్ ప్రోత్సాహకాలు',
+    authSub:'మీ ఇమెయిల్ నమోదు చేయండి — మేము లాగిన్ లింక్ పంపిస్తాం.',
+    authDomain:'Bounce టెక్నీషియన్లు &amp; సిబ్బంది',
+    authBtn:'లాగిన్ లింక్ పంపండి',
+    authSentTitle:'మీ ఇన్‌బాక్స్ చూడండి',
+    authSentBody:'లింక్ పంపబడింది<br/><b id="auth-sent-email"></b><br/>క్లిక్ చేయండి — 15 నిమిషాల్లో గడువు.',
+    authSentBack:'← వేరే ఇమెయిల్ వాడండి',
   }
 };
 
@@ -1555,7 +1592,7 @@ function setLang(lang, save) {
     sbClient.auth.updateUser({ data: { lang_pref: lang } }).catch(() => {});
   }
   // Update button active states
-  ['en','hi','kn'].forEach(l => {
+  ['en','hi','kn','te'].forEach(l => {
     const btn = document.getElementById('lang-' + l);
     if (!btn) return;
     if (l === lang) {
@@ -1586,6 +1623,21 @@ function setLang(lang, save) {
   }
 }
 
+/* ── LAST SYNC TIME ── */
+async function loadLastSyncTime(){
+  try{
+    const{data}=await sbClient.from('incentive_jc_log').select('synced_at').order('synced_at',{ascending:false}).limit(1).maybeSingle();
+    const el=document.getElementById('sync-note');
+    if(!el)return;
+    if(data?.synced_at){
+      const d=new Date(data.synced_at);
+      const ist=d.toLocaleString('en-IN',{timeZone:'Asia/Kolkata',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit',hour12:true});
+      el.textContent='Synced '+ist;
+      el.style.display='inline';
+    }
+  }catch(e){}
+}
+
 /* ── BOOT ── */
 (async function(){
   // Apply saved language immediately
@@ -1610,6 +1662,7 @@ function setLang(lang, save) {
     applyRoleView();
     await populateWeekSelector();
     loadDashboard();
+    loadLastSyncTime();
   }else{
     showAuthScreen();
   }
@@ -1629,6 +1682,7 @@ function setLang(lang, save) {
       applyRoleView();
       await populateWeekSelector();
       loadDashboard();
+      loadLastSyncTime();
     }else if(event==='SIGNED_OUT'){
       K=ANON_KEY;
       CURRENT_SESSION=null;
