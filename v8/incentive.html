@@ -105,6 +105,7 @@ body.pinned #main{margin-left:var(--sb-width)}
 /* ── KPI Cards ── */
 .kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:28px;}
 .kpi-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:18px;box-shadow:var(--shadow);}
+.kpi-card.kpi-highlight{background:linear-gradient(135deg,#EFF6FF 0%,#F0FDF4 100%);border-color:#BFDBFE;}
 .kpi-label{font-size:.72rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;}
 .kpi-value{font-size:2rem;font-weight:900;color:#0F172A;margin-bottom:4px;line-height:1;}
 .kpi-detail{font-size:.78rem;color:var(--muted);line-height:1.4;}
@@ -346,14 +347,14 @@ body.pinned #main{margin-left:var(--sb-width)}
           <div class="kpi-value" id="kpi-voided">—</div>
           <div class="kpi-detail" data-i18n="kpiVoidedDetail">Excluded from this week</div>
         </div>
-        <div class="kpi-card">
+        <div class="kpi-card kpi-highlight">
           <div class="kpi-label" data-i18n="kpiEligibleLabel">Eligible JCs This Week</div>
-          <div class="kpi-value" id="kpi-eligible">—</div>
+          <div class="kpi-value" id="kpi-eligible" style="font-size:2.6rem;">—</div>
           <div class="kpi-detail" data-i18n="kpiEligibleDetail">Job cards that qualify</div>
         </div>
-        <div class="kpi-card">
+        <div class="kpi-card kpi-highlight">
           <div class="kpi-label" id="kpi-payout-label" data-i18n="kpiPayoutLabel">Estimated Payout</div>
-          <div class="kpi-value" id="kpi-payout">₹ —</div>
+          <div class="kpi-value" id="kpi-payout" style="font-size:2.6rem;color:#15803D;">₹ —</div>
           <div class="kpi-detail" id="kpi-payout-detail" data-i18n="kpiPayoutDetail">Based on tier calculation</div>
         </div>
         <div class="kpi-card">
@@ -416,10 +417,11 @@ body.pinned #main{margin-left:var(--sb-width)}
               <th data-i18n="thVoided">Voided</th>
               <th data-i18n="thEligible">Eligible</th>
               <th data-i18n="thPayout">Payout</th>
+              <th data-i18n="thRank">Rank</th>
             </tr>
           </thead>
           <tbody id="trend-tbody">
-            <tr><td colspan="6" style="text-align:center;color:var(--muted);">Loading…</td></tr>
+            <tr><td colspan="7" style="text-align:center;color:var(--muted);">Loading…</td></tr>
           </tbody>
         </table>
       </div>
@@ -763,7 +765,9 @@ async function populateWeekSelector(){
     const sel=document.getElementById('week-select');
     if(!sel)return;
     const curWeek=formatDate(getWeekStart(new Date()));
-    const opts=weeks.map(w=>`<option value="${w}"${w===curWeek?' selected':''}>${formatDateRange(new Date(w))}</option>`).join('');
+    const prevSelected=sel.value&&sel.value!=='current'?sel.value:null;
+    const defaultWeek=prevSelected||curWeek;
+    const opts=weeks.map(w=>`<option value="${w}"${w===defaultWeek?' selected':''}>${formatDateRange(new Date(w))}</option>`).join('');
     sel.innerHTML=opts||`<option value="${curWeek}">Current Week</option>`;
   }catch(e){}
 }
@@ -868,9 +872,21 @@ async function loadDashboard(){
     const tierInfo=getTierInfo(eligible);
     updatePayoutBar(eligible,tierInfo);
 
-    // Load trend (8 weeks, from TECH_SINCE)
+    // Load trend (from TECH_SINCE) + compute per-week rank
     const{data:trendStats}=await sbClient.from('incentive_weekly_stats').select('*').eq('tech_name',techName).gte('week_start',TECH_SINCE).order('week_start',{ascending:false}).limit(52);
-    renderTrendTable(trendStats?.reverse()||[],selectedWeek);
+    const trendWeeks=(trendStats||[]).map(s=>s.week_start);
+    let rankByWeek={};
+    if(trendWeeks.length){
+      const{data:allWeekStats}=await sbClient.from('incentive_weekly_stats').select('tech_name,week_start,eligible_jcs').in('week_start',trendWeeks);
+      if(allWeekStats){
+        trendWeeks.forEach(w=>{
+          const sorted=allWeekStats.filter(r=>r.week_start===w).sort((a,b)=>(b.eligible_jcs||0)-(a.eligible_jcs||0));
+          const idx=sorted.findIndex(r=>r.tech_name===techName);
+          rankByWeek[w]=idx>=0?idx+1:null;
+        });
+      }
+    }
+    renderTrendTable(trendStats?.reverse()||[],selectedWeek,rankByWeek);
   }catch(e){
     console.error('Dashboard load error:',e);
   }
@@ -908,15 +924,16 @@ function updatePayoutBar(eligible,tierInfo){
   document.getElementById('payout-nudge').textContent=nudge;
 }
 
-function renderTrendTable(stats,currentWeek){
+function renderTrendTable(stats,currentWeek,rankByWeek){
   const tbody=document.getElementById('trend-tbody');
   if(!stats||stats.length===0){
-    tbody.innerHTML='<tr><td colspan="6">No data</td></tr>';
+    tbody.innerHTML='<tr><td colspan="7">No data</td></tr>';
     return;
   }
   tbody.innerHTML=stats.map((s,i)=>{
     const isCurrent=s.week_start===currentWeek;
     const range=formatDateRange(new Date(s.week_start));
+    const rank=rankByWeek&&rankByWeek[s.week_start]?`#${rankByWeek[s.week_start]}`:'—';
     return`<tr class="${isCurrent?'current':''}">
       <td><span class="${isCurrent?'good':'dim'}">${range}</span></td>
       <td>${s.intrip_jcs||0}</td>
@@ -924,6 +941,7 @@ function renderTrendTable(stats,currentWeek){
       <td>${s.voided_jcs||0}</td>
       <td><b>${s.eligible_jcs||0}</b></td>
       <td>${Math.round(calcPayout(s.eligible_jcs||0))}</td>
+      <td>${rank}</td>
     </tr>`;
   }).join('');
 }
