@@ -447,6 +447,35 @@ body.pinned #main{margin-left:var(--sb-width)}
         </div>
       </div>
 
+      <!-- Leaderboard summary KPI strip -->
+      <div class="kpi-grid" id="lb-kpi-grid" style="margin-bottom:20px;">
+        <div class="kpi-card">
+          <div class="kpi-label">Total Technicians</div>
+          <div class="kpi-value" id="lb-kpi-total">—</div>
+          <div class="kpi-detail">In the leaderboard</div>
+        </div>
+        <div class="kpi-card kpi-highlight">
+          <div class="kpi-label">Earners (≥50 JCs)</div>
+          <div class="kpi-value" id="lb-kpi-earners" style="font-size:2.6rem;">—</div>
+          <div class="kpi-detail">Crossed payout threshold</div>
+        </div>
+        <div class="kpi-card kpi-highlight">
+          <div class="kpi-label">Total Payout Pool</div>
+          <div class="kpi-value" id="lb-kpi-pool" style="font-size:2.6rem;color:#15803D;">₹ —</div>
+          <div class="kpi-detail">Sum of all est. payouts</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Avg Eligible JCs</div>
+          <div class="kpi-value" id="lb-kpi-avg">—</div>
+          <div class="kpi-detail">Across earners</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Top JCs</div>
+          <div class="kpi-value" id="lb-kpi-top">—</div>
+          <div class="kpi-detail" id="lb-kpi-top-name" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">—</div>
+        </div>
+      </div>
+
       <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px;box-shadow:var(--shadow);">
         <table class="leaderboard-table" id="leaderboard-table">
           <thead>
@@ -969,8 +998,23 @@ async function renderLeaderboard(){
 
     if(!stats||stats.length===0){
       tbody.innerHTML='<tr><td colspan="6">No data</td></tr>';
+      ['lb-kpi-total','lb-kpi-earners','lb-kpi-pool','lb-kpi-avg','lb-kpi-top'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent='—';});
       return;
     }
+
+    // Populate leaderboard summary KPIs
+    const earners=stats.filter(s=>(s.eligible_jcs||0)>=50);
+    const pool=stats.reduce((a,s)=>a+calcPayout(s.eligible_jcs||0),0);
+    const avgJcs=earners.length?Math.round(earners.reduce((a,s)=>a+(s.eligible_jcs||0),0)/earners.length):0;
+    const top=stats[0];
+    const lbKpiEl=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v;};
+    lbKpiEl('lb-kpi-total',stats.length);
+    lbKpiEl('lb-kpi-earners',earners.length);
+    lbKpiEl('lb-kpi-pool','₹ '+Math.round(pool).toLocaleString('en-IN'));
+    lbKpiEl('lb-kpi-avg',avgJcs);
+    lbKpiEl('lb-kpi-top',top?.eligible_jcs||'—');
+    const topNameEl=document.getElementById('lb-kpi-top-name');
+    if(topNameEl)topNameEl.textContent=top?top.tech_name:'—';
 
     // Fetch email map: tech_name → email via jc_name_aliases → hr_employees
     const techNames=stats.map(s=>s.tech_name);
