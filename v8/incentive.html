@@ -337,14 +337,9 @@ body.pinned #main{margin-left:var(--sb-width)}
       <!-- KPI Cards -->
       <div class="kpi-grid">
         <div class="kpi-card">
-          <div class="kpi-label" data-i18n="kpiEligibleLabel">Eligible JCs This Week</div>
-          <div class="kpi-value" id="kpi-eligible">—</div>
-          <div class="kpi-detail" data-i18n="kpiEligibleDetail">Job cards that qualify</div>
-        </div>
-        <div class="kpi-card">
-          <div class="kpi-label" data-i18n="kpiPayoutLabel">Estimated Payout</div>
-          <div class="kpi-value" id="kpi-payout">₹ —</div>
-          <div class="kpi-detail" id="kpi-payout-detail" data-i18n="kpiPayoutDetail">Based on tier calculation</div>
+          <div class="kpi-label" data-i18n="kpiTotalLabel">Total JCs This Week</div>
+          <div class="kpi-value" id="kpi-total">—</div>
+          <div class="kpi-detail" data-i18n="kpiTotalDetail">All billed job cards</div>
         </div>
         <div class="kpi-card">
           <div class="kpi-label" data-i18n="kpiVoidedLabel">Voided JCs</div>
@@ -352,8 +347,21 @@ body.pinned #main{margin-left:var(--sb-width)}
           <div class="kpi-detail" data-i18n="kpiVoidedDetail">Excluded from this week</div>
         </div>
         <div class="kpi-card">
+          <div class="kpi-label" data-i18n="kpiEligibleLabel">Eligible JCs This Week</div>
+          <div class="kpi-value" id="kpi-eligible">—</div>
+          <div class="kpi-detail" data-i18n="kpiEligibleDetail">Job cards that qualify</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label" id="kpi-payout-label" data-i18n="kpiPayoutLabel">Estimated Payout</div>
+          <div class="kpi-value" id="kpi-payout">₹ —</div>
+          <div class="kpi-detail" id="kpi-payout-detail" data-i18n="kpiPayoutDetail">Based on tier calculation</div>
+        </div>
+        <div class="kpi-card">
           <div class="kpi-label" data-i18n="kpiRankLabel">Leaderboard Rank</div>
-          <div class="kpi-value" id="kpi-rank">—</div>
+          <div style="display:flex;align-items:baseline;gap:8px;">
+            <div class="kpi-value" id="kpi-rank">—</div>
+            <div id="kpi-rank-delta" style="font-size:.9rem;font-weight:700;"></div>
+          </div>
           <div class="kpi-detail" id="kpi-rank-detail" data-i18n="kpiRankDetail">Among active earners</div>
         </div>
       </div>
@@ -369,9 +377,14 @@ body.pinned #main{margin-left:var(--sb-width)}
           <div class="payout-tier payout-tier-4" style="flex:0.3"><span>T4 · ₹100</span></div>
           <div class="payout-marker" id="payout-marker"></div>
         </div>
-        <div class="payout-label">
-          <span id="payout-label-left">50</span>
-          <span id="payout-label-right">Cap</span>
+        <!-- Tier boundary labels: 0 | 50 | 60 | 80 | 90 | Cap — match equal-width segments -->
+        <div style="position:relative;height:16px;">
+          <span style="position:absolute;left:0%;font-size:.6rem;color:var(--muted);font-weight:700;">0</span>
+          <span style="position:absolute;left:20%;font-size:.6rem;color:var(--muted);font-weight:700;transform:translateX(-50%)">50</span>
+          <span style="position:absolute;left:40%;font-size:.6rem;color:var(--muted);font-weight:700;transform:translateX(-50%)">60</span>
+          <span style="position:absolute;left:60%;font-size:.6rem;color:var(--muted);font-weight:700;transform:translateX(-50%)">80</span>
+          <span style="position:absolute;left:80%;font-size:.6rem;color:var(--muted);font-weight:700;transform:translateX(-50%)">90</span>
+          <span style="position:absolute;right:0%;font-size:.6rem;color:var(--muted);font-weight:700;">Cap</span>
         </div>
         <div class="payout-nudge" id="payout-nudge">Loading…</div>
       </div>
@@ -393,7 +406,7 @@ body.pinned #main{margin-left:var(--sb-width)}
 
       <!-- Trend Table -->
       <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px;box-shadow:var(--shadow);">
-        <div style="font-size:.85rem;font-weight:800;color:#0F172A;margin-bottom:14px;" data-i18n="trendTitle">8-Week Trend</div>
+        <div style="font-size:.85rem;font-weight:800;color:#0F172A;margin-bottom:14px;" data-i18n="trendTitle">Weekly Trend (from 15 Jun)</div>
         <table class="trend-table" id="trend-table">
           <thead>
             <tr>
@@ -810,11 +823,16 @@ async function loadDashboard(){
     const intrip=weekStats.intrip_jcs||0;
     const rfd=weekStats.submission_jcs||0;
     const voided=weekStats.voided_jcs||0;
+    const total=weekStats.total_jcs||0;
+    const isFrozen=weekStats.is_frozen||false;
     const payout=Math.round(calcPayout(eligible));
 
+    document.getElementById('kpi-total').textContent=total;
+    document.getElementById('kpi-voided').textContent=voided;
     document.getElementById('kpi-eligible').textContent=eligible;
     document.getElementById('kpi-payout').textContent='₹ '+payout;
-    document.getElementById('kpi-voided').textContent=voided;
+    const payoutLabelEl=document.getElementById('kpi-payout-label');
+    if(payoutLabelEl)payoutLabelEl.textContent=isFrozen?'Payout':'Estimated Payout';
     document.getElementById('split-intrip').textContent=intrip;
     document.getElementById('split-rfd').textContent=rfd;
 
@@ -824,28 +842,55 @@ async function loadDashboard(){
 
     // Get leaderboard rank for selected week
     const{data:allStats}=await sbClient.from('incentive_weekly_stats').select('tech_name,eligible_jcs').eq('week_start',selectedWeek).order('eligible_jcs',{ascending:false});
-    const rank=(allStats?.findIndex(s=>s.tech_name===techName)??-1)+1||'—';
+    const rank=(allStats?.findIndex(s=>s.tech_name===techName)??-1)+1||null;
     const earners=(allStats?.filter(s=>s.eligible_jcs>50)||[]).length;
     document.getElementById('kpi-rank').textContent=rank?`#${rank}`:'—';
     document.getElementById('kpi-rank-detail').textContent=`of ${earners} earners`;
+
+    // Rank delta vs previous week
+    const prevWeekDate=new Date(weekStart.getTime()-7*24*3600000);
+    const prevWeekStr=formatDate(prevWeekDate);
+    const{data:prevStats}=await sbClient.from('incentive_weekly_stats').select('tech_name,eligible_jcs').eq('week_start',prevWeekStr).order('eligible_jcs',{ascending:false});
+    const prevRank=(prevStats?.findIndex(s=>s.tech_name===techName)??-1)+1||null;
+    const deltaEl=document.getElementById('kpi-rank-delta');
+    if(deltaEl){
+      if(rank&&prevRank){
+        const delta=prevRank-rank; // positive = moved up
+        if(delta>0)deltaEl.innerHTML=`<span style="color:#16A34A">▲${delta}</span>`;
+        else if(delta<0)deltaEl.innerHTML=`<span style="color:#DC2626">▼${Math.abs(delta)}</span>`;
+        else deltaEl.innerHTML=`<span style="color:#6B7280">—</span>`;
+      } else {
+        deltaEl.textContent='';
+      }
+    }
 
     // Payout progress bar
     const tierInfo=getTierInfo(eligible);
     updatePayoutBar(eligible,tierInfo);
 
     // Load trend (8 weeks, from TECH_SINCE)
-    const{data:trendStats}=await sbClient.from('incentive_weekly_stats').select('*').eq('tech_name',techName).gte('week_start',TECH_SINCE).order('week_start',{ascending:false}).limit(8);
+    const{data:trendStats}=await sbClient.from('incentive_weekly_stats').select('*').eq('tech_name',techName).gte('week_start',TECH_SINCE).order('week_start',{ascending:false}).limit(52);
     renderTrendTable(trendStats?.reverse()||[],selectedWeek);
   }catch(e){
     console.error('Dashboard load error:',e);
   }
 }
 
+function jcToBarPct(jcs){
+  // Bar has 5 equal-width segments: [0-50] [51-60] [61-80] [81-90] [91+]
+  // Each = 20% of bar width
+  if(jcs<=0)return 0;
+  if(jcs<=50)return(jcs/50)*20;
+  if(jcs<=60)return 20+((jcs-50)/10)*20;
+  if(jcs<=80)return 40+((jcs-60)/20)*20;
+  if(jcs<=90)return 60+((jcs-80)/10)*20;
+  return Math.min(98,80+((jcs-90)/20)*20);
+}
+
 function updatePayoutBar(eligible,tierInfo){
   const marker=document.getElementById('payout-marker');
   const barWidth=document.getElementById('payout-bar').offsetWidth;
-  const markerPos=(eligible/90)*barWidth;
-  marker.style.left=markerPos+'px';
+  marker.style.left=(jcToBarPct(eligible)/100*barWidth)+'px';
   marker.classList.add('show');
 
   let nudge='';
@@ -1449,13 +1494,14 @@ const TRANSLATIONS = {
   en: {
     signOut:'Sign out',
     tabDashboard:'My Dashboard', tabLeaderboard:'Leaderboard', tabHowItWorks:'How It Works', tabAdmin:'Admin',
+    kpiTotalLabel:'Total JCs This Week', kpiTotalDetail:'All billed job cards',
+    kpiVoidedLabel:'Voided JCs', kpiVoidedDetail:'Excluded from this week',
     kpiEligibleLabel:'Eligible JCs This Week', kpiEligibleDetail:'Job cards that qualify',
     kpiPayoutLabel:'Estimated Payout', kpiPayoutDetail:'Based on tier calculation',
-    kpiVoidedLabel:'Voided JCs', kpiVoidedDetail:'Excluded from this week',
     kpiRankLabel:'Leaderboard Rank', kpiRankDetail:'Among active earners',
     payoutProgress:'Payout Progress — This Week',
     jcSplitTitle:'JC Split This Week', splitIntrip:'Intrip Fixes', splitRfd:'OOS → RFD Moves',
-    trendTitle:'8-Week Trend',
+    trendTitle:'Weekly Trend (from 15 Jun)',
     thWeek:'Week', thIntrip:'Intrip', thRfd:'OOS→RFD', thVoided:'Voided', thEligible:'Eligible', thPayout:'Payout',
     leaderboardSubtitle:'Current week — live rankings',
     thRank:'Rank', thTechnician:'Technician', thHub:'Hub', thEligibleJCs:'Eligible JCs', thTier:'Tier', thEstPayout:'Est. Payout',
@@ -1483,13 +1529,14 @@ const TRANSLATIONS = {
   hi: {
     signOut:'लॉग आउट',
     tabDashboard:'मेरा डैशबोर्ड', tabLeaderboard:'लीडरबोर्ड', tabHowItWorks:'कैसे काम करता है', tabAdmin:'एडमिन',
+    kpiTotalLabel:'इस हफ्ते कुल JC', kpiTotalDetail:'सभी बिल्ड JC',
+    kpiVoidedLabel:'रद्द JC', kpiVoidedDetail:'इस हफ्ते नहीं गिने',
     kpiEligibleLabel:'इस हफ्ते के JC', kpiEligibleDetail:'जो JC गिने जाएंगे',
     kpiPayoutLabel:'अनुमानित पेमेंट', kpiPayoutDetail:'टियर के हिसाब से',
-    kpiVoidedLabel:'रद्द JC', kpiVoidedDetail:'इस हफ्ते नहीं गिने',
     kpiRankLabel:'रैंक', kpiRankDetail:'अन्य टेक्नीशियनों में',
     payoutProgress:'इस हफ्ते का पेमेंट',
     jcSplitTitle:'इस हफ्ते JC टूटना', splitIntrip:'Intrip Fixes', splitRfd:'OOS → RFD Moves',
-    trendTitle:'8 हफ्तों का ट्रेंड',
+    trendTitle:'वीकली ट्रेंड (15 Jun से)',
     thWeek:'हफ्ता', thIntrip:'Intrip', thRfd:'OOS→RFD', thVoided:'रद्द', thEligible:'गिने गए', thPayout:'पेमेंट',
     leaderboardSubtitle:'इस हफ्ते — लाइव रैंकिंग',
     thRank:'रैंक', thTechnician:'टेक्नीशियन', thHub:'Hub', thEligibleJCs:'गिने गए JC', thTier:'टियर', thEstPayout:'अनुमानित पेमेंट',
@@ -1517,13 +1564,14 @@ const TRANSLATIONS = {
   kn: {
     signOut:'ಲಾಗ್ ಔಟ್',
     tabDashboard:'ನನ್ನ ಡ್ಯಾಶ್‌ಬೋರ್ಡ್', tabLeaderboard:'ಲೀಡರ್‌ಬೋರ್ಡ್', tabHowItWorks:'ಹೇಗೆ ಕೆಲಸ ಮಾಡುತ್ತದೆ', tabAdmin:'ಅಡ್ಮಿನ್',
+    kpiTotalLabel:'ಈ ವಾರ ಒಟ್ಟು JC', kpiTotalDetail:'ಎಲ್ಲ ಬಿಲ್ ಮಾಡಿದ JC',
+    kpiVoidedLabel:'ರದ್ದಾದ JC', kpiVoidedDetail:'ಈ ವಾರ ಲೆಕ್ಕಕ್ಕಿಲ್ಲ',
     kpiEligibleLabel:'ಈ ವಾರ JC ಗಳು', kpiEligibleDetail:'ಲೆಕ್ಕ ಹಾಕಲ್ಪಡುವ JC ಗಳು',
     kpiPayoutLabel:'ಅಂದಾಜು ಹಣ', kpiPayoutDetail:'ಟಿಯರ್ ಪ್ರಕಾರ',
-    kpiVoidedLabel:'ರದ್ದಾದ JC', kpiVoidedDetail:'ಈ ವಾರ ಲೆಕ್ಕಕ್ಕಿಲ್ಲ',
     kpiRankLabel:'ರ್ಯಾಂಕ್', kpiRankDetail:'ಇತರ ಟೆಕ್ನಿಶಿಯನ್‌ಗಳಲ್ಲಿ',
     payoutProgress:'ಈ ವಾರ ಹಣ — ಮುಂದುವರಿಕೆ',
     jcSplitTitle:'ಈ ವಾರ JC ವಿಭಜನೆ', splitIntrip:'Intrip Fixes', splitRfd:'OOS → RFD Moves',
-    trendTitle:'8 ವಾರಗಳ ಟ್ರೆಂಡ್',
+    trendTitle:'ವಾರದ ಟ್ರೆಂಡ್ (15 Jun ನಿಂದ)',
     thWeek:'ವಾರ', thIntrip:'Intrip', thRfd:'OOS→RFD', thVoided:'ರದ್ದು', thEligible:'ಲೆಕ್ಕ', thPayout:'ಹಣ',
     leaderboardSubtitle:'ಈ ವಾರ — ಲೈವ್ ರ್ಯಾಂಕಿಂಗ್',
     thRank:'ರ್ಯಾಂಕ್', thTechnician:'ಟೆಕ್ನಿಶಿಯನ್', thHub:'Hub', thEligibleJCs:'ಲೆಕ್ಕದ JC', thTier:'ಟಿಯರ್', thEstPayout:'ಅಂದಾಜು ಹಣ',
@@ -1551,13 +1599,14 @@ const TRANSLATIONS = {
   te: {
     signOut:'సైన్ అవుట్',
     tabDashboard:'నా డాష్‌బోర్డ్', tabLeaderboard:'లీడర్‌బోర్డ్', tabHowItWorks:'ఎలా పని చేస్తుంది', tabAdmin:'అడ్మిన్',
+    kpiTotalLabel:'ఈ వారం మొత్తం JC', kpiTotalDetail:'అన్ని బిల్ చేసిన JC లు',
+    kpiVoidedLabel:'రద్దు చేసిన JC', kpiVoidedDetail:'ఈ వారం లెక్కలో లేవు',
     kpiEligibleLabel:'ఈ వారం JC లు', kpiEligibleDetail:'లెక్కించబడే JC లు',
     kpiPayoutLabel:'అంచనా చెల్లింపు', kpiPayoutDetail:'టయర్ ప్రకారం',
-    kpiVoidedLabel:'రద్దు చేసిన JC', kpiVoidedDetail:'ఈ వారం లెక్కలో లేవు',
     kpiRankLabel:'ర్యాంక్', kpiRankDetail:'ఇతర టెక్నీషియన్‌లలో',
     payoutProgress:'ఈ వారం చెల్లింపు',
     jcSplitTitle:'ఈ వారం JC విభజన', splitIntrip:'Intrip Fixes', splitRfd:'OOS → RFD Moves',
-    trendTitle:'8 వారాల ట్రెండ్',
+    trendTitle:'వారపు ట్రెండ్ (15 Jun నుండి)',
     thWeek:'వారం', thIntrip:'Intrip', thRfd:'OOS→RFD', thVoided:'రద్దు', thEligible:'లెక్క', thPayout:'చెల్లింపు',
     leaderboardSubtitle:'ఈ వారం — లైవ్ ర్యాంకింగ్',
     thRank:'ర్యాంక్', thTechnician:'టెక్నీషియన్', thHub:'Hub', thEligibleJCs:'లెక్కించిన JC', thTier:'టయర్', thEstPayout:'అంచనా చెల్లింపు',
