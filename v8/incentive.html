@@ -47,7 +47,7 @@
 body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
 
 /* ── Overlay ── */
-#ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:1050;backdrop-filter:blur(2px)}
+#ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:150;backdrop-filter:blur(2px)}
 #ov.show{display:block}
 
 /* ── Sidebar ── */
@@ -55,6 +55,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
 #sb.open{transform:translateX(0)}
 body.pinned #sb{transform:translateX(0)}
 body.pinned #main{margin-left:var(--sb-width)}
+body.pinned #hbg{display:none}
 .sb-header{padding:20px 16px 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,.06)}
 .sb-brand{display:flex;align-items:center;gap:10px;text-decoration:none}
 @keyframes morph{0%,100%{border-radius:60% 40% 55% 45%/50% 60% 40% 50%}33%{border-radius:40% 60% 45% 55%/60% 40% 60% 40%}66%{border-radius:55% 45% 60% 40%/40% 55% 45% 60%}}
