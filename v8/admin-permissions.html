@@ -304,10 +304,12 @@ function doSignOut(){sb.auth.signOut().then(function(){window.location.reload();
 function onAuthSession(session){
   K=session.access_token;
   var isSA=(session.user.app_metadata||{}).is_superadmin===true;
-  var isAdmin=isSA; // for now only superadmins reach this page
-  if(!isAdmin){show('denied-screen');return;}
-  document.getElementById('secret-gate-user').textContent='Signed in as '+session.user.email;
+  if(!isSA){show('denied-screen');return;}
   document.getElementById('topbar-user').textContent=session.user.email;
+  // Auto-unlock if secret was saved previously
+  var saved=localStorage.getItem('fp_admin_secret');
+  if(saved){ADMIN_SECRET=saved;loadAll();return;}
+  document.getElementById('secret-gate-user').textContent='Signed in as '+session.user.email;
   show('secret-gate');
   document.getElementById('admin-secret-input').focus();
 }
@@ -326,6 +328,7 @@ function unlockAdmin(){
   var s=document.getElementById('admin-secret-input').value.trim();
   if(!s){document.getElementById('lock-err').textContent='Enter the admin secret';return;}
   ADMIN_SECRET=s;
+  localStorage.setItem('fp_admin_secret',s);
   document.getElementById('lock-err').textContent='';
   loadAll();
 }
