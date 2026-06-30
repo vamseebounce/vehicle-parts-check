@@ -762,6 +762,7 @@ document.addEventListener('click',function(e){var p=document.getElementById('lay
 // ── Auth ──
 function showAuthScreen(){document.getElementById('auth-screen').classList.remove('hidden');}
 function hideAuthScreen(){document.getElementById('auth-screen').classList.add('hidden');}
+function logPageView(email){try{fetch(SB_URL+'/rest/v1/page_events',{method:'POST',headers:{apikey:ANON_KEY,Authorization:'Bearer '+K,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify({user_email:email,page:'trace-ho.html'})});}catch(_){}}
 async function sendMagicLink(){
   var email=document.getElementById('auth-email').value.trim().toLowerCase();
   var msg=document.getElementById('auth-msg'),btn=document.getElementById('auth-submit');
@@ -801,6 +802,7 @@ async function activateSession(session){
   K=session.access_token;
   var ok=await loadAndApplyPermissions(session);
   if(!ok)return;
+  logPageView(session.user.email);
   hideAuthScreen();
   document.getElementById('logout-btn').style.display='block';
   _authReady=true;

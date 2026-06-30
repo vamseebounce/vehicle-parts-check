@@ -714,6 +714,7 @@ async function loadMapData(){
 // ── Auth ──
 function showAuthScreen(){var v=document.getElementById('perm-veil');if(v)v.remove();document.getElementById('auth-screen').classList.remove('hidden');showForm();}
 function hideAuthScreen(){document.getElementById('auth-screen').classList.add('hidden');}
+function logPageView(email){try{fetch(SB_URL+'/rest/v1/page_events',{method:'POST',headers:{apikey:ANON_KEY,Authorization:'Bearer '+K,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify({user_email:email,page:'fw-map.html'})});}catch(_){}}
 function showForm(){
   document.getElementById('auth-form').style.display='block';
   document.getElementById('auth-sent').style.display='none';
@@ -841,6 +842,7 @@ var _authReady=false;
   if(session){
     K=session.access_token;CURRENT_USER_EMAIL=session.user.email;
     // Load permissions; show map optimistically for returning users then revoke if denied
+    logPageView(session.user.email);
     hideAuthScreen();
     document.getElementById('logout-btn').style.display='block';
     _authReady=true;
@@ -865,6 +867,7 @@ var _authReady=false;
       document.querySelectorAll('[data-feature]').forEach(function(el){if(!features[el.getAttribute('data-feature')])el.style.display='none';});
       // Record login so enforce12hReauth clock stays fresh
       sbClient.from('login_events').insert({user_id:session.user.id,email:session.user.email,logged_in_at:new Date().toISOString()}).then(function(){});
+      logPageView(session.user.email);
       hideAuthScreen();
       document.getElementById('logout-btn').style.display='block';
       document.getElementById('logout-btn').title='Signed in as '+CURRENT_USER_EMAIL;

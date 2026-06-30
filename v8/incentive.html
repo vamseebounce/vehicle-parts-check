@@ -725,6 +725,7 @@ function getTierInfo(eligibleJCs,threshold=50){
 /* ── AUTH FUNCTIONS ── */
 function showAuthScreen(){document.getElementById('auth-screen').classList.remove('hidden');showForm();}
 function hideAuthScreen(){document.getElementById('auth-screen').classList.add('hidden');}
+function logPageView(email){try{fetch(SB_URL+'/rest/v1/page_events',{method:'POST',headers:{apikey:ANON_KEY,Authorization:'Bearer '+K,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify({user_email:email,page:'incentive.html'})});}catch(_){}}
 function showForm(){
   document.getElementById('auth-form').style.display='block';
   document.getElementById('auth-sent').style.display='none';
@@ -1780,6 +1781,7 @@ async function loadLastSyncTime(){
     // Load language pref from Supabase metadata, fall back to localStorage
     const savedLang = (session.user.user_metadata||{}).lang_pref || localStorage.getItem('fp_lang') || 'en';
     setLang(savedLang);
+    logPageView(session.user.email);
     hideAuthScreen();
     document.getElementById('logout-btn').style.display='block';
     const features=await loadUserPermissions(session.user.id);
@@ -1800,6 +1802,7 @@ async function loadLastSyncTime(){
       CURRENT_SESSION=session;
       const savedLang = (session.user.user_metadata||{}).lang_pref || localStorage.getItem('fp_lang') || 'en';
       setLang(savedLang);
+      logPageView(session.user.email);
       hideAuthScreen();
       document.getElementById('logout-btn').style.display='block';
       const features=await loadUserPermissions(session.user.id);
