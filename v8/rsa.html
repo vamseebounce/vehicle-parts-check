@@ -596,6 +596,7 @@ function ticketPopup(t){
     +'<div class="p-ticket">'+t.ticket_number+'</div>'
     +'<span class="p-status '+effStatus(t)+'">'+effStatus(t).replace('_',' ')+'</span>'
     +'<div class="p-row"><b>Reg:</b> '+(t.reg_number||'--')+(t.city?' · <span style="background:#EEF2FF;color:#4F46E5;font-size:.65rem;font-weight:700;padding:1px 5px;border-radius:4px">'+t.city+'</span>':'')+'</div>'
+    +(t.customer_name||t.customer_phone?'<div class="p-row"><b>Customer:</b> '+(t.customer_name||'--')+(t.customer_phone?' · <a href="tel:'+t.customer_phone+'" style="color:#1D4ED8;text-decoration:none;font-weight:600">📞 '+t.customer_phone+'</a>':'')+'</div>':'')
     +'<div class="p-row"><b>Category:</b> '+(t.category||'--')+'</div>'
     +'<div class="p-row"><b>Fault:</b> '+(t.fault_details||'--')+'</div>'
     +'<div class="p-row"><b>Technician:</b> '+(t.technician_name||'Not assigned')+'</div>'
@@ -909,7 +910,7 @@ var _syncTimer=null;
 
 async function readFromSupabase(from,to){
   var url=SB_URL+'/rest/v1/rsa_tickets_live'
-    +'?select=ticket_number,status,effective_status,category,reg_number,technician_name,fault_details,created_at_ist,inprogress_at_ist,resolved_at_ist,tat_minutes,city,lat,lng,display_lat,display_lng'
+    +'?select=ticket_number,status,effective_status,category,reg_number,technician_name,fault_details,created_at_ist,inprogress_at_ist,resolved_at_ist,tat_minutes,city,lat,lng,display_lat,display_lng,customer_name,customer_phone'
     +'&created_at_ist=gte.'+from
     +'&created_at_ist=lte.'+to+'T23%3A59%3A59'
     +'&limit=5000&order=created_at_ist.desc';
