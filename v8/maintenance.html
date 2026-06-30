@@ -383,6 +383,10 @@ body.pinned #main{margin-left:var(--sb-width)}
   </div>
   <div class="sb-spacer"></div>
   <div class="sb-footer"><div class="sb-ver">FleetPro v8 · Data synced hourly</div></div>
+  <div class="sb-section" style="margin-top:8px" data-feature="admin-panel">
+    <div class="sb-label">Admin</div>
+    <a href="./admin-analytics.html" class="sb-item" data-feature="admin-panel"><span class="si">📊</span><span>Analytics</span></a>
+  </div>
 </nav>
 
 <!-- Main -->
@@ -491,6 +495,7 @@ var sbClient=supabase.createClient(SB_URL,ANON_KEY,{auth:{persistSession:true,st
 
 function showAuthScreen(){var v=document.getElementById('perm-veil');if(v)v.remove();document.getElementById('auth-screen').classList.remove('hidden');showForm();}
 function hideAuthScreen(){document.getElementById('auth-screen').classList.add('hidden');}
+function logPageView(email){try{fetch(SB_URL+'/rest/v1/page_events',{method:'POST',headers:{apikey:ANON_KEY,Authorization:'Bearer '+K,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify({user_email:email,page:'maintenance.html'})});}catch(_){}}
 function showForm(){
   document.getElementById('auth-form').style.display='block';
   document.getElementById('auth-sent').style.display='none';
@@ -579,6 +584,7 @@ function loadPostAuthData(){
     var{data:{session:s2}}=await sbClient.auth.getSession();
     if(!s2){showAuthScreen();return;}
     K=s2.access_token;CURRENT_USER_EMAIL=s2.user.email;
+    logPageView(s2.user.email);
     hideAuthScreen();
     document.getElementById('logout-btn').style.display='block';
     document.getElementById('fb-fab').style.display='flex';

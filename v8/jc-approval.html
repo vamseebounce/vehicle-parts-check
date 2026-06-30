@@ -202,6 +202,7 @@ body.pinned #hbg{display:none}
       <a href="./admin-techs.html" class="sb-item" data-feature="admin-panel"><span class="si">👥</span><span>Technicians</span></a>
       <a href="./admin-permissions.html" class="sb-item" data-feature="admin-panel"><span class="si">🔐</span><span>Permissions</span></a>
       <a href="./jc-approval.html" class="sb-item active" data-feature="admin-panel"><span class="si">🔧</span><span>JC Approval Check</span></a>
+    <a href="./admin-analytics.html" class="sb-item" data-feature="admin-panel"><span class="si">📊</span><span>Analytics</span></a>
     </div>
     <div class="sb-section" style="margin-top:4px" data-feature="incentive-tech">
       <div class="sb-label">Incentives</div>
@@ -311,6 +312,7 @@ var K=ANON_KEY;
 // ── Auth helpers ──
 function showAuthScreen(){document.getElementById('auth-screen').classList.remove('hidden');showForm();}
 function hideAuthScreen(){document.getElementById('auth-screen').classList.add('hidden');}
+function logPageView(email){try{fetch(SB_URL+'/rest/v1/page_events',{method:'POST',headers:{apikey:ANON_KEY,Authorization:'Bearer '+K,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify({user_email:email,page:'jc-approval.html'})});}catch(_){}}
 function showForm(){
   document.getElementById('auth-form').style.display='block';
   document.getElementById('auth-sent').style.display='none';
@@ -346,6 +348,7 @@ function isSuperadmin(session){
 function applyGate(session){
   CURRENT_USER_EMAIL=session.user.email;
   K=session.access_token;
+  logPageView(session.user.email);
   hideAuthScreen();
   document.getElementById('main').style.display='flex';
   document.getElementById('app').style.display='flex';

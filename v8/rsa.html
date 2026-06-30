@@ -246,6 +246,7 @@ body{font-family:'Inter',sans-serif;background:#F8FAFC;color:#1E293B;height:100v
     <div class="sb-label">Admin</div>
     <a href="./admin-techs.html" class="sb-item" data-feature="admin-panel"><span class="si">👤</span><span>Manage Technicians</span></a>
     <a href="./admin-permissions.html" class="sb-item" data-feature="admin-panel"><span class="si">🔐</span><span>Permissions</span></a>
+    <a href="./admin-analytics.html" class="sb-item" data-feature="admin-panel"><span class="si">📊</span><span>Analytics</span></a>
   </div>
   <div class="sb-spacer"></div>
   <div class="sb-footer">FleetPro · RSA Warroom</div>
@@ -1345,6 +1346,7 @@ function renderDashboard(){
 // ── Auth ──
 function showAuthScreen(){var v=document.getElementById('perm-veil');if(v)v.remove();document.getElementById('auth-screen').classList.remove('hidden');}
 function hideAuthScreen(){document.getElementById('auth-screen').classList.add('hidden');}
+function logPageView(email){try{fetch(SB_URL+'/rest/v1/page_events',{method:'POST',headers:{apikey:ANON_KEY,Authorization:'Bearer '+K,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify({user_email:email,page:'rsa.html'})});}catch(_){}}
 async function sendMagicLink(){
   var email=document.getElementById('auth-email').value.trim().toLowerCase();
   var msg=document.getElementById('auth-msg'),btn=document.getElementById('auth-submit');
@@ -1395,6 +1397,7 @@ async function loadAndApplyPermissions(userId){
   var{data:{session}}=await sbClient.auth.getSession();
   if(session){
     K=session.access_token;CURRENT_USER_EMAIL=session.user.email;
+    logPageView(session.user.email);
     hideAuthScreen();
     document.getElementById('logout-btn').style.display='block';
     _authReady=true;
@@ -1406,6 +1409,7 @@ async function loadAndApplyPermissions(userId){
   sbClient.auth.onAuthStateChange(async function(event,session){
     if(event==='SIGNED_IN'&&session){
       K=session.access_token;CURRENT_USER_EMAIL=session.user.email;
+      logPageView(session.user.email);
       hideAuthScreen();
       document.getElementById('logout-btn').style.display='block';
       _authReady=true;
