@@ -585,9 +585,9 @@ body.pinned #hbg{display:none}
 
       <!-- Cap -->
       <div style="background:linear-gradient(135deg,#1A1A2E,#0f2460);border-radius:14px;padding:24px;color:#fff;text-align:center;">
-        <div style="font-size:1rem;font-weight:800;margin-bottom:6px;" data-i18n="capTitle">Weekly Cap</div>
+        <div style="font-size:1rem;font-weight:800;margin-bottom:6px;" data-i18n="capTitle">🎯 Earn up to ₹5,000 every week!</div>
         <div style="font-size:2.5rem;font-weight:900;color:#FCD34D;">₹5,000</div>
-        <div style="font-size:.78rem;color:rgba(255,255,255,.65);margin-top:6px;" data-i18n="capDesc">Maximum incentive payout per technician per week</div>
+        <div style="font-size:.78rem;color:rgba(255,255,255,.65);margin-top:6px;" data-i18n="capDesc">Top performers can take home ₹5,000 per week — that's ₹20,000+ a month</div>
       </div>
     </div>
 
@@ -1004,6 +1004,8 @@ async function renderLeaderboard(){
     }
 
     // Populate leaderboard summary KPIs
+    const isFrozenWeek=stats.some(s=>s.is_frozen);
+    const payoutLabel=isFrozenWeek?'Payout':'Est. Payout';
     const earners=stats.filter(s=>(s.eligible_jcs||0)>=50);
     const pool=stats.reduce((a,s)=>a+calcPayout(s.eligible_jcs||0),0);
     const avgJcs=earners.length?Math.round(earners.reduce((a,s)=>a+(s.eligible_jcs||0),0)/earners.length):0;
@@ -1011,9 +1013,15 @@ async function renderLeaderboard(){
     const lbKpiEl=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v;};
     lbKpiEl('lb-kpi-total',stats.length);
     lbKpiEl('lb-kpi-earners',earners.length);
+    // Pool label
+    const poolLabelEl=document.querySelector('#lb-kpi-pool~*')||document.getElementById('lb-kpi-pool')?.closest('.kpi-card')?.querySelector('.kpi-detail');
+    if(poolLabelEl)poolLabelEl.textContent=isFrozenWeek?'Sum of all payouts':'Sum of all est. payouts';
     lbKpiEl('lb-kpi-pool','₹ '+Math.round(pool).toLocaleString('en-IN'));
     lbKpiEl('lb-kpi-avg',avgJcs);
     lbKpiEl('lb-kpi-top',top?.eligible_jcs||'—');
+    // Update column header
+    const thPayout=document.querySelector('#leaderboard-table th[data-i18n="thEstPayout"]');
+    if(thPayout)thPayout.textContent=payoutLabel;
     const topNameEl=document.getElementById('lb-kpi-top-name');
     if(topNameEl)topNameEl.textContent=top?top.tech_name:'—';
 
