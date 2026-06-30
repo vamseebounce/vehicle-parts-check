@@ -2,68 +2,213 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>FleetPro — Permissions</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <style>
-  *{box-sizing:border-box;margin:0;padding:0}
-  :root{--bg:#0a0f1e;--card:#111827;--border:#1e2d45;--teal:#14b8a6;--red:#ef4444;--muted:#64748b;--text:#f1f5f9}
-  body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh}
-  #lock-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;gap:16px;padding:24px}
-  #lock-screen h2{font-size:20px;font-weight:700}
-  #lock-screen input{background:#0f172a;border:1.5px solid var(--border);border-radius:8px;padding:10px 14px;font-size:14px;color:var(--text);width:280px;outline:none}
-  #app{display:none;padding:24px;max-width:1100px;margin:0 auto}
-  .header{display:flex;align-items:center;gap:12px;margin-bottom:24px}
-  .header h1{font-size:20px;font-weight:700}
-  .header span{color:var(--muted);font-size:13px}
-  .tabs{display:flex;gap:4px;margin-bottom:24px;border-bottom:1px solid var(--border);padding-bottom:0}
-  .tab{padding:10px 20px;font-size:13px;font-weight:600;cursor:pointer;border-radius:8px 8px 0 0;color:var(--muted);border:1px solid transparent;border-bottom:none;margin-bottom:-1px}
-  .tab.active{background:var(--card);color:var(--teal);border-color:var(--border)}
-  .panel{display:none}.panel.active{display:block}
-  .card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:20px}
-  .card-title{font-size:14px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:16px;display:flex;align-items:center;gap:8px}
-  table{width:100%;border-collapse:collapse;font-size:13px}
-  th{text-align:left;font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.5px;text-transform:uppercase;padding:8px 12px;border-bottom:1px solid var(--border)}
-  td{padding:10px 12px;border-bottom:1px solid var(--border);vertical-align:middle}
-  td:first-child{font-weight:500;color:var(--text)}
-  tr:last-child td{border-bottom:none}
-  .cb-cell{text-align:center}
-  input[type=checkbox]{width:16px;height:16px;accent-color:var(--teal);cursor:pointer}
-  input[type=checkbox]:disabled{opacity:.3;cursor:not-allowed}
-  .btn{padding:8px 16px;border-radius:8px;border:none;font-size:13px;font-weight:600;cursor:pointer;transition:opacity .15s}
-  .btn:disabled{opacity:.4;cursor:not-allowed}
-  .btn-teal{background:var(--teal);color:#000}
-  .btn-ghost{background:transparent;color:var(--muted);border:1px solid var(--border)}
-  .btn-red{background:var(--red);color:#fff}
-  .badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.3px}
-  .badge-teal{background:#0d3d38;color:var(--teal)}
-  .badge-muted{background:#1e2d45;color:var(--muted)}
-  .msg{font-size:12px;padding:8px 12px;border-radius:6px;margin-top:8px;display:none}
-  .msg.error{background:#3b1010;color:#f87171;display:block}
-  .msg.success{background:#0d2e28;color:#34d399;display:block}
-  .new-group-row{display:flex;gap:8px;align-items:center;margin-top:12px;flex-wrap:wrap}
-  .new-group-row input{background:#0f172a;border:1.5px solid var(--border);border-radius:8px;padding:8px 12px;font-size:13px;color:var(--text);outline:none;flex:1;min-width:140px}
-  .spin{display:inline-block;width:14px;height:14px;border:2px solid var(--border);border-top-color:var(--teal);border-radius:50%;animation:spin .6s linear infinite;vertical-align:middle;margin-right:6px}
-  @keyframes spin{to{transform:rotate(360deg)}}
-  .loading{text-align:center;padding:32px;color:var(--muted)}
-  .user-email{font-size:12px;color:var(--muted)}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',sans-serif;background:#F8FAFC;color:#1E293B;min-height:100vh}
+:root{--brand:#E8191C;--teal:#14b8a6;--border:#E5E7EB;--card:#fff;--muted:#94A3B8;--red:#EF4444;--green:#22C55E}
+
+/* Sidebar */
+#sb{position:fixed;top:0;left:0;height:100vh;width:238px;background:#fff;border-right:1px solid var(--border);z-index:800;transform:translateX(-100%);transition:transform .22s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;overflow-y:auto}
+#sb.open{transform:translateX(0)}
+#ov{position:fixed;inset:0;background:rgba(0,0,0,.18);z-index:799;display:none}
+#ov.show{display:block}
+.sb-header{display:flex;align-items:center;justify-content:space-between;padding:14px 14px 8px}
+.sb-brand{display:flex;align-items:center;gap:7px;font-size:.82rem;font-weight:800;color:var(--brand);text-decoration:none}
+.sb-close{background:none;border:none;font-size:1.1rem;cursor:pointer;color:#6B7280;padding:2px 6px}
+.sb-section{padding:6px 10px}
+.sb-label{font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:#9CA3AF;padding:4px 6px 6px}
+.sb-item{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:10px;text-decoration:none;color:#374151;font-size:.82rem;font-weight:500;transition:all .15s;margin-bottom:2px}
+.sb-item:hover{background:#F1F5F9;color:#0F172A}
+.sb-item.active{background:rgba(232,25,28,.12);color:#E8191C;font-weight:600}
+.si{font-size:.95rem;width:18px;text-align:center}
+.sb-spacer{flex:1}
+.sb-footer{padding:10px 16px 16px;font-size:.65rem;color:#9CA3AF}
+#hbg{background:none;border:none;cursor:pointer;padding:5px;display:flex;flex-direction:column;gap:4px;margin-right:4px}
+#hbg span{display:block;width:18px;height:2px;background:#374151;border-radius:2px}
+
+/* Auth / Gate screens */
+.gate{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;gap:16px;padding:32px}
+.gate h2{font-size:20px;font-weight:800;color:#0F172A}
+.gate p{font-size:13px;color:var(--muted)}
+.gate-card{background:#fff;border:1px solid var(--border);border-radius:16px;padding:32px;width:100%;max-width:340px;display:flex;flex-direction:column;gap:12px;box-shadow:0 4px 24px rgba(0,0,0,.06)}
+.gate-input{background:#F8FAFC;border:1.5px solid var(--border);border-radius:8px;padding:10px 12px;font-size:14px;color:#1E293B;outline:none;font-family:'Inter',sans-serif;transition:border-color .15s}
+.gate-input:focus{border-color:var(--teal)}
+
+/* Topbar */
+#topbar{position:sticky;top:0;background:#fff;border-bottom:1px solid var(--border);padding:0 14px;height:50px;display:flex;align-items:center;gap:10px;z-index:500;display:none}
+.tb-brand{display:flex;align-items:center;gap:6px;font-size:.82rem;font-weight:800;color:var(--brand);text-decoration:none}
+.tb-sep{color:#D1D5DB}
+.tb-title{font-size:.88rem;font-weight:800;color:#0F172A}
+.tb-right{display:flex;align-items:center;gap:8px;margin-left:auto}
+.tb-btn{background:#fff;border:1.5px solid var(--border);border-radius:8px;padding:5px 11px;font-size:.73rem;font-weight:600;color:#374151;cursor:pointer;font-family:'Inter',sans-serif;transition:all .15s}
+.tb-btn:hover{border-color:var(--brand);color:var(--brand)}
+
+/* Page content */
+.container{max-width:1100px;margin:0 auto;padding:24px}
+.page-header{display:flex;align-items:center;gap:12px;margin-bottom:24px}
+.page-header h1{font-size:20px;font-weight:800;color:#0F172A}
+.page-header span{color:var(--muted);font-size:13px}
+
+/* Tabs */
+.tabs{display:flex;gap:4px;margin-bottom:24px;border-bottom:1.5px solid var(--border);padding-bottom:0}
+.tab{padding:10px 20px;font-size:13px;font-weight:600;cursor:pointer;border-radius:8px 8px 0 0;color:var(--muted);border:1.5px solid transparent;border-bottom:none;margin-bottom:-1.5px}
+.tab.active{background:#fff;color:var(--teal);border-color:var(--border);border-bottom-color:#fff}
+.panel{display:none}.panel.active{display:block}
+
+/* Cards */
+.card{background:#fff;border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:20px;box-shadow:0 1px 4px rgba(0,0,0,.04)}
+.card-title{font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:16px;display:flex;align-items:center;gap:8px}
+
+/* Table */
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.5px;text-transform:uppercase;padding:8px 12px;border-bottom:1.5px solid var(--border)}
+td{padding:10px 12px;border-bottom:1px solid rgba(229,231,235,.7);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+.cb-cell{text-align:center}
+input[type=checkbox]{width:16px;height:16px;accent-color:var(--teal);cursor:pointer}
+input[type=checkbox]:disabled{opacity:.3;cursor:not-allowed}
+
+/* Buttons */
+.btn{padding:8px 16px;border-radius:8px;border:none;font-size:13px;font-weight:600;cursor:pointer;transition:opacity .15s;font-family:'Inter',sans-serif}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn-teal{background:var(--teal);color:#fff}
+.btn-ghost{background:#F1F5F9;color:#374151;border:1px solid var(--border)}
+.btn-red{background:var(--red);color:#fff}
+
+/* Badges */
+.badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.3px}
+.badge-teal{background:#CCFBF1;color:#0F766E}
+.badge-muted{background:#F1F5F9;color:var(--muted)}
+
+/* Messages */
+.msg{font-size:12px;padding:8px 12px;border-radius:6px;margin-top:8px;display:none}
+.msg.error{background:#FEF2F2;color:#DC2626;border:1px solid #FECACA;display:block}
+.msg.success{background:#F0FDF4;color:#16A34A;border:1px solid #BBF7D0;display:block}
+
+/* New group row */
+.new-group-row{display:flex;gap:8px;align-items:center;margin-top:12px;flex-wrap:wrap}
+.new-group-row input{background:#F8FAFC;border:1.5px solid var(--border);border-radius:8px;padding:8px 12px;font-size:13px;color:#1E293B;outline:none;flex:1;min-width:140px;font-family:'Inter',sans-serif;transition:border-color .15s}
+.new-group-row input:focus{border-color:var(--teal)}
+.user-email{font-size:11px;color:var(--muted)}
+
+/* Loading */
+.spin{display:inline-block;width:14px;height:14px;border:2px solid var(--border);border-top-color:var(--teal);border-radius:50%;animation:spin .6s linear infinite;vertical-align:middle;margin-right:6px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading{text-align:center;padding:32px;color:var(--muted);font-size:13px}
 </style>
 </head>
 <body>
 
-<!-- LOCK SCREEN -->
-<div id="lock-screen">
-  <h2>🔐 FleetPro Permissions</h2>
-  <p style="color:var(--muted);font-size:13px">Enter admin secret to continue</p>
-  <div id="lock-err" class="msg error" style="display:none;width:280px"></div>
-  <input type="password" id="secret-input" placeholder="Admin secret" onkeydown="if(event.key==='Enter')unlock()">
-  <button class="btn btn-teal" onclick="unlock()" style="width:280px;padding:12px">Unlock</button>
+<!-- AUTH GATE -->
+<div id="auth-gate" class="gate">
+  <div class="gate-card">
+    <div style="text-align:center;font-size:40px;margin-bottom:4px">🔐</div>
+    <h2 style="text-align:center;font-size:17px">Permissions Manager</h2>
+    <p style="text-align:center;font-size:13px;color:var(--muted)">Sign in with your admin email</p>
+    <input class="gate-input" type="email" id="auth-email" placeholder="you@bounceshare.com" onkeydown="if(event.key==='Enter')sendMagicLink()">
+    <button class="btn btn-teal" id="magic-btn" style="padding:11px" onclick="sendMagicLink()">Send Magic Link</button>
+    <div id="auth-msg" style="font-size:13px;text-align:center;min-height:16px;color:var(--teal)"></div>
+  </div>
 </div>
 
-<!-- APP -->
-<div id="app">
-  <div class="header">
+<!-- DENIED -->
+<div id="denied-screen" class="gate" style="display:none">
+  <div class="gate-card" style="text-align:center">
+    <div style="font-size:40px;margin-bottom:8px">🚫</div>
+    <h2>Access Denied</h2>
+    <p>You need admin access to manage permissions.</p>
+    <button class="btn btn-ghost" style="margin-top:8px" onclick="doSignOut()">Sign out</button>
+  </div>
+</div>
+
+<!-- SECRET GATE -->
+<div id="secret-gate" class="gate" style="display:none">
+  <div class="gate-card">
+    <div style="text-align:center;font-size:40px;margin-bottom:4px">🔑</div>
+    <h2 style="text-align:center;font-size:17px">Admin Secret</h2>
+    <p id="secret-gate-user" style="text-align:center;font-size:12px;color:var(--muted)"></p>
+    <input class="gate-input" type="password" id="admin-secret-input" placeholder="Admin secret key" onkeydown="if(event.key==='Enter')unlockAdmin()">
+    <button class="btn btn-teal" style="padding:11px" onclick="unlockAdmin()">Unlock</button>
+    <div id="lock-err" style="color:var(--red);font-size:13px;text-align:center;min-height:16px"></div>
+  </div>
+</div>
+
+<!-- SIDEBAR OVERLAY -->
+<div id="ov" onclick="toggleSidebar()"></div>
+
+<!-- SIDEBAR -->
+<nav id="sb">
+  <div class="sb-header">
+    <a href="./index.html" class="sb-brand">
+      <img src="logo.jpg" width="22" height="22" style="border-radius:5px;object-fit:cover" onerror="this.style.display='none'"/>
+      FleetPro
+    </a>
+    <button class="sb-close" onclick="toggleSidebar()">✕</button>
+  </div>
+  <div class="sb-section">
+    <div class="sb-label">Fleet Tools</div>
+    <a href="./index.html" class="sb-item"><span class="si">🏠</span><span>Home</span></a>
+  </div>
+  <div class="sb-section" style="margin-top:4px">
+    <div class="sb-label">Service Operations</div>
+    <a href="./maintenance.html" class="sb-item" data-feature="maintenance"><span class="si">🔧</span><span>Preventive Maintenance</span></a>
+    <a href="./queue.html" class="sb-item" data-feature="oos-queue"><span class="si">📋</span><span>OOS Queue</span></a>
+  </div>
+  <div class="sb-section" style="margin-top:4px">
+    <div class="sb-label">Hub Operations</div>
+    <a href="./deployment.html" class="sb-item" data-feature="deployment"><span class="si">🚲</span><span>Deployment Queue</span></a>
+  </div>
+  <div class="sb-section" style="margin-top:4px">
+    <div class="sb-label">RSA Operations</div>
+    <a href="./fw-map.html" class="sb-item" data-feature="fw-map"><span class="si">🗺️</span><span>FW Pending Map</span></a>
+    <a href="./rsa.html" class="sb-item" data-feature="rsa-warroom"><span class="si">🦺</span><span>RSA Warroom</span></a>
+  </div>
+  <div class="sb-section" style="margin-top:4px" data-feature="trace-ho">
+    <div class="sb-label">Recovery Operations</div>
+    <a href="./trace-ho.html" class="sb-item" data-feature="trace-ho"><span class="si">🎯</span><span>Trace</span></a>
+    <a href="./trace-hunter.html" class="sb-item" data-feature="trace-hunter"><span class="si">📱</span><span>Hunter</span></a>
+  </div>
+  <div class="sb-section" style="margin-top:4px" data-feature="incentive-tech">
+    <div class="sb-label">Incentives</div>
+    <a href="./incentive.html" class="sb-item" data-feature="incentive-tech"><span class="si">🏆</span><span>Technician Incentives</span></a>
+  </div>
+  <div class="sb-section" style="margin-top:8px" data-feature="admin-panel">
+    <div class="sb-label">Admin</div>
+    <a href="./admin-techs.html" class="sb-item" data-feature="admin-panel"><span class="si">👤</span><span>Manage Technicians</span></a>
+    <a href="./admin-permissions.html" class="sb-item active" data-feature="admin-panel"><span class="si">🔐</span><span>Permissions</span></a>
+    <a href="./jc-approval.html" class="sb-item" data-feature="admin-panel"><span class="si">🔧</span><span>JC Approval Check</span></a>
+    <a href="./admin-analytics.html" class="sb-item" data-feature="admin-panel"><span class="si">📊</span><span>Analytics</span></a>
+  </div>
+  <div class="sb-spacer"></div>
+  <div class="sb-footer">FleetPro · Admin</div>
+</nav>
+
+<!-- TOPBAR -->
+<div id="topbar">
+  <button id="hbg" onclick="toggleSidebar()"><span></span><span></span><span></span></button>
+  <a href="./index.html" class="tb-brand">
+    <img src="logo.jpg" width="24" height="24" style="border-radius:5px;object-fit:cover" onerror="this.style.display='none'"/>
+    FleetPro
+  </a>
+  <span class="tb-sep">·</span>
+  <span class="tb-title">🔐 Permissions</span>
+  <div class="tb-right">
+    <span id="topbar-user" style="font-size:12px;color:var(--muted)"></span>
+    <button class="tb-btn" onclick="doSignOut()">Sign out</button>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div id="app" style="display:none">
+<div class="container">
+  <div class="page-header">
     <div>
-      <h1>⚙️ Permissions Manager</h1>
+      <h1>🔐 Permissions Manager</h1>
       <span>Groups, features, and user assignments — all changes save instantly</span>
     </div>
   </div>
@@ -73,12 +218,12 @@
     <div class="tab" onclick="switchTab('users')">Users × Groups</div>
   </div>
 
-  <!-- TAB 1: Groups × Features -->
+  <!-- TAB 1 -->
   <div id="tab-features" class="panel active">
     <div class="card">
       <div class="card-title">
         Which features does each group have access to?
-        <span style="margin-left:auto;font-size:11px;color:var(--muted)">Click any checkbox to toggle instantly</span>
+        <span style="margin-left:auto;font-size:11px;font-weight:400;text-transform:none">Click any checkbox to toggle instantly</span>
       </div>
       <div id="features-table"><div class="loading"><span class="spin"></span>Loading…</div></div>
     </div>
@@ -93,179 +238,202 @@
     </div>
   </div>
 
-  <!-- TAB 2: Users × Groups -->
+  <!-- TAB 2 -->
   <div id="tab-users" class="panel">
     <div class="card">
       <div class="card-title">
         Which groups does each user belong to?
-        <span style="margin-left:auto;font-size:11px;color:var(--muted)">Click any checkbox to toggle instantly</span>
+        <span style="margin-left:auto;font-size:11px;font-weight:400;text-transform:none">Click any checkbox to toggle instantly</span>
       </div>
       <div id="users-table"><div class="loading"><span class="spin"></span>Loading…</div></div>
     </div>
   </div>
 </div>
+</div>
 
 <script>
-const EDGE_URL = 'https://clkfvmmlgwcvntxnolsv.supabase.co/functions/v1/admin-permissions'
-let ADMIN_SECRET = ''
-let _groups = []
-let _users = []
+const SB_URL='https://clkfvmmlgwcvntxnolsv.supabase.co';
+const ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNsa2Z2bW1sZ3djdm50eG5vbHN2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ1NDQ2NTgsImV4cCI6MjA5MDEyMDY1OH0.FA33GFQisWX_hDeGCWqL5yAZmPcuQRdxZX32I23lyoY';
+const EDGE_URL=SB_URL+'/functions/v1/admin-permissions';
+const sb=supabase.createClient(SB_URL,ANON_KEY);
+var K=ANON_KEY;
+var ADMIN_SECRET='';
+var _groups=[];
+var _users=[];
 
-// All known feature keys (add here to extend the matrix)
-const ALL_FEATURES = [
-  { key: 'fw-map',       label: 'FW Flash Map' },
-  { key: 'rsa-warroom',  label: 'RSA Warroom' },
-  { key: 'tech-app',     label: 'Tech PWA' },
-  { key: 'maintenance',  label: 'Maintenance' },
-  { key: 'oos-queue',    label: 'OOS Queue' },
-  { key: 'deployment',   label: 'Deployment Queue' },
-  { key: 'trace-ho',       label: 'FPI HO Dashboard' },
-  { key: 'trace-hunter',   label: 'FPI Hunter PWA' },
-  { key: 'incentive-tech', label: 'Technician Incentives' },
-  { key: 'incentive-admin',label: 'Incentive Admin' },
-  { key: 'admin-panel',    label: 'Admin Panel' },
-]
+const ALL_FEATURES=[
+  {key:'fw-map',label:'FW Flash Map'},
+  {key:'rsa-warroom',label:'RSA Warroom'},
+  {key:'tech-app',label:'Tech PWA'},
+  {key:'maintenance',label:'Maintenance'},
+  {key:'oos-queue',label:'OOS Queue'},
+  {key:'deployment',label:'Deployment Queue'},
+  {key:'trace-ho',label:'FPI HO Dashboard'},
+  {key:'trace-hunter',label:'FPI Hunter PWA'},
+  {key:'incentive-tech',label:'Technician Incentives'},
+  {key:'incentive-admin',label:'Incentive Admin'},
+  {key:'admin-panel',label:'Admin Panel'},
+];
 
-function unlock() {
-  const s = document.getElementById('secret-input').value.trim()
-  if (!s) return
-  ADMIN_SECRET = s
-  document.getElementById('lock-err').style.display = 'none'
-  loadAll()
+// ── Sidebar ──
+var sbOpen=false;
+function toggleSidebar(){sbOpen=!sbOpen;document.getElementById('sb').classList.toggle('open',sbOpen);document.getElementById('ov').classList.toggle('show',sbOpen);}
+
+// ── Auth ──
+function show(id){
+  ['auth-gate','denied-screen','secret-gate'].forEach(function(s){document.getElementById(s).style.display=s===id?'flex':'none';});
+  var isApp=id==='app';
+  document.getElementById('app').style.display=isApp?'block':'none';
+  document.getElementById('topbar').style.display=isApp?'flex':'none';
 }
 
-async function permFetch(body) {
-  const r = await fetch(EDGE_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'x-admin-secret': ADMIN_SECRET },
-    body: JSON.stringify(body)
-  })
-  return r.json()
+function sendMagicLink(){
+  var e=document.getElementById('auth-email').value.trim();
+  if(!e){document.getElementById('auth-msg').textContent='Enter your email';return;}
+  document.getElementById('magic-btn').disabled=true;
+  document.getElementById('auth-msg').textContent='Sending…';
+  sb.auth.signInWithOtp({email:e,options:{emailRedirectTo:window.location.href}})
+    .then(function(r){
+      if(r.error){document.getElementById('auth-msg').style.color='var(--red)';document.getElementById('auth-msg').textContent=r.error.message;document.getElementById('magic-btn').disabled=false;}
+      else{document.getElementById('auth-msg').textContent='✅ Check your email for the magic link!';}
+    });
 }
 
-async function loadAll() {
-  const [gd, ud] = await Promise.all([
-    permFetch({ action: 'list_groups' }),
-    permFetch({ action: 'list_users' })
-  ])
-  if (gd.error || ud.error) {
-    const el = document.getElementById('lock-err')
-    el.textContent = gd.error || ud.error
-    el.style.display = 'block'
-    return
+function doSignOut(){sb.auth.signOut().then(function(){window.location.reload();});}
+
+function onAuthSession(session){
+  K=session.access_token;
+  var isSA=(session.user.app_metadata||{}).is_superadmin===true;
+  var isAdmin=isSA; // for now only superadmins reach this page
+  if(!isAdmin){show('denied-screen');return;}
+  document.getElementById('secret-gate-user').textContent='Signed in as '+session.user.email;
+  document.getElementById('topbar-user').textContent=session.user.email;
+  show('secret-gate');
+  document.getElementById('admin-secret-input').focus();
+}
+
+sb.auth.getSession().then(function(r){
+  if(r.data.session)onAuthSession(r.data.session);
+  else show('auth-gate');
+});
+sb.auth.onAuthStateChange(function(event,session){
+  if(event==='SIGNED_IN'&&session)onAuthSession(session);
+  else if(event==='SIGNED_OUT')show('auth-gate');
+  else if(event==='TOKEN_REFRESHED'&&session)K=session.access_token;
+});
+
+function unlockAdmin(){
+  var s=document.getElementById('admin-secret-input').value.trim();
+  if(!s){document.getElementById('lock-err').textContent='Enter the admin secret';return;}
+  ADMIN_SECRET=s;
+  document.getElementById('lock-err').textContent='';
+  loadAll();
+}
+
+// ── Data ──
+async function permFetch(body){
+  var r=await fetch(EDGE_URL,{method:'POST',headers:{'Content-Type':'application/json','x-admin-secret':ADMIN_SECRET,'Authorization':'Bearer '+K},body:JSON.stringify(body)});
+  return r.json();
+}
+
+async function loadAll(){
+  var[gd,ud]=await Promise.all([permFetch({action:'list_groups'}),permFetch({action:'list_users'})]);
+  if(gd.error||ud.error){
+    document.getElementById('lock-err').textContent=gd.error||ud.error;
+    return;
   }
-  document.getElementById('lock-screen').style.display = 'none'
-  document.getElementById('app').style.display = 'block'
-  _groups = gd.groups
-  _users = ud.users
-  renderFeaturesMatrix()
-  renderUsersMatrix()
+  _groups=gd.groups;
+  _users=ud.users;
+  show('app');
+  renderFeaturesMatrix();
+  renderUsersMatrix();
 }
 
-// --- TAB 1: Groups × Features ---
-function renderFeaturesMatrix() {
-  if (!_groups.length) { document.getElementById('features-table').innerHTML = '<div class="loading">No groups yet</div>'; return }
-  const featureSet = _groups.reduce((acc, g) => {
-    (g.group_features || []).forEach(f => acc.add(f.feature_key)); return acc
-  }, new Set(ALL_FEATURES.map(f => f.key)))
-  const features = ALL_FEATURES.filter(f => featureSet.has(f.key))
-
-  let html = '<table><thead><tr><th>Feature</th>'
-  _groups.forEach(g => { html += `<th class="cb-cell">${g.name}</th>` })
-  html += '</tr></thead><tbody>'
-
-  features.forEach(f => {
-    html += `<tr><td>${f.label}<br><span class="user-email">${f.key}</span></td>`
-    _groups.forEach(g => {
-      const has = (g.group_features || []).some(gf => gf.feature_key === f.key)
-      html += `<td class="cb-cell">
-        <input type="checkbox" ${has ? 'checked' : ''}
-          onchange="toggleGroupFeature('${g.id}','${f.key}',this)"
-          title="${has ? 'Remove' : 'Add'} ${f.key} from ${g.name}">
-      </td>`
-    })
-    html += '</tr>'
-  })
-  html += '</tbody></table>'
-  document.getElementById('features-table').innerHTML = html
+// ── Tab 1: Groups × Features ──
+function renderFeaturesMatrix(){
+  if(!_groups.length){document.getElementById('features-table').innerHTML='<div class="loading">No groups yet</div>';return;}
+  var featureSet=_groups.reduce(function(acc,g){(g.group_features||[]).forEach(function(f){acc.add(f.feature_key);});return acc;},new Set(ALL_FEATURES.map(function(f){return f.key;})));
+  var features=ALL_FEATURES.filter(function(f){return featureSet.has(f.key);});
+  var html='<div style="overflow-x:auto"><table><thead><tr><th>Feature</th>';
+  _groups.forEach(function(g){html+='<th class="cb-cell">'+g.name+'</th>';});
+  html+='</tr></thead><tbody>';
+  features.forEach(function(f){
+    html+='<tr><td>'+f.label+'<br><span class="user-email">'+f.key+'</span></td>';
+    _groups.forEach(function(g){
+      var has=(g.group_features||[]).some(function(gf){return gf.feature_key===f.key;});
+      html+='<td class="cb-cell"><input type="checkbox"'+(has?' checked':'')
+        +' onchange="toggleGroupFeature(\''+g.id+'\',\''+f.key+'\',this)"'
+        +' title="'+(has?'Remove':'Add')+' '+f.key+' '+(has?'from':'to')+' '+g.name+'"></td>';
+    });
+    html+='</tr>';
+  });
+  html+='</tbody></table></div>';
+  document.getElementById('features-table').innerHTML=html;
 }
 
-async function toggleGroupFeature(groupId, featureKey, checkbox) {
-  checkbox.disabled = true
-  const data = await permFetch({ action: 'toggle_group_feature', group_id: groupId, feature_key: featureKey })
-  if (data.error) { checkbox.checked = !checkbox.checked; alert(data.error) }
-  else {
-    // Update local state
-    const g = _groups.find(g => g.id === groupId)
-    if (data.added) g.group_features.push({ feature_key: featureKey })
-    if (data.removed) g.group_features = g.group_features.filter(f => f.feature_key !== featureKey)
-  }
-  checkbox.disabled = false
+async function toggleGroupFeature(groupId,featureKey,checkbox){
+  checkbox.disabled=true;
+  var data=await permFetch({action:'toggle_group_feature',group_id:groupId,feature_key:featureKey});
+  if(data.error){checkbox.checked=!checkbox.checked;alert(data.error);}
+  else{var g=_groups.find(function(g){return g.id===groupId;});if(data.added)g.group_features.push({feature_key:featureKey});if(data.removed)g.group_features=g.group_features.filter(function(f){return f.feature_key!==featureKey;});}
+  checkbox.disabled=false;
 }
 
-async function createGroup() {
-  const name = document.getElementById('new-group-name').value.trim()
-  const desc = document.getElementById('new-group-desc').value.trim()
-  const msg = document.getElementById('create-group-msg')
-  if (!name) { showMsg(msg, 'error', 'Name is required'); return }
-  const data = await permFetch({ action: 'create_group', name, description: desc || null })
-  if (data.error) { showMsg(msg, 'error', data.error); return }
-  showMsg(msg, 'success', `✓ Group "${name}" created`)
-  document.getElementById('new-group-name').value = ''
-  document.getElementById('new-group-desc').value = ''
-  data.group.group_features = []
-  _groups.push(data.group)
-  _groups.sort((a, b) => a.name.localeCompare(b.name))
-  renderFeaturesMatrix()
-  renderUsersMatrix()
+async function createGroup(){
+  var name=document.getElementById('new-group-name').value.trim();
+  var desc=document.getElementById('new-group-desc').value.trim();
+  var msg=document.getElementById('create-group-msg');
+  if(!name){showMsg(msg,'error','Name is required');return;}
+  var data=await permFetch({action:'create_group',name:name,description:desc||null});
+  if(data.error){showMsg(msg,'error',data.error);return;}
+  showMsg(msg,'success','✓ Group "'+name+'" created');
+  document.getElementById('new-group-name').value='';
+  document.getElementById('new-group-desc').value='';
+  data.group.group_features=[];
+  _groups.push(data.group);
+  _groups.sort(function(a,b){return a.name.localeCompare(b.name);});
+  renderFeaturesMatrix();
+  renderUsersMatrix();
 }
 
-// --- TAB 2: Users × Groups ---
-function renderUsersMatrix() {
-  if (!_users.length) { document.getElementById('users-table').innerHTML = '<div class="loading">No users</div>'; return }
-  let html = '<table><thead><tr><th>User</th>'
-  _groups.forEach(g => { html += `<th class="cb-cell">${g.name}</th>` })
-  html += '</tr></thead><tbody>'
-
-  _users.forEach(u => {
-    html += `<tr><td>${u.email}<br><span class="user-email">${u.id.slice(0,8)}…</span></td>`
-    _groups.forEach(g => {
-      const has = u.group_ids.includes(g.id)
-      html += `<td class="cb-cell">
-        <input type="checkbox" ${has ? 'checked' : ''}
-          onchange="toggleUserGroup('${u.id}','${g.id}',this)"
-          title="${has ? 'Remove' : 'Add'} ${u.email} ${has ? 'from' : 'to'} ${g.name}">
-      </td>`
-    })
-    html += '</tr>'
-  })
-  html += '</tbody></table>'
-  document.getElementById('users-table').innerHTML = html
+// ── Tab 2: Users × Groups ──
+function renderUsersMatrix(){
+  if(!_users.length){document.getElementById('users-table').innerHTML='<div class="loading">No users</div>';return;}
+  var html='<div style="overflow-x:auto"><table><thead><tr><th>User</th>';
+  _groups.forEach(function(g){html+='<th class="cb-cell">'+g.name+'</th>';});
+  html+='</tr></thead><tbody>';
+  _users.forEach(function(u){
+    html+='<tr><td>'+u.email+'<br><span class="user-email">'+u.id.slice(0,8)+'…</span></td>';
+    _groups.forEach(function(g){
+      var has=u.group_ids.includes(g.id);
+      html+='<td class="cb-cell"><input type="checkbox"'+(has?' checked':'')
+        +' onchange="toggleUserGroup(\''+u.id+'\',\''+g.id+'\',this)"'
+        +' title="'+(has?'Remove':'Add')+' '+u.email+' '+(has?'from':'to')+' '+g.name+'"></td>';
+    });
+    html+='</tr>';
+  });
+  html+='</tbody></table></div>';
+  document.getElementById('users-table').innerHTML=html;
 }
 
-async function toggleUserGroup(userId, groupId, checkbox) {
-  checkbox.disabled = true
-  const data = await permFetch({ action: 'toggle_user_group', user_id: userId, group_id: groupId })
-  if (data.error) { checkbox.checked = !checkbox.checked; alert(data.error) }
-  else {
-    const u = _users.find(u => u.id === userId)
-    if (data.added) u.group_ids.push(groupId)
-    if (data.removed) u.group_ids = u.group_ids.filter(id => id !== groupId)
-  }
-  checkbox.disabled = false
+async function toggleUserGroup(userId,groupId,checkbox){
+  checkbox.disabled=true;
+  var data=await permFetch({action:'toggle_user_group',user_id:userId,group_id:groupId});
+  if(data.error){checkbox.checked=!checkbox.checked;alert(data.error);}
+  else{var u=_users.find(function(u){return u.id===userId;});if(data.added)u.group_ids.push(groupId);if(data.removed)u.group_ids=u.group_ids.filter(function(id){return id!==groupId;});}
+  checkbox.disabled=false;
 }
 
-// --- Tabs ---
-function switchTab(tab) {
-  document.querySelectorAll('.tab').forEach((t, i) => t.classList.toggle('active', ['features','users'][i] === tab))
-  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'))
-  document.getElementById('tab-' + tab).classList.add('active')
+// ── Tabs ──
+function switchTab(tab){
+  document.querySelectorAll('.tab').forEach(function(t,i){t.classList.toggle('active',['features','users'][i]===tab);});
+  document.querySelectorAll('.panel').forEach(function(p){p.classList.remove('active');});
+  document.getElementById('tab-'+tab).classList.add('active');
 }
 
-function showMsg(el, type, text) {
-  el.textContent = text
-  el.className = 'msg ' + type
-  setTimeout(() => { el.className = 'msg' }, 3000)
+function showMsg(el,type,text){
+  el.textContent=text;el.className='msg '+type;
+  setTimeout(function(){el.className='msg';},3000);
 }
 </script>
 </body>
