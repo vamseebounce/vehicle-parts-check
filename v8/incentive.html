@@ -811,6 +811,7 @@ function getSelectedWeek(){
 async function onWeekChange(){
   await loadDashboard();
   renderLeaderboard();
+  populateAdminTechDropdown();
 }
 
 async function loadDashboard(){
@@ -1522,15 +1523,20 @@ let adminViewingTech=null; // null = viewing own dashboard
 async function populateAdminTechDropdown(){
   if(!fpCan('incentive-admin'))return;
   try{
-    // Get distinct tech names from weekly_stats (from TECH_SINCE)
-    const{data:stats}=await sbClient.from('incentive_weekly_stats').select('tech_name,hub_name').gte('week_start',TECH_SINCE).order('tech_name');
+    const selectedWeek=getSelectedWeek();
+    const{data:stats}=await sbClient.from('incentive_weekly_stats').select('tech_name').eq('week_start',selectedWeek).order('tech_name');
     const sel=document.getElementById('admin-tech-select');
     if(!sel||!stats)return;
-    // Deduplicate by tech_name
-    const seen=new Set();
-    const unique=stats.filter(s=>{if(seen.has(s.tech_name))return false;seen.add(s.tech_name);return true;});
     sel.style.display='block';
-    const opts=unique.map(t=>`<option value="${t.tech_name}">${t.tech_name}${t.hub_name?' · '+t.hub_name:''}</option>`).join('');
+    // Deduplicate by base name (before ' - ') — same person with multiple hub entries shows once
+    const seen=new Set();
+    const unique=stats.filter(t=>{
+      const base=t.tech_name.split(' - ')[0].trim().toUpperCase();
+      if(seen.has(base))return false;
+      seen.add(base);
+      return true;
+    });
+    const opts=unique.map(t=>`<option value="${t.tech_name}">${t.tech_name}</option>`).join('');
     sel.innerHTML='<option value="">— View as technician —</option>'+opts;
   }catch(e){console.error('Admin dropdown error:',e);}
 }
