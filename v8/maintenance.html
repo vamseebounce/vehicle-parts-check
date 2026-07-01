@@ -337,60 +337,7 @@ body.pinned #main{margin-left:var(--sb-width)}
 <div id="ov"></div>
 
 <!-- Sidebar -->
-<nav id="sb">
-  <div class="sb-header">
-    <a href="/" class="sb-brand">
-      <img src="../logo.jpg" width="44" height="44" style="border-radius:10px;object-fit:cover;flex-shrink:0"/>
-      <div class="sb-brand-text">
-        <div class="t1">Bounce Daily</div>
-        <div class="t2">FleetPro</div>
-      </div>
-    </a>
-    <button class="pin-btn" id="pinBtn" onclick="togglePin()" title="Pin sidebar">
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2v10M8 6l4-4 4 4M8 18l4 4 4-4M12 12v10"/></svg>
-      Pin
-    </button>
-  </div>
-  <div class="sb-section">
-    <div class="sb-label">Fleet Tools</div>
-    <a href="/" class="sb-item">
-      <span class="si">🏠</span><span>Home</span>
-    </a>
-    <a href="../maintenance" class="sb-item active">
-      <span class="si">🔧</span><span>Preventive Maintenance</span>
-    </a>
-    <a href="../queue" class="sb-item">
-      <span class="si">📋</span><span>OOS Queue</span>
-    </a>
-    <a href="../deployment" class="sb-item">
-      <span class="si">🚲</span><span>Deployment Queue</span>
-    </a>
-    <a href="./fw-map.html" class="sb-item" data-feature="fw-map">
-      <span class="si">🗺️</span><span>FW Pending Map</span>
-    </a>
-    <a href="./rsa.html" class="sb-item" data-feature="rsa-warroom">
-      <span class="si">🦺</span><span>RSA Warroom</span>
-    </a>
-  </div>
-  <div class="sb-section" style="margin-top:8px">
-    <div class="sb-label">Coming Soon</div>
-    <div class="sb-item" style="opacity:.4;cursor:default"><span class="si">📊</span><span>Fleet Analytics</span></div>
-    <div class="sb-item" style="opacity:.4;cursor:default"><span class="si">🔔</span><span>Alert Centre</span></div>
-  </div>
-  <div class="sb-section" style="margin-top:4px" data-feature="incentive-tech">
-    <div class="sb-label">Incentives</div>
-    <a href="./incentive.html" class="sb-item" data-feature="incentive-tech"><span class="si">🏆</span><span>Technician Incentives</span></a>
-  </div>
-  <div class="sb-spacer"></div>
-  <div class="sb-footer"><div class="sb-ver">FleetPro v8 · Data synced hourly</div></div>
-  <div class="sb-section" style="margin-top:8px" data-feature="admin-panel">
-    <div class="sb-label">Admin</div>
-    <a href="./admin-techs.html" class="sb-item" data-feature="admin-panel"><span class="si">👤</span><span>Manage Technicians</span></a>
-    <a href="./admin-permissions.html" class="sb-item" data-feature="admin-panel"><span class="si">🔐</span><span>Permissions</span></a>
-    <a href="./jc-approval.html" class="sb-item" data-feature="admin-panel"><span class="si">🔧</span><span>JC Approval Check</span></a>
-    <a href="./admin-analytics.html" class="sb-item" data-feature="admin-panel"><span class="si">📊</span><span>Analytics</span></a>
-  </div>
-</nav>
+<nav id="sb"><!-- injected by sidebar.js (shared source of truth) --></nav>
 
 <!-- Main -->
 <div id="main">
@@ -641,7 +588,7 @@ function toggleSidebar(){if(pinned){togglePin();return;}sbOpen=!sbOpen;document.
 function closeSidebar(){if(pinned)return;sbOpen=false;document.getElementById('sb').classList.remove('open');document.getElementById('ov').classList.remove('show');}
 function togglePin(){pinned=!pinned;localStorage.setItem('sb_pinned',pinned?'1':'0');applyPin();if(!pinned){sbOpen=false;document.getElementById('sb').classList.remove('open');}}
 document.getElementById('ov').addEventListener('click',closeSidebar);
-applyPin();
+/* applyPin: handled by sidebar.js */
 
 var si=document.getElementById('si');
 var rv=document.getElementById('res');

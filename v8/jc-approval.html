@@ -184,35 +184,7 @@ body.pinned #hbg{display:none}
 <div id="ov" onclick="toggleSidebar()"></div>
 
 <!-- ── SIDEBAR ── -->
-<div id="sb">
-  <div class="sb-header">
-    <a class="sb-brand" href="index.html">
-      <img src="logo.jpg" width="36" height="36" style="border-radius:8px;object-fit:cover"/>
-      <div class="sb-brand-text"><div class="t1">Bounce Daily</div><div class="t2">FleetPro</div></div>
-    </a>
-    <button class="pin-btn" onclick="togglePin()" id="pin-btn">📌</button>
-  </div>
-  <div style="flex:1;overflow-y:auto">
-    <div class="sb-section">
-      <div class="sb-label">Service Operations</div>
-      <a href="./queue.html" class="sb-item" data-feature="admin-panel"><span class="si">🚗</span><span>OOS Queue</span></a>
-    </div>
-    <div class="sb-section">
-      <div class="sb-label">Admin</div>
-      <a href="./admin-techs.html" class="sb-item" data-feature="admin-panel"><span class="si">👥</span><span>Technicians</span></a>
-      <a href="./admin-permissions.html" class="sb-item" data-feature="admin-panel"><span class="si">🔐</span><span>Permissions</span></a>
-      <a href="./jc-approval.html" class="sb-item active" data-feature="admin-panel"><span class="si">🔧</span><span>JC Approval Check</span></a>
-    <a href="./admin-analytics.html" class="sb-item" data-feature="admin-panel"><span class="si">📊</span><span>Analytics</span></a>
-    </div>
-    <div class="sb-section" style="margin-top:4px" data-feature="incentive-tech">
-      <div class="sb-label">Incentives</div>
-      <a href="./incentive.html" class="sb-item" data-feature="incentive-tech"><span class="si">🏆</span><span>Technician Incentives</span></a>
-    </div>
-  </div>
-  <div class="sb-footer">
-    <div class="sb-ver">© 2024 Bounce Daily</div>
-  </div>
-</div>
+<div id="sb"><!-- injected by sidebar.js (shared source of truth) --></div>
 
 <!-- ── MAIN ── -->
 <div id="main">
