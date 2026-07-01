@@ -189,6 +189,28 @@ body.pinned #hbg{display:none}
 @media(min-width:768px){
   body.pinned #sb{transform:translateX(0)}
 }
+
+/* ── Voided JC Drawer ── */
+#void-drawer{position:fixed;inset-y:0;right:0;width:440px;max-width:92vw;background:#fff;box-shadow:-4px 0 24px rgba(0,0,0,.18);z-index:3000;transform:translateX(100%);transition:transform .25s ease;display:flex;flex-direction:column;}
+#void-drawer.open{transform:translateX(0);}
+.drawer-header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.drawer-title{font-size:.92rem;font-weight:800;color:#0F172A;}
+.drawer-close{background:none;border:none;cursor:pointer;font-size:1.3rem;color:var(--muted);padding:4px 8px;border-radius:6px;line-height:1;transition:background .15s;}
+.drawer-close:hover{background:#F3F4F6;}
+.drawer-body{flex:1;overflow-y:auto;padding:16px 20px;}
+.void-row{display:grid;grid-template-columns:1fr 90px 90px;gap:8px;padding:9px 0;border-bottom:1px solid var(--border);font-size:.78rem;}
+.void-row-hd{font-size:.63rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;}
+
+/* ── Hub Leaderboard ── */
+.hub-table{width:100%;border-collapse:collapse;font-size:.78rem;}
+.hub-table th{padding:10px 8px;text-align:left;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;font-size:.62rem;border-bottom:1px solid var(--border);background:#F9FAFB;}
+.hub-table tr.hub-row td{padding:10px 8px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .1s;}
+.hub-table tr.hub-row:hover td{background:#F9FAFB;}
+.hub-table tr.hub-sub-row td{padding:7px 8px 7px 30px;font-size:.73rem;background:#F0F9FF;border-bottom:1px solid #DBEAFE;}
+
+/* ── Tier Nudge Celebration ── */
+@keyframes pop{0%{transform:scale(.9);opacity:0}60%{transform:scale(1.04)}100%{transform:scale(1);opacity:1}}
+.nudge-celebrate{animation:pop .4s ease;background:linear-gradient(135deg,#FFFBEB,#FEF3C7)!important;border-left-color:#F59E0B!important;}
 </style>
 </head>
 <body>
@@ -344,10 +366,10 @@ body.pinned #hbg{display:none}
           <div class="kpi-value" id="kpi-total">—</div>
           <div class="kpi-detail" data-i18n="kpiTotalDetail">All billed job cards</div>
         </div>
-        <div class="kpi-card">
+        <div class="kpi-card" onclick="openVoidedDrilldown()" style="cursor:pointer;" title="Click to see which JCs were voided and why">
           <div class="kpi-label" data-i18n="kpiVoidedLabel">Voided JCs</div>
           <div class="kpi-value" id="kpi-voided">—</div>
-          <div class="kpi-detail" data-i18n="kpiVoidedDetail">Excluded from this week</div>
+          <div class="kpi-detail" data-i18n="kpiVoidedDetail">Excluded · <span style="color:#E8191C;font-weight:600;">tap to view ↗</span></div>
         </div>
         <div class="kpi-card kpi-highlight">
           <div class="kpi-label" data-i18n="kpiEligibleLabel">Eligible JCs This Week</div>
@@ -478,6 +500,30 @@ body.pinned #hbg{display:none}
         </div>
       </div>
 
+      <!-- Hub Leaderboard -->
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px;margin-bottom:20px;box-shadow:var(--shadow);">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
+          <div style="font-size:.85rem;font-weight:800;color:#0F172A;">Hub Leaderboard <span style="font-size:.7rem;font-weight:500;color:var(--muted);">· click to expand</span></div>
+          <button onclick="exportPayoutCSV()" style="font-size:.72rem;padding:6px 12px;background:#0F172A;color:#fff;border:none;border-radius:8px;cursor:pointer;font-family:inherit;font-weight:600;" title="Download week payout as CSV">⬇ Export CSV</button>
+        </div>
+        <table class="hub-table" id="hub-leaderboard-table">
+          <thead>
+            <tr>
+              <th>Hub</th>
+              <th>City</th>
+              <th>Total Techs</th>
+              <th>Earners (≥50)</th>
+              <th>Median JCs</th>
+              <th style="color:#15803D;">Total Payout</th>
+            </tr>
+          </thead>
+          <tbody id="hub-leaderboard-tbody">
+            <tr><td colspan="6" style="padding:16px 8px;text-align:center;color:var(--muted);">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Individual Leaderboard -->
       <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px;box-shadow:var(--shadow);">
         <table class="leaderboard-table" id="leaderboard-table">
           <thead>
@@ -601,10 +647,13 @@ body.pinned #hbg{display:none}
         </div>
       </div>
 
-      <!-- Sync Panel -->
-      <div class="upload-panel">
-        <div class="upload-title">Data Sync</div>
-        <div class="upload-area">
+      <!-- Sync Panel (kept for immediate refresh after name mapping) -->
+      <div class="upload-panel" style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
+        <div>
+          <div class="upload-title" style="margin-bottom:6px;">Data Sync</div>
+          <div style="font-size:.72rem;color:var(--muted);">Auto-syncs every 5 min. Use this to force a refresh immediately after name mapping.</div>
+        </div>
+        <div class="upload-area" style="margin-left:auto;">
           <button class="upload-btn" id="sync-btn" onclick="triggerSync()">🔄 Sync Now</button>
           <div class="upload-progress" id="upload-progress"></div>
         </div>
@@ -617,7 +666,10 @@ body.pinned #hbg{display:none}
 
       <!-- Burn Overview Table -->
       <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px;margin-bottom:28px;box-shadow:var(--shadow);">
-        <div style="font-size:.85rem;font-weight:800;color:#0F172A;margin-bottom:14px;">Burn Overview</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
+          <div style="font-size:.85rem;font-weight:800;color:#0F172A;">Burn Overview <span style="font-size:.7rem;font-weight:500;color:var(--muted);">· click a week to expand earners</span></div>
+          <button onclick="exportPayoutCSVAdmin()" style="font-size:.72rem;padding:6px 12px;background:#0F172A;color:#fff;border:none;border-radius:8px;cursor:pointer;font-family:inherit;font-weight:600;">⬇ Export CSV</button>
+        </div>
         <table class="admin-table" id="burn-table">
           <thead>
             <tr>
@@ -674,6 +726,18 @@ body.pinned #hbg{display:none}
   </div>
 </div>
 
+<!-- Voided JC Drawer (additive — no existing logic changed) -->
+<div id="void-drawer">
+  <div class="drawer-header">
+    <div class="drawer-title">🚫 Voided JCs — Detail</div>
+    <button class="drawer-close" onclick="closeVoidDrawer()">✕</button>
+  </div>
+  <div class="drawer-body" id="void-drawer-body">
+    <div style="text-align:center;color:var(--muted);padding:40px 0;">Loading…</div>
+  </div>
+</div>
+<div id="void-overlay" onclick="closeVoidDrawer()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.22);z-index:2999;"></div>
+
 <script>
 /* ── SUPABASE CONFIG ── */
 const SB_URL='https://clkfvmmlgwcvntxnolsv.supabase.co';
@@ -685,6 +749,9 @@ let K=ANON_KEY;
 let CURRENT_USER_EMAIL=null;
 let CURRENT_SESSION=null;
 window.FP_FEATURES={};
+let CURRENT_TECH_EMPLOYEE_ID=null; // set by loadDashboard; used by voided drill-down
+let _lastLeaderboardStats=[]; // cache for hub leaderboard re-render on expand
+let _hubExpandState={}; // hub_name → true/false
 
 const sbClient=supabase.createClient(SB_URL,ANON_KEY,{auth:{persistSession:true,storageKey:'fleetpro_session',autoRefreshToken:true}});
 
@@ -831,6 +898,7 @@ async function loadDashboard(){
         const{data:emp}=await sbClient.from('hr_employees').select('employee_id,employee_name').eq('email',userEmail).maybeSingle();
         if(emp){
           techEmployeeId=emp.employee_id;
+          CURRENT_TECH_EMPLOYEE_ID=emp.employee_id; // stored globally for voided drill-down
           // Use technician_name from the most recent JC for this employee
           const{data:jcRow}=await sbClient.from('incentive_jc_log').select('technician_name').eq('employee_id',emp.employee_id).order('jc_billed_date',{ascending:false}).limit(1).maybeSingle();
           techName=jcRow?.technician_name||emp.employee_name;
@@ -942,19 +1010,36 @@ function updatePayoutBar(eligible,tierInfo){
   marker.style.left=(jcToBarPct(eligible)/100*barWidth)+'px';
   marker.classList.add('show');
 
-  let nudge='';
+  const nudgeEl=document.getElementById('payout-nudge');
+  if(!nudgeEl)return;
+  nudgeEl.classList.remove('nudge-celebrate');
+  nudgeEl.style.borderLeftColor='';nudgeEl.style.background='';
+  let html='';
   if(tierInfo.tier===0){
-    nudge=`You need ${tierInfo.need} more JCs to unlock Tier 1 (₹25/JC). Keep pushing!`;
+    if(eligible===0){
+      html=`🚀 <b>No JCs yet this week.</b> Cross 50 to start earning — first payout unlocks at T1 (₹25/JC).`;
+      nudgeEl.style.borderLeftColor='#9CA3AF';
+    } else if(tierInfo.need<=10){
+      html=`🔥 <b>Almost there! Just ${tierInfo.need} more JCs</b> to unlock Tier 1 and start earning ₹25/JC. Push hard!`;
+      nudgeEl.style.borderLeftColor='#F59E0B';
+    } else {
+      html=`💪 <b>${tierInfo.need} more JCs</b> to unlock Tier 1 (₹25/JC). You've got this — stay consistent!`;
+      nudgeEl.style.borderLeftColor='#9CA3AF';
+    }
   }else if(tierInfo.tier===1){
-    nudge=`Great! You're in Tier 1. ${tierInfo.need} more JCs to reach Tier 2 (₹50/JC).`;
+    html=`🎉 <b>Tier 1 unlocked!</b> You're earning ₹25/JC. ${tierInfo.need} more JCs to jump to T2 at ₹50/JC — double the rate!`;
+    nudgeEl.classList.add('nudge-celebrate');
   }else if(tierInfo.tier===2){
-    nudge=`Excellent! You've reached Tier 2. ${tierInfo.need} more to unlock Tier 3 (₹75/JC).`;
+    html=`🔥 <b>Tier 2 — great work!</b> Earning ₹50/JC now. ${tierInfo.need} more to hit T3 at ₹75/JC.`;
+    nudgeEl.style.borderLeftColor='#10B981';nudgeEl.style.background='#ECFDF5';
   }else if(tierInfo.tier===3){
-    nudge=`Outstanding! You're in Tier 3. ${tierInfo.need} more to hit the cap at Tier 4.`;
+    html=`⭐ <b>Tier 3 achieved!</b> ₹75/JC — you're nearly at the top. ${tierInfo.need} more to unlock T4 at ₹100/JC!`;
+    nudgeEl.style.borderLeftColor='#F59E0B';nudgeEl.style.background='#FFFBEB';
   }else{
-    nudge='You\'ve reached the maximum payout cap! Keep up the excellent work.';
+    html=`🏆 <b>Maximum tier reached!</b> Every JC now earns ₹100. Top performer — incredible work this week!`;
+    nudgeEl.classList.add('nudge-celebrate');
   }
-  document.getElementById('payout-nudge').textContent=nudge;
+  nudgeEl.innerHTML=html;
 }
 
 function renderTrendTable(stats,currentWeek,rankByWeek){
@@ -997,7 +1082,9 @@ async function renderLeaderboard(){
 
     if(city)q=q.eq('city',city);
 
-    const{data:stats}=await q.limit(50);
+    const{data:stats}=await q.limit(200); // increased to cover all techs for hub grouping
+    _lastLeaderboardStats=stats||[];
+    renderHubLeaderboard(_lastLeaderboardStats);
     const tbody=document.getElementById('leaderboard-tbody');
 
     if(!stats||stats.length===0){
@@ -1151,31 +1238,75 @@ async function saveTechMapping(techId){
   }
 }
 
+let _burnRawStats=[]; // kept for expand
+let _burnExpandState={}; // week → expanded
+
 function renderBurnTable(stats){
+  _burnRawStats=stats||[];
   const grouped={};
   stats.forEach(s=>{
     const week=s.week_start;
-    if(!grouped[week])grouped[week]={techs:new Set(),jcs:[],payouts:[]};
+    if(!grouped[week])grouped[week]={rows:[],techs:new Set(),jcs:[],payouts:[]};
+    grouped[week].rows.push(s);
     grouped[week].techs.add(s.tech_name);
     grouped[week].jcs.push(s.eligible_jcs||0);
     grouped[week].payouts.push(s.payout_amount||0);
   });
+  rebuildBurnRows(grouped);
+}
 
+function rebuildBurnRows(grouped){
+  if(!grouped){
+    // rebuild from raw
+    grouped={};
+    _burnRawStats.forEach(s=>{
+      const week=s.week_start;
+      if(!grouped[week])grouped[week]={rows:[],techs:new Set(),jcs:[],payouts:[]};
+      grouped[week].rows.push(s);
+      grouped[week].techs.add(s.tech_name);
+      grouped[week].jcs.push(s.eligible_jcs||0);
+      grouped[week].payouts.push(s.payout_amount||0);
+    });
+  }
   const tbody=document.getElementById('burn-tbody');
-  tbody.innerHTML=Object.keys(grouped).sort().reverse().map(week=>{
+  const rows=[];
+  Object.keys(grouped).sort().reverse().forEach(week=>{
     const g=grouped[week];
-    const jcs=g.jcs.sort((a,b)=>a-b);
+    const jcs=g.jcs.slice().sort((a,b)=>a-b);
     const median=jcs.length%2===0?(jcs[jcs.length/2-1]+jcs[jcs.length/2])/2:jcs[Math.floor(jcs.length/2)];
     const earners=jcs.filter(j=>j>50).length;
     const total=g.payouts.reduce((s,p)=>s+p,0);
-    return`<tr>
-      <td>${formatDateRange(new Date(week))}</td>
+    const isOpen=!!_burnExpandState[week];
+    rows.push(`<tr onclick="toggleBurnRow('${week}')" style="cursor:pointer;">
+      <td><span style="font-size:.8rem;margin-right:4px;">${isOpen?'▼':'▶'}</span>${formatDateRange(new Date(week))}</td>
       <td>${g.techs.size}</td>
       <td>${earners}</td>
       <td>${Math.round(median)}</td>
-      <td>₹${Math.round(total)}</td>
-    </tr>`;
-  }).join('')||'<tr><td colspan="5">No data</td></tr>';
+      <td>₹${Math.round(total).toLocaleString('en-IN')}</td>
+    </tr>`);
+    if(isOpen){
+      const earnerRows=g.rows.filter(r=>(r.eligible_jcs||0)>50).sort((a,b)=>(b.eligible_jcs||0)-(a.eligible_jcs||0));
+      const nonEarnerCount=g.rows.length-earnerRows.length;
+      rows.push(`<tr><td colspan="5" style="padding:0;">
+        <table style="width:100%;font-size:.72rem;border-collapse:collapse;background:#F8FAFC;">
+          <tr style="background:#EFF6FF;"><td style="padding:6px 8px 6px 28px;font-weight:700;color:#1D4ED8;font-size:.65rem;text-transform:uppercase;letter-spacing:.4px;" colspan="4">Earners this week (${earnerRows.length})</td></tr>
+          ${earnerRows.map((r,i)=>`<tr style="border-bottom:1px solid #DBEAFE;">
+            <td style="padding:5px 8px 5px 28px;width:28px;">${i<3?['🥇','🥈','🥉'][i]:''}${i+1}</td>
+            <td style="padding:5px 8px;font-weight:600;">${r.tech_name}</td>
+            <td style="padding:5px 8px;color:#15803D;">${r.eligible_jcs||0} JCs</td>
+            <td style="padding:5px 8px;color:#15803D;font-weight:700;">₹${Math.round(r.payout_amount||calcPayout(r.eligible_jcs||0))}</td>
+          </tr>`).join('')}
+          ${nonEarnerCount>0?`<tr style="background:#F9FAFB;"><td colspan="4" style="padding:5px 8px 5px 28px;color:var(--muted);font-size:.7rem;">${nonEarnerCount} tech${nonEarnerCount>1?'s':''} below threshold (hidden)</td></tr>`:''}
+        </table>
+      </td></tr>`);
+    }
+  });
+  tbody.innerHTML=rows.join('')||'<tr><td colspan="5">No data</td></tr>';
+}
+
+function toggleBurnRow(week){
+  _burnExpandState[week]=!_burnExpandState[week];
+  rebuildBurnRows(null);
 }
 
 let ALL_TECHS_DATA=[];
@@ -1475,6 +1606,134 @@ async function processUpload(){
   }
 }
 
+
+/* ── HUB LEADERBOARD ── */
+function renderHubLeaderboard(stats){
+  const tbody=document.getElementById('hub-leaderboard-tbody');
+  if(!tbody)return;
+  const grouped={};
+  (stats||[]).forEach(s=>{
+    const hub=s.hub_name||'Unknown';
+    if(!grouped[hub])grouped[hub]={city:s.city||'—',rows:[]};
+    grouped[hub].rows.push(s);
+  });
+  const hubs=Object.keys(grouped).sort((a,b)=>{
+    const pa=grouped[a].rows.reduce((x,r)=>x+calcPayout(r.eligible_jcs||0),0);
+    const pb=grouped[b].rows.reduce((x,r)=>x+calcPayout(r.eligible_jcs||0),0);
+    return pb-pa;
+  });
+  if(!hubs.length){tbody.innerHTML='<tr><td colspan="6" style="padding:16px 8px;text-align:center;color:var(--muted);">No data</td></tr>';return;}
+  const rows=[];
+  hubs.forEach(hub=>{
+    const g=grouped[hub];
+    const jcArr=g.rows.map(r=>r.eligible_jcs||0).sort((a,b)=>a-b);
+    const earners=jcArr.filter(j=>j>50).length;
+    const total=g.rows.reduce((x,r)=>x+calcPayout(r.eligible_jcs||0),0);
+    const median=jcArr.length%2===0?(jcArr[jcArr.length/2-1]+jcArr[jcArr.length/2])/2:jcArr[Math.floor(jcArr.length/2)];
+    const isOpen=!!_hubExpandState[hub];
+    rows.push(`<tr class="hub-row" onclick="toggleHubRow('${hub.replace(/'/g,"\\'")}')">
+      <td><span style="margin-right:4px;">${isOpen?'▼':'▶'}</span><b>${hub}</b></td>
+      <td style="color:var(--muted);font-size:.74rem;">${g.city}</td>
+      <td>${g.rows.length}</td>
+      <td><b>${earners}</b></td>
+      <td>${Math.round(median)}</td>
+      <td style="color:#15803D;font-weight:700;">₹${Math.round(total).toLocaleString('en-IN')}</td>
+    </tr>`);
+    if(isOpen){
+      const sorted=[...g.rows].sort((a,b)=>(b.eligible_jcs||0)-(a.eligible_jcs||0));
+      sorted.forEach((r,i)=>{
+        const tier=getTierInfo(r.eligible_jcs||0).tier;
+        rows.push(`<tr class="hub-sub-row">
+          <td style="padding-left:30px;">${i<3?['🥇','🥈','🥉'][i]:'  '} ${r.tech_name}</td>
+          <td colspan="2" style="color:var(--muted);">${r.hub_name||'—'}</td>
+          <td>${tier>0?'T'+tier+'  ✓':'<span style="color:var(--muted);">✗</span>'}</td>
+          <td><b>${r.eligible_jcs||0}</b></td>
+          <td style="color:#15803D;font-weight:600;">₹${Math.round(calcPayout(r.eligible_jcs||0))}</td>
+        </tr>`);
+      });
+    }
+  });
+  tbody.innerHTML=rows.join('');
+}
+
+function toggleHubRow(hub){
+  _hubExpandState[hub]=!_hubExpandState[hub];
+  renderHubLeaderboard(_lastLeaderboardStats);
+}
+
+/* ── VOIDED JC DRILL-DOWN DRAWER ── */
+async function openVoidedDrilldown(){
+  document.getElementById('void-drawer').classList.add('open');
+  document.getElementById('void-overlay').style.display='block';
+  const body=document.getElementById('void-drawer-body');
+  body.innerHTML='<div style="text-align:center;color:var(--muted);padding:40px 0;">Loading…</div>';
+  try{
+    const selectedWeek=getSelectedWeek();
+    let q=sbClient.from('incentive_jc_log').select('reg_number,jc_billed_date,first_comeback_datetime,hub_name,intrip').eq('week_start',selectedWeek).eq('is_void',true).order('jc_billed_date',{ascending:false}).limit(200);
+    if(CURRENT_TECH_EMPLOYEE_ID)q=q.eq('employee_id',CURRENT_TECH_EMPLOYEE_ID);
+    const{data:voids}=await q;
+    if(!voids||voids.length===0){
+      body.innerHTML='<div style="text-align:center;padding:40px 0;"><div style="font-size:2rem;">🎉</div><div style="font-weight:700;margin-top:8px;">No voided JCs this week!</div><div style="font-size:.78rem;color:var(--muted);margin-top:6px;">All your JCs qualify.</div></div>';
+      return;
+    }
+    const weekRange=formatDateRange(new Date(selectedWeek));
+    body.innerHTML=`
+      <p style="font-size:.78rem;color:var(--muted);margin-bottom:14px;line-height:1.6;">
+        ${voids.length} JC${voids.length>1?'s':''} voided for week ${weekRange}.<br>
+        A JC is voided when the same bike returns within <b>3 days</b> of repair.
+      </p>
+      <div class="void-row void-row-hd">
+        <div>Bike Reg</div><div>JC Date</div><div>Comeback</div>
+      </div>
+      ${voids.map(v=>`<div class="void-row">
+        <div style="font-weight:600;color:#0F172A;">${v.reg_number||'—'}</div>
+        <div style="color:var(--muted);">${v.jc_billed_date||'—'}</div>
+        <div style="color:#DC2626;font-weight:600;">${v.first_comeback_datetime?(v.first_comeback_datetime+'').slice(0,10):'—'}</div>
+      </div>`).join('')}`;
+  }catch(e){
+    body.innerHTML='<div style="color:#DC2626;padding:20px;font-size:.8rem;">Failed to load: '+e.message+'</div>';
+  }
+}
+
+function closeVoidDrawer(){
+  document.getElementById('void-drawer').classList.remove('open');
+  document.getElementById('void-overlay').style.display='none';
+}
+
+/* ── CSV EXPORT ── */
+function _buildCSV(stats,isFrozen){
+  const headers=['Tech Name','Hub','City','Intrip JCs','OOS→RFD JCs','Voided JCs','Eligible JCs','Tier','Payout (Rs)'];
+  const csvRows=stats.map(s=>{
+    const tier=getTierInfo(s.eligible_jcs||0).tier;
+    const tierLabel=tier>0?'T'+tier:'Below';
+    return[s.tech_name,s.hub_name||'',s.city||'',s.intrip_jcs||0,s.submission_jcs||0,s.voided_jcs||0,s.eligible_jcs||0,tierLabel,Math.round(isFrozen?(s.payout_amount||calcPayout(s.eligible_jcs||0)):calcPayout(s.eligible_jcs||0))].map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(',');
+  });
+  return headers.join(',')+'\n'+csvRows.join('\n');
+}
+
+async function exportPayoutCSV(){
+  const selectedWeek=getSelectedWeek();
+  const{data:stats}=await sbClient.from('incentive_weekly_stats').select('*').eq('week_start',selectedWeek).order('eligible_jcs',{ascending:false});
+  if(!stats||!stats.length){alert('No data to export for the selected week.');return;}
+  const isFrozen=stats.some(s=>s.is_frozen);
+  const csv=_buildCSV(stats,isFrozen);
+  const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');a.href=url;a.download='incentive_'+selectedWeek+'.csv';a.click();
+  URL.revokeObjectURL(url);
+}
+
+async function exportPayoutCSVAdmin(){
+  const selectedWeek=getSelectedWeek();
+  const{data:stats}=await sbClient.from('incentive_weekly_stats').select('*').eq('week_start',selectedWeek).order('eligible_jcs',{ascending:false});
+  if(!stats||!stats.length){alert('No data for the selected week.');return;}
+  const isFrozen=stats.some(s=>s.is_frozen);
+  const csv=_buildCSV(stats,isFrozen);
+  const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');a.href=url;a.download='incentive_payout_'+selectedWeek+'.csv';a.click();
+  URL.revokeObjectURL(url);
+}
 
 /* ── PERMISSIONS ── */
 function fpCan(key){return !!(window.FP_FEATURES&&window.FP_FEATURES[key]);}
