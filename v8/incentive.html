@@ -154,6 +154,9 @@ body.pinned #hbg{display:none}
 .leaderboard-table .rank{font-weight:700;color:#0F172A;width:50px;}
 .leaderboard-table .badge{display:inline-block;background:#FEF2F2;color:#E8191C;padding:2px 6px;border-radius:4px;font-size:.65rem;font-weight:700;}
 .leaderboard-table .medal{font-size:1.1rem;margin-right:4px;}
+.lb-subtab{font-family:inherit;font-size:.78rem;font-weight:700;padding:8px 16px;border-radius:9px;border:1px solid var(--border);background:#fff;color:var(--muted);cursor:pointer;transition:all .15s;}
+.lb-subtab.active{background:#0F172A;color:#fff;border-color:#0F172A;}
+.lb-subtab:hover:not(.active){border-color:#0F172A;color:#0F172A;}
 
 /* ── Admin Upload Panel ── */
 .upload-panel{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px;margin-bottom:28px;box-shadow:var(--shadow);}
@@ -453,11 +456,18 @@ body.pinned #hbg{display:none}
         </div>
       </div>
 
+      <!-- Leaderboard sub-tabs: Hub vs Technician -->
+      <div class="lb-subtabs" style="display:flex;gap:6px;margin-bottom:16px;align-items:center;flex-wrap:wrap;">
+        <button id="lbsub-hub-btn" class="lb-subtab active" onclick="switchLbSub('hub')">Hub Leaderboard</button>
+        <button id="lbsub-tech-btn" class="lb-subtab" onclick="switchLbSub('tech')">Technician Leaderboard</button>
+        <button onclick="exportPayoutCSV()" style="margin-left:auto;font-size:.72rem;padding:6px 12px;background:#0F172A;color:#fff;border:none;border-radius:8px;cursor:pointer;font-family:inherit;font-weight:600;" title="Download week payout as CSV">⬇ Export CSV</button>
+      </div>
+
       <!-- Hub Leaderboard -->
+      <div id="lb-sub-hub">
       <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px;margin-bottom:20px;box-shadow:var(--shadow);">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
           <div style="font-size:.85rem;font-weight:800;color:#0F172A;">Hub Leaderboard <span style="font-size:.7rem;font-weight:500;color:var(--muted);">· click to expand</span></div>
-          <button onclick="exportPayoutCSV()" style="font-size:.72rem;padding:6px 12px;background:#0F172A;color:#fff;border:none;border-radius:8px;cursor:pointer;font-family:inherit;font-weight:600;" title="Download week payout as CSV">⬇ Export CSV</button>
         </div>
         <table class="hub-table" id="hub-leaderboard-table">
           <thead>
@@ -475,8 +485,10 @@ body.pinned #hbg{display:none}
           </tbody>
         </table>
       </div>
+      </div><!-- /lb-sub-hub -->
 
-      <!-- Individual Leaderboard -->
+      <!-- Technician Leaderboard -->
+      <div id="lb-sub-tech" style="display:none;">
       <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px;box-shadow:var(--shadow);">
         <table class="leaderboard-table" id="leaderboard-table">
           <thead>
@@ -494,6 +506,7 @@ body.pinned #hbg{display:none}
           </tbody>
         </table>
       </div>
+      </div><!-- /lb-sub-tech -->
     </div>
 
     <!-- How It Works Tab -->
@@ -1597,9 +1610,10 @@ function renderHubLeaderboard(stats){
       sorted.forEach((r,i)=>{
         const tier=getTierInfo(r.eligible_jcs||0).tier;
         rows.push(`<tr class="hub-sub-row">
-          <td style="padding-left:30px;">${i<3?['🥇','🥈','🥉'][i]:'  '} ${r.tech_name}</td>
-          <td colspan="2" style="color:var(--muted);">${r.hub_name||'—'}</td>
-          <td>${tier>0?'T'+tier+'  ✓':'<span style="color:var(--muted);">✗</span>'}</td>
+          <td style="padding-left:30px;">${r.tech_name}</td>
+          <td style="color:var(--muted);font-size:.74rem;">${g.city}</td>
+          <td style="color:var(--muted);">—</td>
+          <td>${tier>0?'<span style="color:#15803D;font-weight:700;">T'+tier+'</span>':'<span style="color:var(--muted);">✗</span>'}</td>
           <td><b>${r.eligible_jcs||0}</b></td>
           <td style="color:#15803D;font-weight:600;">₹${Math.round(calcPayout(r.eligible_jcs||0))}</td>
         </tr>`);
@@ -1612,6 +1626,16 @@ function renderHubLeaderboard(stats){
 function toggleHubRow(hub){
   _hubExpandState[hub]=!_hubExpandState[hub];
   renderHubLeaderboard(_lastLeaderboardStats);
+}
+
+function switchLbSub(which){
+  var hub=which==='hub';
+  var h=document.getElementById('lb-sub-hub'),t=document.getElementById('lb-sub-tech');
+  if(h)h.style.display=hub?'':'none';
+  if(t)t.style.display=hub?'none':'';
+  var hb=document.getElementById('lbsub-hub-btn'),tb=document.getElementById('lbsub-tech-btn');
+  if(hb)hb.classList.toggle('active',hub);
+  if(tb)tb.classList.toggle('active',!hub);
 }
 
 /* ── VOIDED JC DRILL-DOWN DRAWER ── */
