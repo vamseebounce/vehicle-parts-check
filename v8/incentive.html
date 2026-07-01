@@ -477,12 +477,13 @@ body.pinned #hbg{display:none}
               <th>City</th>
               <th>Total Techs</th>
               <th>Earners (≥50)</th>
+              <th>Total JCs</th>
               <th>Median JCs</th>
               <th style="color:#15803D;">Total Payout</th>
             </tr>
           </thead>
           <tbody id="hub-leaderboard-tbody">
-            <tr><td colspan="6" style="padding:16px 8px;text-align:center;color:var(--muted);">Loading…</td></tr>
+            <tr><td colspan="7" style="padding:16px 8px;text-align:center;color:var(--muted);">Loading…</td></tr>
           </tbody>
         </table>
       </div>
@@ -1589,7 +1590,7 @@ function renderHubLeaderboard(stats){
     const pb=grouped[b].rows.reduce((x,r)=>x+calcPayout(r.eligible_jcs||0),0);
     return pb-pa;
   });
-  if(!hubs.length){tbody.innerHTML='<tr><td colspan="6" style="padding:16px 8px;text-align:center;color:var(--muted);">No data</td></tr>';return;}
+  if(!hubs.length){tbody.innerHTML='<tr><td colspan="7" style="padding:16px 8px;text-align:center;color:var(--muted);">No data</td></tr>';return;}
   const rows=[];
   hubs.forEach(hub=>{
     const g=grouped[hub];
@@ -1597,12 +1598,14 @@ function renderHubLeaderboard(stats){
     const earners=jcArr.filter(j=>j>50).length;
     const total=g.rows.reduce((x,r)=>x+calcPayout(r.eligible_jcs||0),0);
     const median=jcArr.length%2===0?(jcArr[jcArr.length/2-1]+jcArr[jcArr.length/2])/2:jcArr[Math.floor(jcArr.length/2)];
+    const totalJcs=g.rows.reduce((x,r)=>x+(r.eligible_jcs||0),0);
     const isOpen=!!_hubExpandState[hub];
     rows.push(`<tr class="hub-row" onclick="toggleHubRow('${hub.replace(/'/g,"\\'")}')">
       <td><span style="margin-right:4px;">${isOpen?'▼':'▶'}</span><b>${hub}</b></td>
       <td style="color:var(--muted);font-size:.74rem;">${g.city}</td>
       <td>${g.rows.length}</td>
       <td><b>${earners}</b></td>
+      <td><b>${totalJcs}</b></td>
       <td>${Math.round(median)}</td>
       <td style="color:#15803D;font-weight:700;">₹${Math.round(total).toLocaleString('en-IN')}</td>
     </tr>`);
@@ -1613,6 +1616,7 @@ function renderHubLeaderboard(stats){
         <td></td>
         <td>Tier</td>
         <td>Eligible JCs</td>
+        <td></td>
         <td>Est. Payout</td>
       </tr>`);
       const sorted=[...g.rows].sort((a,b)=>(b.eligible_jcs||0)-(a.eligible_jcs||0));
@@ -1624,6 +1628,7 @@ function renderHubLeaderboard(stats){
           <td style="color:var(--muted);">—</td>
           <td>${tier>0?'<span style="color:#15803D;font-weight:700;">T'+tier+'</span>':'<span style="color:var(--muted);">✗</span>'}</td>
           <td><b>${r.eligible_jcs||0}</b></td>
+          <td style="color:var(--muted);">—</td>
           <td style="color:#15803D;font-weight:600;">₹${Math.round(calcPayout(r.eligible_jcs||0))}</td>
         </tr>`);
       });
