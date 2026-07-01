@@ -216,6 +216,7 @@ body.pinned #hbg{display:none}
 .hub-table tr.hub-row td{padding:10px 8px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .1s;}
 .hub-table tr.hub-row:hover td{background:#F9FAFB;}
 .hub-table tr.hub-sub-row td{padding:7px 8px 7px 30px;font-size:.73rem;background:#F0F9FF;border-bottom:1px solid #DBEAFE;}
+.hub-table tr.hub-sub-head td{padding:6px 8px 6px 30px;font-size:.58rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#0891B2;background:#E0F2FE;border-bottom:1px solid #BAE6FD;}
 
 /* ── Tier Nudge Celebration ── */
 @keyframes pop{0%{transform:scale(.9);opacity:0}60%{transform:scale(1.04)}100%{transform:scale(1);opacity:1}}
@@ -458,13 +459,13 @@ body.pinned #hbg{display:none}
 
       <!-- Leaderboard sub-tabs: Hub vs Technician -->
       <div class="lb-subtabs" style="display:flex;gap:6px;margin-bottom:16px;align-items:center;flex-wrap:wrap;">
-        <button id="lbsub-hub-btn" class="lb-subtab active" onclick="switchLbSub('hub')">Hub Leaderboard</button>
-        <button id="lbsub-tech-btn" class="lb-subtab" onclick="switchLbSub('tech')">Technician Leaderboard</button>
+        <button id="lbsub-hub-btn" class="lb-subtab" onclick="switchLbSub('hub')">Hub Leaderboard</button>
+        <button id="lbsub-tech-btn" class="lb-subtab active" onclick="switchLbSub('tech')">Technician Leaderboard</button>
         <button onclick="exportPayoutCSV()" style="margin-left:auto;font-size:.72rem;padding:6px 12px;background:#0F172A;color:#fff;border:none;border-radius:8px;cursor:pointer;font-family:inherit;font-weight:600;" title="Download week payout as CSV">⬇ Export CSV</button>
       </div>
 
       <!-- Hub Leaderboard -->
-      <div id="lb-sub-hub">
+      <div id="lb-sub-hub" style="display:none;">
       <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px;margin-bottom:20px;box-shadow:var(--shadow);">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
           <div style="font-size:.85rem;font-weight:800;color:#0F172A;">Hub Leaderboard <span style="font-size:.7rem;font-weight:500;color:var(--muted);">· click to expand</span></div>
@@ -488,7 +489,7 @@ body.pinned #hbg{display:none}
       </div><!-- /lb-sub-hub -->
 
       <!-- Technician Leaderboard -->
-      <div id="lb-sub-tech" style="display:none;">
+      <div id="lb-sub-tech">
       <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px;box-shadow:var(--shadow);">
         <table class="leaderboard-table" id="leaderboard-table">
           <thead>
@@ -1606,6 +1607,14 @@ function renderHubLeaderboard(stats){
       <td style="color:#15803D;font-weight:700;">₹${Math.round(total).toLocaleString('en-IN')}</td>
     </tr>`);
     if(isOpen){
+      rows.push(`<tr class="hub-sub-head">
+        <td>Technician</td>
+        <td>City</td>
+        <td></td>
+        <td>Tier</td>
+        <td>Eligible JCs</td>
+        <td>Est. Payout</td>
+      </tr>`);
       const sorted=[...g.rows].sort((a,b)=>(b.eligible_jcs||0)-(a.eligible_jcs||0));
       sorted.forEach((r,i)=>{
         const tier=getTierInfo(r.eligible_jcs||0).tier;
