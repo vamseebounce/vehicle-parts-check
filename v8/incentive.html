@@ -245,60 +245,7 @@ body.pinned #hbg{display:none}
 <div id="ov" onclick="closeSidebar()"></div>
 
 <!-- Sidebar -->
-<nav id="sb">
-  <div class="sb-header">
-    <a href="./incentive.html" class="sb-brand">
-      <img src="logo.jpg" width="44" height="44" style="border-radius:10px;object-fit:cover;flex-shrink:0"/>
-      <div class="sb-brand-text">
-        <div class="t1">Bounce Daily</div>
-        <div class="t2">FleetPro</div>
-      </div>
-    </a>
-    <button class="pin-btn" id="pinBtn" onclick="togglePin()" title="Pin sidebar">
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2v10M8 6l4-4 4 4M8 18l4 4 4-4M12 12v10"/></svg>
-      Pin
-    </button>
-  </div>
-  <div class="sb-section">
-    <div class="sb-label">Fleet Tools</div>
-    <a href="./index.html" class="sb-item"><span class="si">🏠</span><span>Home</span></a>
-  </div>
-  <div class="sb-section" style="margin-top:4px">
-    <div class="sb-label">Service Operations</div>
-    <a href="./maintenance.html" class="sb-item" data-feature="maintenance"><span class="si">🔧</span><span>Preventive Maintenance</span></a>
-    <a href="./queue.html" class="sb-item" data-feature="oos-queue"><span class="si">📋</span><span>OOS Queue</span></a>
-  </div>
-  <div class="sb-section" style="margin-top:4px">
-    <div class="sb-label">Hub Operations</div>
-    <a href="./deployment.html" class="sb-item" data-feature="deployment"><span class="si">🚲</span><span>Deployment Queue</span></a>
-  </div>
-  <div class="sb-section" style="margin-top:4px">
-    <div class="sb-label">RSA Operations</div>
-    <a href="./fw-map.html" class="sb-item" data-feature="fw-map"><span class="si">🗺️</span><span>FW Pending Map</span></a>
-    <a href="./rsa.html" class="sb-item" data-feature="rsa-warroom"><span class="si">🦺</span><span>RSA Warroom</span></a>
-  </div>
-  <div class="sb-section" style="margin-top:4px" data-feature="trace-ho">
-    <div class="sb-label">Recovery Operations</div>
-    <a href="./trace-ho.html" class="sb-item" data-feature="trace-ho"><span class="si">🎯</span><span>Trace</span></a>
-    <a href="./trace-hunter.html" class="sb-item" data-feature="trace-hunter"><span class="si">📱</span><span>Hunter</span></a>
-  </div>
-  <div class="sb-section" style="margin-top:4px">
-    <div class="sb-label">Incentives</div>
-    <a href="./incentive.html" class="sb-item active" data-feature="incentive-tech"><span class="si">🏆</span><span>Technician Incentives</span></a>
-  </div>
-  <div class="sb-section" style="margin-top:8px" data-feature="admin-panel">
-    <div class="sb-label">Admin</div>
-    <a href="./admin-techs.html" class="sb-item" data-feature="admin-panel"><span class="si">👤</span><span>Manage Technicians</span></a>
-    <a href="./admin-permissions.html" class="sb-item" data-feature="admin-panel"><span class="si">🔐</span><span>Permissions</span></a>
-    <a href="./jc-approval.html" class="sb-item" data-feature="admin-panel"><span class="si">🔧</span><span>JC Approval Check</span></a>
-    <a href="./admin-analytics.html" class="sb-item" data-feature="admin-panel"><span class="si">📊</span><span>Analytics</span></a>
-  </div>
-  <div class="sb-spacer"></div>
-  <div class="sb-section" style="margin-top:0;padding-top:4px">
-    <button class="sb-item" onclick="openSettings()" style="width:100%;background:none;border:none;cursor:pointer;text-align:left"><span class="si">⚙️</span><span>Settings</span></button>
-  </div>
-  <div class="sb-footer"><div class="sb-ver">FleetPro v8 · Data synced hourly</div></div>
-</nav>
+<nav id="sb"><!-- injected by sidebar.js (shared source of truth) --></nav>
 
 <!-- Main -->
 <div id="main">
@@ -1763,6 +1710,8 @@ function applyNavPermissions(features){
   if(techOnly){
     // Hide ungated nav items (Home) that lead to pages they can't access
     document.querySelectorAll('.sb-item:not([data-feature])').forEach(el=>el.style.display='none');
+    // Tech-only: keep logo on incentive (sidebar.js defaults it to index.html)
+    document.querySelectorAll('.sb-brand,.tb-logo').forEach(el=>el.setAttribute('href','./incentive.html'));
   } else {
     // Admins/multi-feature: logo goes to home, not incentive
     document.querySelectorAll('.sb-brand,.tb-logo').forEach(el=>el.setAttribute('href','./index.html'));
@@ -1808,18 +1757,7 @@ async function onAdminTechChange(){
   await loadDashboard();
 }
 
-/* ── SIDEBAR ── */
-let pinned=localStorage.getItem('sb_pinned')==='1';
-let sbOpen=false;
-function applyPin(){
-  if(pinned){document.body.classList.add('pinned');document.getElementById('pinBtn').classList.add('pinned');document.getElementById('ov').classList.remove('show');document.getElementById('sb').classList.add('open');sbOpen=true;}
-  else{document.body.classList.remove('pinned');document.getElementById('pinBtn').classList.remove('pinned');}
-}
-function toggleSidebar(){if(pinned){togglePin();return;}sbOpen=!sbOpen;document.getElementById('sb').classList.toggle('open',sbOpen);document.getElementById('ov').classList.toggle('show',sbOpen);}
-function closeSidebar(){if(pinned)return;sbOpen=false;document.getElementById('sb').classList.remove('open');document.getElementById('ov').classList.remove('show');}
-function togglePin(){pinned=!pinned;localStorage.setItem('sb_pinned',pinned?'1':'0');applyPin();if(!pinned){sbOpen=false;document.getElementById('sb').classList.remove('open');}}
-document.getElementById('ov').addEventListener('click',closeSidebar);
-applyPin();
+/* ── SIDEBAR behavior now provided by shared sidebar.js (toggleSidebar/togglePin/closeSidebar) ── */
 
 /* ── SETTINGS ── */
 function openSettings(){
@@ -2084,5 +2022,6 @@ async function loadLastSyncTime(){
   });
 })();
 </script>
+<script src="./sidebar.js"></script>
 </body>
 </html>
