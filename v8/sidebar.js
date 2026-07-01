@@ -93,7 +93,7 @@
   // to "#sb ..." (id+class specificity beats page rules); layout (position/width/z-index/
   // overlays) stays owned by each page's CSS, so page layering is never touched.
   var THEME = ''
-    + '#sb{background:#1A1A2E}'
+    + '#sb{background:#1A1A2E;overflow-y:auto}'  // overflow-y:auto: fixes pages with overflow:hidden that clipped the bottom items (Admin/Coming Soon/Settings)
     + '#sb .sb-header{border-bottom:1px solid rgba(255,255,255,.06)}'
     + '#sb .sb-brand-text .t1{color:rgba(255,255,255,.5)}'
     + '#sb .sb-brand-text .t2{color:#fff}'
