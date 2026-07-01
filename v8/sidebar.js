@@ -88,9 +88,38 @@
     + '</div>'
     + '<div class="sb-footer"><div class="sb-ver">FleetPro v8 · Data synced hourly</div></div>';
 
+  // Canonical dark theme — overrides each page's own sidebar COLORS so the sidebar
+  // looks identical everywhere (fixes the dark-vs-white drift). Colour-only and scoped
+  // to "#sb ..." (id+class specificity beats page rules); layout (position/width/z-index/
+  // overlays) stays owned by each page's CSS, so page layering is never touched.
+  var THEME = ''
+    + '#sb{background:#1A1A2E}'
+    + '#sb .sb-header{border-bottom:1px solid rgba(255,255,255,.06)}'
+    + '#sb .sb-brand-text .t1{color:rgba(255,255,255,.5)}'
+    + '#sb .sb-brand-text .t2{color:#fff}'
+    + '#sb .pin-btn{color:rgba(255,255,255,.35)}'
+    + '#sb .pin-btn:hover{color:#fff;background:rgba(255,255,255,.08)}'
+    + '#sb .pin-btn.pinned{color:#E8191C}'
+    + '#sb .sb-label{color:rgba(255,255,255,.25)}'
+    + '#sb .sb-item{color:rgba(255,255,255,.7)}'
+    + '#sb .sb-item:hover{background:rgba(255,255,255,.08);color:#fff}'
+    + '#sb .sb-item.active{background:rgba(232,25,28,.18);color:#fff}'
+    + '#sb .sb-item.active .si{color:#E8191C}'
+    + '#sb .sb-footer{border-top:1px solid rgba(255,255,255,.06)}'
+    + '#sb .sb-ver{color:rgba(255,255,255,.25)}';
+
+  function injectStyle(){
+    if (document.getElementById('sb-shared-theme')) return;
+    var st = document.createElement('style');
+    st.id = 'sb-shared-theme';
+    st.textContent = THEME;
+    document.head.appendChild(st);  // last in <head> → wins equal-specificity #sb{...}
+  }
+
   function inject(){
     var sb = document.getElementById('sb');
     if (!sb) return;
+    injectStyle();
     sb.innerHTML = html;
     // Hide Settings if the page doesn't implement it
     if (typeof window.openSettings !== 'function') {
