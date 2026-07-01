@@ -351,6 +351,7 @@ body{font-family:'Inter',sans-serif;background:#F8FAFC;color:#1E293B;height:100v
   <div id="map"></div>
   <div class="map-ctrl">
     <button class="layers-toggle" onclick="recenterMap()" title="Recenter map">⊙ Recenter</button>
+    <button class="layers-toggle" id="gps-toggle" onclick="toggleGpsMode()" title="Toggle between GPS stored on ticket vs live location from cache">📍 Ticket GPS</button>
     <button class="layers-toggle" onclick="openTrackPanel()">🛤 Track</button>
     <button class="layers-toggle" onclick="toggleLayersPanel()">🗂 Layers</button>
   </div>
@@ -547,6 +548,8 @@ var _filtered=[];
 var _zoneFilter='ALL';
 var _isToday=true;
 var _lastCitySel=null;
+var _gpsMode='ticket'; // 'ticket' = Bass_Lat from Metabase | 'live' = bike_location_cache
+var _liveGpsMap={}; // reg_number → {lat,lng,ts}
 
 // RSA team
 var RSA_BIKES=[
@@ -554,6 +557,54 @@ var RSA_BIKES=[
   {chassis:'P6EBE1JYK25000072',name:'Pavan'},
   {chassis:'P6EBE1JYH25000416',name:'Bhoja'}
 ];
+
+// ── GPS mode toggle ──
+// 'ticket' = Bass_Lat/Bass_Lng stored at ticket sync time
+// 'live'   = freshly fetched from bike_location_cache
+async function fetchLiveGps(regNums){
+  if(!regNums||!regNums.length)return;
+  _liveGpsMap={};
+  var unique=[...new Set(regNums.filter(Boolean))];
+  // Batch in chunks of 200 (IN filter limit)
+  for(var i=0;i<unique.length;i+=200){
+    var batch=unique.slice(i,i+200);
+    var q='reg_number=in.('+batch.map(function(r){return encodeURIComponent(r);}).join(',')+')'
+      +'&select=reg_number,lat,lng,baas_location_time,intellicar_location_time,best_source';
+    try{
+      var res=await fetch(SB_URL+'/rest/v1/bike_location_cache?'+q,{headers:{apikey:ANON_KEY,Authorization:'Bearer '+K}});
+      if(res.ok){
+        var rows=await res.json();
+        rows.forEach(function(r){if(r.lat!=null&&r.lng!=null)_liveGpsMap[r.reg_number]={lat:+r.lat,lng:+r.lng,ts:r.baas_location_time||r.intellicar_location_time||null,src:r.best_source||'baas'};});
+      }
+    }catch(e){}
+  }
+}
+
+function applyGpsMode(){
+  _all.forEach(function(t){
+    if(_gpsMode==='live'){
+      var g=_liveGpsMap[t.reg_number];
+      t.display_lat=g?g.lat:(t.lat||null);
+      t.display_lng=g?g.lng:(t.lng||null);
+    } else {
+      t.display_lat=t.lat||null;
+      t.display_lng=t.lng||null;
+    }
+  });
+}
+
+function toggleGpsMode(){
+  _gpsMode=(_gpsMode==='ticket')?'live':'ticket';
+  var btn=document.getElementById('gps-toggle');
+  if(btn){
+    btn.textContent=_gpsMode==='live'?'📍 Live GPS':'📍 Ticket GPS';
+    btn.style.borderColor=_gpsMode==='live'?'#6366F1':null;
+    btn.style.color=_gpsMode==='live'?'#4F46E5':null;
+    btn.style.background=_gpsMode==='live'?'#EEF2FF':null;
+  }
+  applyGpsMode();
+  renderTickets();
+}
 
 // ── Helpers ──
 function todayStr(){return new Date().toLocaleDateString('en-CA');}
@@ -938,8 +989,9 @@ async function fetchAndLoad(forceSync){
     try{
       var c=JSON.parse(localStorage.getItem(RSA_CACHE_KEY)||'null');
       if(c&&c.ts&&(Date.now()-c.ts)<RSA_CACHE_TTL){
-        _all=c.data;_lastCitySel=null;renderTickets();
+        _all=c.data;
         document.getElementById('sync-time').textContent='Cached '+Math.round((Date.now()-c.ts)/1000)+'s ago';
+        fetchLiveGps(_all.map(function(t){return t.reg_number;})).then(function(){applyGpsMode();_lastCitySel=null;renderTickets();});
         return;
       }
     }catch(e){}
@@ -956,7 +1008,7 @@ async function fetchAndLoad(forceSync){
 
     // Show existing Supabase data for this exact date range (not stale from different range)
     readFromSupabase(from,to).then(function(existing){
-      if(existing.length>0){_all=existing;_lastCitySel=null;renderTickets();document.getElementById('sync-time').textContent='Showing cached data — refreshing…';}
+      if(existing.length>0){_all=existing;fetchLiveGps(existing.map(function(t){return t.reg_number;})).then(function(){applyGpsMode();_lastCitySel=null;renderTickets();document.getElementById('sync-time').textContent='Showing cached data — refreshing…';});}
     }).catch(function(){});
 
     // Fire sync in background — Metabase takes ~60s
@@ -977,7 +1029,8 @@ async function fetchAndLoad(forceSync){
         if(tickets.length>0&&tickets.length!==lastCount){
           lastCount=tickets.length;
           if(_isToday){try{localStorage.setItem(RSA_CACHE_KEY,JSON.stringify({data:tickets,ts:Date.now()}));}catch(e){}}
-          _all=tickets;_lastCitySel=null;renderTickets();
+          _all=tickets;
+          fetchLiveGps(tickets.map(function(t){return t.reg_number;})).then(function(){applyGpsMode();_lastCitySel=null;renderTickets();});
           var now=new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',hour12:true});
           document.getElementById('sync-time').textContent='Updated '+now+' · '+tickets.length+' tickets';
         }
@@ -994,7 +1047,9 @@ async function fetchAndLoad(forceSync){
   try{
     var tickets=await readFromSupabase(from,to);
     if(_isToday){try{localStorage.setItem(RSA_CACHE_KEY,JSON.stringify({data:tickets,ts:Date.now()}));}catch(e){}}
-    _all=tickets;_lastCitySel=null;renderTickets();
+    _all=tickets;
+    await fetchLiveGps(tickets.map(function(t){return t.reg_number;}));
+    applyGpsMode();_lastCitySel=null;renderTickets();
     var now=new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',hour12:true});
     document.getElementById('sync-time').textContent='Updated '+now+' · '+tickets.length+' tickets';
   }catch(e){console.error(e);}
