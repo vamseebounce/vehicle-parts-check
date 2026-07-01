@@ -989,9 +989,9 @@ async function fetchAndLoad(forceSync){
     try{
       var c=JSON.parse(localStorage.getItem(RSA_CACHE_KEY)||'null');
       if(c&&c.ts&&(Date.now()-c.ts)<RSA_CACHE_TTL){
-        _all=c.data;
+        _all=c.data;applyGpsMode();_lastCitySel=null;renderTickets();
         document.getElementById('sync-time').textContent='Cached '+Math.round((Date.now()-c.ts)/1000)+'s ago';
-        fetchLiveGps(_all.map(function(t){return t.reg_number;})).then(function(){applyGpsMode();_lastCitySel=null;renderTickets();});
+        fetchLiveGps(_all.map(function(t){return t.reg_number;})).then(function(){if(_gpsMode==='live'){applyGpsMode();renderTickets();}});
         return;
       }
     }catch(e){}
@@ -1008,7 +1008,11 @@ async function fetchAndLoad(forceSync){
 
     // Show existing Supabase data for this exact date range (not stale from different range)
     readFromSupabase(from,to).then(function(existing){
-      if(existing.length>0){_all=existing;fetchLiveGps(existing.map(function(t){return t.reg_number;})).then(function(){applyGpsMode();_lastCitySel=null;renderTickets();document.getElementById('sync-time').textContent='Showing cached data — refreshing…';});}
+      if(existing.length>0){
+        _all=existing;applyGpsMode();_lastCitySel=null;renderTickets();
+        document.getElementById('sync-time').textContent='Showing cached data — refreshing…';
+        fetchLiveGps(existing.map(function(t){return t.reg_number;})).then(function(){if(_gpsMode==='live'){applyGpsMode();renderTickets();}});
+      }
     }).catch(function(){});
 
     // Fire sync in background — Metabase takes ~60s
@@ -1029,8 +1033,8 @@ async function fetchAndLoad(forceSync){
         if(tickets.length>0&&tickets.length!==lastCount){
           lastCount=tickets.length;
           if(_isToday){try{localStorage.setItem(RSA_CACHE_KEY,JSON.stringify({data:tickets,ts:Date.now()}));}catch(e){}}
-          _all=tickets;
-          fetchLiveGps(tickets.map(function(t){return t.reg_number;})).then(function(){applyGpsMode();_lastCitySel=null;renderTickets();});
+          _all=tickets;applyGpsMode();_lastCitySel=null;renderTickets();
+          fetchLiveGps(tickets.map(function(t){return t.reg_number;})).then(function(){if(_gpsMode==='live'){applyGpsMode();renderTickets();}});
           var now=new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',hour12:true});
           document.getElementById('sync-time').textContent='Updated '+now+' · '+tickets.length+' tickets';
         }
@@ -1047,9 +1051,8 @@ async function fetchAndLoad(forceSync){
   try{
     var tickets=await readFromSupabase(from,to);
     if(_isToday){try{localStorage.setItem(RSA_CACHE_KEY,JSON.stringify({data:tickets,ts:Date.now()}));}catch(e){}}
-    _all=tickets;
-    await fetchLiveGps(tickets.map(function(t){return t.reg_number;}));
-    applyGpsMode();_lastCitySel=null;renderTickets();
+    _all=tickets;applyGpsMode();_lastCitySel=null;renderTickets();
+    fetchLiveGps(tickets.map(function(t){return t.reg_number;})).then(function(){if(_gpsMode==='live'){applyGpsMode();renderTickets();}});
     var now=new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',hour12:true});
     document.getElementById('sync-time').textContent='Updated '+now+' · '+tickets.length+' tickets';
   }catch(e){console.error(e);}
